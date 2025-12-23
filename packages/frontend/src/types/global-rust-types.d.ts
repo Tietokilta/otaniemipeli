@@ -1,4 +1,5 @@
 // AUTO-GENERATED FROM RUST. Edit Rust models instead.
+// Found in ./packages/backend/utils/types.rs
 
 declare global {
   type PlaceType = "Normal" | "Food" | "Sauna" | "Special" | "Guild";
@@ -200,6 +201,10 @@ declare global {
     dashed: boolean;
   }
 
+  interface Connections {
+    connections: Connection[];
+  }
+
   interface Ingredient {
     id: number;
     name: string;
@@ -248,6 +253,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

@@ -205,7 +205,8 @@ def rust_to_ts_global(src: str) -> str:
     structs_sorted = sorted(structs, key=lambda m: m.start())
 
     out: List[str] = []
-    out.append("// AUTO-GENERATED FROM RUST. Edit Rust models instead.\n")
+    out.append("// AUTO-GENERATED FROM RUST. Edit Rust models instead.\n"
+               "// Found in ./packages/backend/utils/types.rs\n")
     out.append("declare global {")
     # Enums
     for m in enums_sorted:
@@ -237,11 +238,11 @@ def rust_to_ts_global(src: str) -> str:
 
 
 def main():
-    with open(r"../backend/src/utils/types.rs", "r", encoding="utf-8") as f:
+    with open(r"./packages/backend/src/utils/types.rs", "r", encoding="utf-8") as f:
         src = f.read()
 
     ts = rust_to_ts_global(src)
-    with open("global-rust-types.d.ts", "w+", encoding="utf-8") as f:
+    with open("./packages/frontend/src/types/global-rust-types.d.ts", "w+", encoding="utf-8") as f:
         f.write(ts)
 
 
