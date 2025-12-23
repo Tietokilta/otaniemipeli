@@ -4,9 +4,7 @@
   "printWidth": 50,
   "endOfLine": "lf",
   "overrides": {
-    "files": [
-      "tests/*.rs"
-    ],
+    "files": ["tests/*.rs"],
     "options": {
       "printWidth": 50
     }

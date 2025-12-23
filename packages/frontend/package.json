@@ -1,6 +1,6 @@
 {
-  "name": "otaniemipeli-frontend",
-  "version": "0.1.0",
+  "name": "frontend",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,17 +11,16 @@
     "lint-fix": "eslint .. --ext .js,.ts,.tsx --fix",
     "format": "prettier --write \"**/*.{js,ts,ts,tsx,md,json}\"",
     "clean": "rm -rf .next node_modules && pnpm install",
-    "precommit": "pnpm typecheck && pnpm lint && pnpm format && git add .. && echo '\n\uD83E\uDD29  Pre-commit checks completed! \uD83E\uDD29'",
+    "precommit": "pnpm typecheck && pnpm lint && pnpm format && git add .. && echo '\n🤩  Pre-commit checks completed! 🤩'",
     "remote": "cp .env.stash.remote .env",
     "local": "cp .env.stash.local .env"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.8",
     "lucide-react": "^0.483.0",
-    "next": "16.1.0-canary.19",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "socket.io-client": "^4.8.1"
+    "next": "16.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

@@ -2,7 +2,6 @@
 import { useSocket } from "@/app/template";
 import React, { useEffect, useRef, useState } from "react";
 import DropdownMenu from "@/app/components/dropdown-menu";
-import {router} from "next/client";
 
 export default function GameStartDialogue({
   game,

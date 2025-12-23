@@ -29,7 +29,7 @@ export default function DropdownMenu<T extends WithNameAndId>({
       </MenuButton>
       <MenuItems
         anchor="right"
-        className="text-base text-gray-900 font-bold rounded-2xl z-50"
+        className="text-base text-tertiary-500 font-bold rounded-md z-50"
       >
         {trueOptions
           .sort((a, b) => a.name.localeCompare(b.name))
@@ -37,11 +37,10 @@ export default function DropdownMenu<T extends WithNameAndId>({
             <MenuItem key={option.id}>
               <div
                 className="w-full
-                bg-juvu-sini-800
-                data-focus:bg-juvu-sini-600
-                hover:bg-juvu-sini-600
-                text-juvu-kulta
-                hover:text-juvu-sini-800
+                bg-quaternary-500
+                data-focus:bg-primary-500
+                text-tertiary-500
+                data-focus:text-tertiary-900
                 p-3"
                 onClick={() =>
                   setSelectedOption((prev) =>

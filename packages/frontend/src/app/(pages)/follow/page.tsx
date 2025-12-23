@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
 import { FlickerText } from "@/app/components/flicker-text";
 
 export default async function Home() {

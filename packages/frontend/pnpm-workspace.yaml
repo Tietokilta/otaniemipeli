@@ -3,12 +3,12 @@ packages:
   - packages/*
 
 catalog:
-  '@eslint/js': ^9.23.0
-  '@tailwindcss/typography': ^0.5.16
-  '@types/node': ^22.13.13
-  '@typescript-eslint/eslint-plugin': ^8.28.0
-  '@typescript-eslint/parser': ^8.28.0
-  '@typescript-eslint/utils': ^8.28.0
+  "@eslint/js": ^9.23.0
+  "@tailwindcss/typography": ^0.5.16
+  "@types/node": ^22.13.13
+  "@typescript-eslint/eslint-plugin": ^8.28.0
+  "@typescript-eslint/parser": ^8.28.0
+  "@typescript-eslint/utils": ^8.28.0
   autoprefixer: ^10.4.21
   clsx: ^2.1.1
   eslint: ^9.23.0
@@ -21,13 +21,13 @@ catalog:
 
 catalogs:
   react18:
-    '@types/react-dom': ^18.3.5
-    '@types/react': ^18.3.16
+    "@types/react-dom": ^18.3.5
+    "@types/react": ^18.3.16
     react-dom: ^18.3.1
     react: ^18.3.1
   react19:
-    '@types/react': ^19.0.1
-    '@types/react-dom': ^19.0.1
+    "@types/react": ^19.0.1
+    "@types/react-dom": ^19.0.1
     react-dom: ^19.0.0
     react: ^19.0.0
 
