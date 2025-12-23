@@ -23,7 +23,7 @@ pub async fn start() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
     dotenvy::dotenv().ok();
-    let port = env::var("PORT").unwrap_or_else(|_| {
+    let port = env::var("BACKEND_PORT").unwrap_or_else(|_| {
         eprintln!("PORT environment variable not set");
         "8000".to_string()
     });

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import CreateUserForm from "@/app/components/create-user-form";
 
 export default async function Home() {

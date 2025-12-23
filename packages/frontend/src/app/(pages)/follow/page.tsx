@@ -1,5 +1,6 @@
+export const dynamic = "force-dynamic";
+
 import Image from "next/image";
-import TikLogo from "@/public/TiKprofiilikuva.png";
 import { FlickerText } from "@/app/components/flicker-text";
 
 export default async function Home() {
@@ -17,12 +18,6 @@ export default async function Home() {
           Museobileet?.Otaniemipeli.await;
         </h1>
       </FlickerText>
-
-      <Image
-        src={TikLogo}
-        alt="logo"
-        className="w-auto h-[75dvh] rounded-full"
-      />
     </div>
   );
 }

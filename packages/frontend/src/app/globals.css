@@ -6,6 +6,7 @@
     --font-sans: var(--font-pixeloid);
     --font-pixel-b: var(--font-pixeloid-bold);
 
+    /* Otaniemipeli specific colours */
     --color-food-900: #93971F;
     --color-slime-600: #B2B33A;
 
@@ -21,6 +22,7 @@
     --color-normal-900: #FEF612;
     --color-normal-600: #FEF612;
 
+    /* Page colurs */
     --color-primary-100: #C9F3FF;
     --color-primary-500: #69D5F6;
     --color-primary-900: #0682A8;
@@ -37,6 +39,14 @@
     --color-quaternary-500: #1D29AF;
     --color-quaternary-900: #00075A;
 
+    --color-alert-100: #ff947e;
+    --color-alert-500: #b54624;
+    --color-alert-900: #972e00;
+
+    --color-confirm-100: #4D8F74;
+    --color-confirm-500: #093624;
+    --color-confirm-900: #051D13;
+
     --color-black: #200E14;
     --color-white: #FBFBFB;
 
@@ -52,10 +62,10 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-      --background: var(--color-primary-100);
-      --foreground: var(--color-tertiary-500);
-  }
+    :root {
+        --background: var(--color-primary-100);
+        --foreground: var(--color-tertiary-500);
+    }
 }
 @layer components {
     .debug {

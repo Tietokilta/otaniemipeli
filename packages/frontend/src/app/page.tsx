@@ -11,9 +11,9 @@ export default function Home() {
   const [text, setText] = useState<string>("");
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL_BASE;
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL;
     if (!base) {
-      setText("No NEXT_PUBLIC_API_URL_BASE environment variable");
+      setText("No NEXT_PUBLIC_API_BASE_URL environment variable");
       return;
     }
     fetch(base)

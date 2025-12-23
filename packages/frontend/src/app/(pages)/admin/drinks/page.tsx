@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import IngredientList from "@/app/components/drink-components/ingredient-list";
 import DrinkList from "@/app/components/drink-components/drinks-list";
 

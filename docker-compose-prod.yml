@@ -1,0 +1,54 @@
+services:
+  database:
+    container_name: kanta
+    image: postgres:18
+    volumes:
+      - db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 5
+    ports:
+      - "${PUBLIC_PG_PORT}:${POSTGRES_PORT}"
+    env_file:
+      - ./packages/backend/.env
+
+  database-migrations:
+    image: flyway/flyway:latest
+    env_file:
+      - ./packages/backend/.env
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./packages/backend/migrations:/flyway/sql
+    command: -connectRetries=60 -baselineOnMigrate=true migrate
+
+  app:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - ./packages/backend/.env
+    ports:
+      - "${PORT}:${PORT}"
+
+  web:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - ./packages/frontend/.env.stash.remote
+    environment:
+      NODE_ENV: production
+      PORT: "${PORT}"
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+
+volumes:
+  db_data:

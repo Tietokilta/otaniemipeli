@@ -38,7 +38,7 @@ export default function AdminTemplate({
   useEffect(() => {
     if (!ns) return;
 
-    const url = `${process.env.NEXT_PUBLIC_API_URL_BASE}/${ns}`;
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${ns}`;
     const s = io(url, {
       transports: ["websocket", "polling"],
       auth: { token: localStorage.getItem("auth_token") || "" },

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   if (!process.env.API_URL_BASE) {
     throw new Error("No API URL_BASE environment variable");

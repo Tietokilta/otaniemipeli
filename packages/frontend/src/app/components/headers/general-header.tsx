@@ -16,7 +16,7 @@ export default function GeneralHeader({
     if (all) {
       url = "/login/all";
     }
-    fetch(process.env.NEXT_PUBLIC_API_URL_BASE + url, {
+    fetch(process.env.NEXT_PUBLIC_API_BASE_URL + url, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
