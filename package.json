@@ -1,0 +1,40 @@
+{
+  "name": "otaniemipeli",
+  "version": "0.5.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "lint-fix": "eslint . --ext .js,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,ts,ts,tsx,md,json}\"",
+    "clean": "rm -rf .next node_modules && pnpm install",
+    "precommit": "pnpm typecheck && pnpm lint && pnpm format && git add . && echo '\n🤩  Pre-commit checks completed! 🤩'",
+    "remote": "cp .env.stash.remote .env",
+    "local": "cp .env.stash.local .env"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.8",
+    "lucide-react": "^0.483.0",
+    "next": "16.1.0-canary.19",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^20.19.14",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "dotenv": "^17.2.2",
+    "dotenv-cli": "^10.0.0",
+    "eslint": "^9.35.0",
+    "eslint-config-next": "15.3.4",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
+  }
+}
