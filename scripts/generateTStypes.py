@@ -237,11 +237,11 @@ def rust_to_ts_global(src: str) -> str:
 
 
 def main():
-    with open(r"./otaniemipeli-backend-rs/src/utils/types.rs", "r", encoding="utf-8") as f:
+    with open(r"../backend/src/utils/types.rs", "r", encoding="utf-8") as f:
         src = f.read()
 
     ts = rust_to_ts_global(src)
-    with open("./otaniemipeli-frontend/src/types/global-rust-types.d.ts", "w+", encoding="utf-8") as f:
+    with open("global-rust-types.d.ts", "w+", encoding="utf-8") as f:
         f.write(ts)
 
 
