@@ -36,29 +36,5 @@ services:
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
 
-  web:
-    build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
-      target: runtime
-      args:
-        API_URL: "http://app:2568/api/v1"
-        API_URL_BASE: "http://app:2568"
-        NEXT_PUBLIC_API_URL: "http://localhost:2568/api/v1"
-        NEXT_PUBLIC_API_BASE_URL: "http://localhost:2568"
-        PORT: "${FRONTEND_PORT}"
-    env_file:
-      - ./packages/frontend/.env
-    environment:
-      NODE_ENV: production
-      API_URL: "http://app:2568/api/v1"
-      API_URL_BASE: "http://app:2568"
-      NEXT_PUBLIC_API_URL: "http://localhost:2568/api/v1"
-      NEXT_PUBLIC_API_BASE_URL: "http://localhost:2568"
-      PORT: "${FRONTEND_PORT}"
-    ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-    restart: unless-stopped
-
 volumes:
   db_data:
