@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 
 const RADIUS_PX = 6.2;
 const BAR_THICK_PX = 6; // line thickness
-const BAR_COLOR = "#FEF612";
+const BAR_COLOR = "var(--color-normal-600)"; // yellow color from titeenit palette
 
 function edgeKey(a: number, b: number) {
   return a < b ? `${a}-${b}` : `${b}-${a}`;

@@ -127,7 +127,7 @@ export default function AddPlaceToBoard({
         className="border rounded p-2"
         placeholder="Paikka numero"
       />
-      {error && <span className="text-red-500 text-sm">{error}</span>}
+      {error && <span className="text-alert-500 text-sm">{error}</span>}
 
       <div className="flex gap-2">
         <label className="flex items-center gap-1">
@@ -151,7 +151,7 @@ export default function AddPlaceToBoard({
 
       <button
         type="submit"
-        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors"
+        className="bg-primary-500 text-white p-2 rounded hover:bg-primary-900 transition-colors"
       >
         Lisää
       </button>

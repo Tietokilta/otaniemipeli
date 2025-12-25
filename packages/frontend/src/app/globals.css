@@ -51,6 +51,10 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Legacy juvu-sini colors mapped to titeenit primary */
+  --color-juvu-sini-600: var(--color-primary-500);
+  --color-juvu-sini-800: var(--color-primary-900);
 }
 @utility font-pixel {
   font-family: var(--font-sans);
