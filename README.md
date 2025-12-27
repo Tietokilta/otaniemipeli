@@ -43,3 +43,6 @@ docker-compose -f docker-compose-prod.yml up --build
 Then go to the frontend url and create the initial admin user.
 The app should now be up and running and can be used for the game.
 
+## Development
+The types are to be generated from the backend to the frontend.
+to do this run ```pnpm typegen``` in the root directory.
