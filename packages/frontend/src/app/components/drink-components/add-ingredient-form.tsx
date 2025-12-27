@@ -69,7 +69,7 @@ export default function AddIngredientForm() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded bg-gray-100 px-3 py-1"
+                className="rounded bg-primary-100 px-3 py-1"
               >
                 Cancel
               </button>

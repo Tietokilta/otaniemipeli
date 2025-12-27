@@ -12,10 +12,10 @@ export default async function PlacesList({
   if (!res.ok) {
     return (
       <div className="center p-4">
-        <h1 className="text-2xl font-bold text-red-500">
+        <h1 className="text-2xl font-bold text-alert-500">
           Error fetching places!
         </h1>
-        <p className="text-sm text-gray-900">{res.status}</p>
+        <p className="text-sm text-tertiary-900">{res.status}</p>
       </div>
     );
   }

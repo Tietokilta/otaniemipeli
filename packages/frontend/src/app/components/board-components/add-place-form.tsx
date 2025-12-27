@@ -39,7 +39,7 @@ export default function AddPlaceForm({
       <input
         type="text"
         placeholder={place.place_name}
-        className="border border-gray-300 rounded-lg p-2 w-full"
+        className="border border-primary-500 rounded-lg p-2 w-full"
         onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
           updatePlace({
             ...place,
@@ -88,7 +88,7 @@ export default function AddPlaceForm({
       </div>
       <textarea
         placeholder={place.rule}
-        className="border border-gray-300 rounded-lg p-2 w-full"
+        className="border border-primary-500 rounded-lg p-2 w-full"
         onInput={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
           updatePlace({
             ...place,
@@ -98,7 +98,7 @@ export default function AddPlaceForm({
       />
       <button
         type="submit"
-        className="bg-blue-500 text-white rounded-lg p-2 hover:bg-blue-600 transition-colors"
+        className="bg-primary-500 text-white rounded-lg p-2 hover:bg-primary-900 transition-colors"
       >
         Lisää paikka
       </button>

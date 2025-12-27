@@ -4,31 +4,31 @@ export function getPlaceColor(placeType: string, hover: boolean): string {
     case true:
       switch (type) {
         case "normal":
-          return "#FEF612";
+          return "var(--color-normal-600)";
         case "food":
-          return "#def37e";
+          return "var(--color-food-900)";
         case "guild":
-          return "#BED3EC";
+          return "var(--color-guild-600)";
         case "sauna":
-          return "#F95D03";
+          return "var(--color-sauna-600)";
         case "special":
-          return "#FAB7A1";
+          return "var(--color-special-600)";
       }
       break;
     case false:
       switch (type) {
         case "normal":
-          return "#FEF612";
+          return "var(--color-normal-600)";
         case "food":
-          return "#DEF37E";
+          return "var(--color-slime-600)";
         case "guild":
-          return "#BED3EC";
+          return "var(--color-guild-600)";
         case "sauna":
-          return "#F95D03";
+          return "var(--color-sauna-900)";
         case "special":
-          return "#FAB7A1";
+          return "var(--color-special-900)";
       }
       break;
   }
-  return "#EEC156";
+  return "var(--color-secondary-500)"; // default to secondary color
 }

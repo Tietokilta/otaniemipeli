@@ -21,12 +21,12 @@ export default function GameCard({
       style={{ cursor: "pointer" }}
     >
       <h2 className="text-xl font-semibold mb-2">{game.name}</h2>
-      <p className="text-gray-600">Lauta: {game.board}</p>
-      <p className="text-gray-600">
+      <p className="text-quaternary-500">Lauta: {game.board}</p>
+      <p className="text-quaternary-500">
         Aloitusaika: {new Date(game.start_time).toLocaleString()}
       </p>
       <p
-        className={`font-medium ${game.finished ? "text-green-600" : "text-red-600"}`}
+        className={`font-medium ${game.finished ? "text-confirm-500" : "text-alert-500"}`}
       >
         {game.started && !game.finished
           ? "Peli on käynnissä"

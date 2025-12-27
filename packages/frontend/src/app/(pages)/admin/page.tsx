@@ -14,10 +14,10 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center gap-3.5 h-full sm:px-10 sm:py-4">
-      <h1 className="text-gray-900 text-2xl font-bold">
+      <h1 className="text-tertiary-900 text-2xl font-bold">
         Tervetuloa Otaniemipeli-Adminiin!
       </h1>
-      <p className="text-gray-700">{text}</p>
+      <p className="text-quaternary-500">{text}</p>
       <CreateUserForm />
     </div>
   );

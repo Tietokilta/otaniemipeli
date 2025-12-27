@@ -14,7 +14,7 @@ export default function PlaceCard({
   showInfo?: boolean;
 }): JSX.Element {
   if (!place) {
-    return <div className="text-red-500">Place not found</div>;
+    return <div className="text-alert-500">Place not found</div>;
   }
   return (
     <div

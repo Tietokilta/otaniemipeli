@@ -67,7 +67,7 @@ export default function SelectMode({
   if (!session) return null;
   return (
     <div className="flex flex-col items-center gap-3.5 max-h-[90dvh] sm:px-10 sm:py-4 font-[family-name:var(--font-geist-sans)]">
-      <h1 className="text-gray-900 text-2xl font-bold">Valitse käyttötila:</h1>
+      <h1 className="text-tertiary-900 text-2xl font-bold">Valitse käyttötila:</h1>
       <div className="flex flex-col items-center gap-3.5 w-56">
         {session &&
           session.user_types.user_types.map((user_type) => (
@@ -81,7 +81,7 @@ export default function SelectMode({
               </p>
             </a>
           ))}
-        <h1 className="text-gray-900 text-2xl font-bold">...tai...</h1>
+        <h1 className="text-tertiary-900 text-2xl font-bold">...tai...</h1>
         <div
           className="button w-full center select-none"
           onClick={() => handleLogout()}

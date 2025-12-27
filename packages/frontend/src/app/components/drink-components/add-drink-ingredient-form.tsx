@@ -181,7 +181,7 @@ export default function AddDrinkIngredientForm({
                     </button>
                   ))
                 ) : (
-                  <p className="text-base pl-2 my-2 text-gray-900">
+                  <p className="text-base pl-2 my-2 text-tertiary-900">
                     Valitse ainesosa
                   </p>
                 )}
@@ -224,7 +224,7 @@ export default function AddDrinkIngredientForm({
                     );
                   })
                 ) : (
-                  <p className="text-base pl-2 my-2 text-gray-900">
+                  <p className="text-base pl-2 my-2 text-tertiary-900">
                     Valitse ainesosa
                   </p>
                 )}
@@ -237,7 +237,7 @@ export default function AddDrinkIngredientForm({
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="rounded bg-gray-100 px-3 py-1"
+                className="rounded bg-primary-100 px-3 py-1"
               >
                 Eiku
               </button>

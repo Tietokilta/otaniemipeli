@@ -143,7 +143,7 @@ export default function CreateUserForm({
           }}
         />
         {!pwsMatch && passwordConfirm.pw.length != 0 && (
-          <p className="text-red-700">Salasanat eivät täsmää</p>
+          <p className="text-alert-900">Salasanat eivät täsmää</p>
         )}
         {!firstUser && (
           <DropdownMenu
