@@ -16,7 +16,7 @@
     "clean": "rm -rf .next node_modules && pnpm install && pnpm --filter frontend clean",
     "backend": "docker compose up --build",
     "production:build": "docker compose -f docker-compose.prod.yml up --build",
-    "typegen": "python3 scripts/generateTStypes.py"
+    "typegen": "python3 scripts/generateTStypes.py",
   },
   "repository": {
     "type": "git",

@@ -122,9 +122,9 @@ fn build_game_from_row(row: &Row) -> Game {
         id: row.get(0),
         start_time: row.get(1),
         name: row.get(2),
-        finished: row.get(3),
-        board: row.get(4),
-        started: row.get(5),
+        started: row.get(3),
+        finished: row.get(4),
+        board: row.get(5),
     }
 }
 
@@ -289,6 +289,7 @@ pub async fn get_team_turns_with_board(
                     },
                     turn_id,
                     n,
+                    penalty: false,
                 });
             }
         }
@@ -315,6 +316,7 @@ pub async fn get_team_turns_with_board(
                     drink: drink.drink.clone(),
                     turn_id,
                     n: drink.n,
+                    penalty: false,
                 });
             }
         }

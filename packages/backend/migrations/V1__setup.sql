@@ -1,94 +1,92 @@
 CREATE TYPE PLACETYPE AS ENUM ('Normal', 'Food', 'Sauna', 'Special', 'Guild');
 CREATE TYPE USERTYPE AS ENUM ('Admin', 'Referee', 'Ie', 'Secretary', 'Team');
 
-CREATE TABLE boards
+CREATE TABLE IF NOT EXISTS boards
 (
     board_id SERIAL PRIMARY KEY,
     name     TEXT
 );
-CREATE TABLE games
+CREATE TABLE IF NOT EXISTS games
 (
     game_id    SERIAL PRIMARY KEY,
     start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     name       TEXT                 DEFAULT '',
+    started    BOOLEAN              DEFAULT false,
     finished   BOOLEAN              DEFAULT false,
-    board_id   INTEGER REFERENCES boards (board_id)
+    board_id   INTEGER REFERENCES boards (board_id) ON DELETE CASCADE
 );
-CREATE TABLE teams
-(
-    team_id   SERIAL PRIMARY KEY,
-    game_id   INTEGER REFERENCES games (game_id),
-    name      TEXT,
-    team_hash TEXT
-);
-CREATE TABLE users
+CREATE TABLE IF NOT EXISTS users
 (
     uid      SERIAL PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     email    TEXT UNIQUE NOT NULL,
     password TEXT
 );
-CREATE TABLE sessions
+CREATE TABLE IF NOT EXISTS sessions
 (
     session_id   SERIAL PRIMARY KEY,
-    uid          INTEGER REFERENCES users (uid),
+    uid          INTEGER REFERENCES users (uid) ON DELETE CASCADE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_active  TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires      TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '4 hours'),
     session_hash TEXT UNIQUE NOT NULL
 );
-CREATE TABLE drinks
+CREATE TABLE IF NOT EXISTS drinks
 (
     drink_id SERIAL PRIMARY KEY,
     name     TEXT
 );
-CREATE TABLE places
+CREATE TABLE IF NOT EXISTS places
 (
     place_id   SERIAL PRIMARY KEY,
     place_name TEXT,
     rule       TEXT DEFAULT '',
     place_type PLACETYPE NOT NULL
 );
-CREATE TABLE ingredients
+CREATE TABLE IF NOT EXISTS teams
+(
+    team_id   SERIAL PRIMARY KEY,
+    game_id   INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
+    team_name      TEXT,
+    team_hash TEXT,
+    current_place_id INTEGER REFERENCES places (place_id) ON DELETE RESTRICT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS ingredients
 (
     ingredient_id SERIAL PRIMARY KEY,
     name          TEXT,
     abv           FLOAT,
     carbonated    BOOLEAN
 );
-CREATE TABLE turns
+CREATE TABLE IF NOT EXISTS turns
 (
     turn_id    SERIAL PRIMARY KEY,
     start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    team_id    INTEGER REFERENCES teams (team_id),
-    game_id    INTEGER REFERENCES games (game_id),
+    end_time   TIMESTAMPTZ,
+    finished   BOOLEAN DEFAULT FALSE,
+    team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
     dice1      INTEGER,
     dice2      INTEGER
 );
-CREATE TABLE penalties
-(
-    penalty_id SERIAL PRIMARY KEY,
-    team_id    INTEGER REFERENCES teams (team_id),
-    turn_id    INTEGER REFERENCES turns (turn_id),
-    drink_id   INTEGER REFERENCES drinks (drink_id)
-);
 
 -- Relation-tables
-CREATE TABLE drink_ingredients
+CREATE TABLE IF NOT EXISTS drink_ingredients
 (
-    drink_id      INTEGER REFERENCES drinks (drink_id),
-    ingredient_id INTEGER REFERENCES ingredients (ingredient_id),
+    drink_id      INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    ingredient_id INTEGER REFERENCES ingredients (ingredient_id) ON DELETE CASCADE,
     quantity      FLOAT,
     PRIMARY KEY (drink_id, ingredient_id)
 );
-CREATE TABLE turn_drinks
+CREATE TABLE IF NOT EXISTS turn_drinks
 (
-    drink_id INTEGER REFERENCES drinks (drink_id),
-    turn_id  INTEGER REFERENCES turns (turn_id),
+    drink_id INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    turn_id  INTEGER REFERENCES turns (turn_id) ON DELETE CASCADE,
     n        INTEGER DEFAULT 1,
-    PRIMARY KEY (drink_id, turn_id)
+    penalty  BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY (drink_id, turn_id, penalty)
 );
-CREATE TABLE board_places
+CREATE TABLE IF NOT EXISTS board_places
 (
     board_id     INTEGER NOT NULL REFERENCES boards (board_id) ON DELETE CASCADE,
     place_number INTEGER,
@@ -99,11 +97,22 @@ CREATE TABLE board_places
     y            FLOAT   default 0.0,
     PRIMARY KEY (board_id, place_number)
 );
-
-CREATE TABLE place_drinks
+CREATE TABLE IF NOT EXISTS game_places
 (
-    drink_id     INTEGER NOT NULL REFERENCES drinks (drink_id),
-    board_id     INTEGER NOT NULL REFERENCES boards (board_id),
+    game_id      INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
+    board_id     INTEGER REFERENCES boards (board_id) ON DELETE CASCADE,
+    place_number INTEGER,
+    team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    visited_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (game_id, place_number, team_id),
+    FOREIGN KEY (board_id, place_number)
+        REFERENCES board_places (board_id, place_number)
+        ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS place_drinks
+(
+    drink_id     INTEGER NOT NULL REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    board_id     INTEGER NOT NULL REFERENCES boards (board_id) ON DELETE CASCADE,
     place_number INTEGER NOT NULL,
     refill       BOOLEAN default FALSE,
     optional     BOOLEAN default FALSE,
@@ -114,9 +123,9 @@ CREATE TABLE place_drinks
         REFERENCES board_places (board_id, place_number)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
-CREATE TABLE place_connections
+CREATE TABLE IF NOT EXISTS place_connections
 (
-    board_id  INTEGER REFERENCES boards (board_id),
+    board_id  INTEGER REFERENCES boards (board_id) ON DELETE CASCADE,
     origin    INTEGER,
     target    INTEGER,
     on_land   BOOLEAN default FALSE,
@@ -130,16 +139,12 @@ CREATE TABLE place_connections
         REFERENCES board_places (board_id, place_number)
         ON DELETE CASCADE
 );
-CREATE TABLE user_types
+CREATE TABLE IF NOT EXISTS user_types
 (
-    uid       INTEGER REFERENCES users (uid),
+    uid       INTEGER REFERENCES users (uid) ON DELETE CASCADE,
     user_type USERTYPE NOT NULL,
     PRIMARY KEY (uid, user_type)
 );
-
-
-ALTER TABLE user_types
-    ADD CONSTRAINT user_types_uid_type_uniq UNIQUE (uid, user_type);
 
 -- drop old stuff if exists
 DROP TRIGGER IF EXISTS trg_grant_secretary ON user_types;

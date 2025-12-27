@@ -2,13 +2,10 @@ use crate::database::boards::move_team;
 use crate::database::drinks::get_drinks_ingredients;
 use crate::database::games::{check_dice, get_games, get_team_data, post_game, start_game};
 use crate::database::team::{create_team, get_teams};
-use crate::database::turns::{add_visited_place, end_turn, start_turn};
+use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{
-    EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, SocketAuth, Team, Teams,
-    UserType,
-};
+use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, TurnDrinks, UserType};
 use deadpool_postgres::Client;
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
@@ -328,6 +325,34 @@ pub async fn referee_on_connect<A: Adapter>(
                 }
             }
         },
+    );
+    s.on("add-penalties", |s: SocketRef<A>, Data(turn_drinks): Data<PostTurnDrinks>, State(state): State<AppState>| async move {
+        println!("Referee: add-penlties called");
+        let client = match get_db_client(&state, &s).await {
+            Some(c) => c,
+            None => return,
+        };
+        match add_drinks_to_turn(&client, turn_drinks.turn_drinks).await {
+            Ok(_) => {
+                match get_team_data(&client, turn_drinks.game_id).await {
+                    Ok(game_data) => {
+                        if let Err(err) = s.emit("reply-game", &game_data) {
+                            tracing::error!("Failed replying game data: {err}")
+                        };
+                    }
+                    Err(e) => {
+                        if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                            tracing::error!("Failed replying game data: {err}")
+                        };
+                    }
+                }
+            }
+            Err(e) => {
+                if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                    tracing::error!("Failed replying game data: {err}")
+                };
+            }
+        }}
     );
 
     let ok = check_auth(&auth.token, &s, &state, UserType::Referee).await;

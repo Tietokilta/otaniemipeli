@@ -114,6 +114,7 @@ pub struct Team {
     pub game_id: i32,
     pub team_name: String,
     pub team_hash: String,
+    pub current_place_id: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Teams {
@@ -124,6 +125,16 @@ pub struct TurnDrink {
     pub drink: Drink,
     pub turn_id: i32,
     pub n: i32,
+    pub penalty: bool
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TurnDrinks {
+    pub drinks: Vec<TurnDrink>,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct PostTurnDrinks {
+    pub turn_drinks: TurnDrinks,
+    pub game_id: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FirstTurnPost {
@@ -241,11 +252,13 @@ pub struct PlaceDrinks {
     pub drinks: Vec<PlaceDrink>,
 }
 impl PlaceDrinks {
-    pub fn to_turn_drinks(&self, turn_id: i32) -> Vec<TurnDrink> {
-        self.drinks
-            .iter()
-            .map(|pd| pd.to_turn_drink(turn_id))
-            .collect()
+    pub fn to_turn_drinks(&self, turn_id: i32) -> TurnDrinks {
+        TurnDrinks {
+            drinks: self.drinks
+                .iter()
+                .map(|pd| pd.to_turn_drink(turn_id))
+                .collect()
+        }
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -264,6 +277,7 @@ impl PlaceDrink {
             drink: self.drink.clone(),
             turn_id,
             n: self.n,
+            penalty: false,
         }
     }
 }

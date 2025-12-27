@@ -71,6 +71,16 @@ declare global {
     drink: Drink;
     turn_id: number;
     n: number;
+    penalty: boolean;
+  }
+
+  interface TurnDrinks {
+    drinks: TurnDrink[];
+  }
+
+  interface PostTurnDrinks {
+    turn_drinks: TurnDrinks;
+    game_id: number;
   }
 
   interface FirstTurnPost {
