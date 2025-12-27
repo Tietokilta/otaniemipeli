@@ -1,23 +1,15 @@
-import { usePathname } from "next/navigation";
+import SimpleCard from "@/app/components/simple-card";
 
 export default function TeamCard({
   team,
   className,
-  link,
 }: {
   team: Team;
   className?: string;
-  link?: boolean;
 }) {
-  const path = usePathname();
   return (
-    <div
-      className={`${className}flex-wrap box list-none center`}
-      onClick={() =>
-        link ? (window.location.href = `${path}/${team.team_id}`) : null
-      }
-    >
+    <SimpleCard className={`${className} flex-wrap`} active={false}>
       {team.team_name}
-    </div>
+    </SimpleCard>
   );
 }
