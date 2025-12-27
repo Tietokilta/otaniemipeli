@@ -1,5 +1,6 @@
 import React from "react";
 import PlaceCard from "@/app/components/board-components/place-card";
+import ErrorDisplay from "@/app/components/error-display";
 
 export default async function BoardPlacesList({
   boardId,
@@ -14,12 +15,11 @@ export default async function BoardPlacesList({
 
   if (!res.ok) {
     return (
-      <div className={`${className} center`}>
-        <h1 className="text-2xl font-bold text-alert-500">
-          Error fetching ingredients!
-        </h1>
-        <p className="text-sm text-tertiary-900">{res.status}</p>
-      </div>
+      <ErrorDisplay
+        message="Error fetching ingredients!"
+        status={res.status}
+        className={className}
+      />
     );
   }
 

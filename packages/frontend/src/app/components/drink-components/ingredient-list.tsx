@@ -1,6 +1,7 @@
 import IngredientCard from "@/app/components/drink-components/ingredient-card";
 import AddIngredientDialog from "@/app/components/drink-components/add-ingredient-form";
 import ItemList from "@/app/components/item-list";
+import ErrorDisplay from "@/app/components/error-display";
 
 export default async function IngredientList({
   className,
@@ -13,12 +14,7 @@ export default async function IngredientList({
 
   if (!res.ok) {
     return (
-      <div className="center p-4">
-        <h1 className="text-2xl font-bold text-alert-500">
-          Error fetching ingredients!
-        </h1>
-        <p className="text-sm text-tertiary-900">{res.status}</p>
-      </div>
+      <ErrorDisplay message="Error fetching ingredients!" status={res.status} />
     );
   }
 

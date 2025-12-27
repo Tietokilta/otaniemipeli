@@ -1,5 +1,6 @@
 import React from "react";
 import PlaceCard from "@/app/components/board-components/place-card";
+import ErrorDisplay from "@/app/components/error-display";
 
 export default async function PlacesList({
   className,
@@ -10,14 +11,7 @@ export default async function PlacesList({
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
-    return (
-      <div className="center p-4">
-        <h1 className="text-2xl font-bold text-alert-500">
-          Error fetching places!
-        </h1>
-        <p className="text-sm text-tertiary-900">{res.status}</p>
-      </div>
-    );
+    return <ErrorDisplay message="Error fetching places!" status={res.status} />;
   }
   const places: Places = await res.json();
   return (
