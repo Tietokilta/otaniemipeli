@@ -327,7 +327,7 @@ pub async fn referee_on_connect<A: Adapter>(
         },
     );
     s.on("add-penalties", |s: SocketRef<A>, Data(turn_drinks): Data<PostTurnDrinks>, State(state): State<AppState>| async move {
-        println!("Referee: add-penlties called");
+        println!("Referee: add-penalties called");
         let client = match get_db_client(&state, &s).await {
             Some(c) => c,
             None => return,
