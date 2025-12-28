@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
+use deadpool_postgres::Client;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
+use crate::database::games::place_visited;
+
 pub type PgError = tokio_postgres::error::Error;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSql, FromSql)]
 #[postgres(name = "placetype")]
@@ -162,7 +165,7 @@ pub struct Turn {
     pub dice2: i32,
     pub finished: bool,
     pub end_time: Option<DateTime<Utc>>,
-    pub drinks: Vec<TurnDrink>,
+    pub drinks: TurnDrinks,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Turns {
@@ -252,13 +255,31 @@ pub struct PlaceDrinks {
     pub drinks: Vec<PlaceDrink>,
 }
 impl PlaceDrinks {
-    pub fn to_turn_drinks(&self, turn_id: i32) -> TurnDrinks {
-        TurnDrinks {
-            drinks: self.drinks
-                .iter()
-                .map(|pd| pd.to_turn_drink(turn_id))
-                .collect()
+    pub async fn to_turn_drinks(&self, client: &Client, turn_id: i32, game_id: i32) -> TurnDrinks {
+        let mut result = Vec::new();
+        for pd in &self.drinks {
+            if pd.refill {
+                result.push(pd);
+                continue;
+            }
+            let visited = place_visited(
+                client,
+                game_id,
+                pd.board_id,
+                pd.place_number,
+            )
+                .await
+                .unwrap_or(false);
+
+            if !visited {
+                result.push(pd);
+            }
         }
+        let drinks: Vec<TurnDrink> = result
+            .iter()
+            .map(|pd| pd.to_turn_drink(turn_id))
+            .collect();
+        TurnDrinks { drinks }
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]

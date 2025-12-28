@@ -56,7 +56,7 @@ fn build_turn(row: Row) -> Turn {
         game_id: row.get(5),
         dice1: row.get(6),
         dice2: row.get(7),
-        drinks: vec![],
+        drinks: TurnDrinks { drinks: vec![] },
     }
 }
 pub async fn add_visited_place(

@@ -5,6 +5,8 @@ import IngredientCard from "@/app/components/drink-components/ingredient-card";
 import { deleteDrink, getDrinkIngredients } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
 import RefillSVG from "@/public/refill";
+import Image from "next/image";
+import sakkoa from "@/public/sakkoa.png";
 
 export default function DrinkCard({
   drink,
@@ -167,10 +169,20 @@ export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
 }
 export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
   return (
-    <div className="flex justify-items-start w-full border-b-1 border-juvu-sini-800">
-      <h2 className="font-redaction-i-50 text-2xl text-left px-1 h-full flex-1">
-        {drink.n}x {drink.drink.name}
+    <div className="flex h-10 items-center w-full border-b border-primary-900">
+      <h2 className="text-2xl text-left px-1 items-center h-full">
+        {drink.n}x
       </h2>
+      <h2 className="text-xl text-left items-center px-1 h-full">
+        {drink.drink.name}
+      </h2>
+      {drink.penalty && (
+        <Image
+          src={sakkoa}
+          alt="sakkoa"
+          className="h-full w-auto ml-auto mr-4"
+        />
+      )}
     </div>
   );
 }

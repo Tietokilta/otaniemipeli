@@ -258,9 +258,10 @@ const AddTeamPenaltyForm = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2">
+    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2 pb-4">
       <p>Lisätään rangaistus joukkueelle: {team.team.team_name}</p>
       <form
+        className="flex flex-col gap-2"
         onSubmit={(e) => {
           e.preventDefault();
         }}
@@ -273,7 +274,7 @@ const AddTeamPenaltyForm = ({
         />
         <div>
           {penaltyDrinks.drinks.length > 0 && (
-            <ul className="list-disc pl-5">
+            <ul className="list-disc pl-5 gap-1">
               {penaltyDrinks.drinks.map((drink) => (
                 <DrinkSelectionCard
                   key={drink.drink.id}
@@ -285,11 +286,11 @@ const AddTeamPenaltyForm = ({
             </ul>
           )}
         </div>
-        <div className="flex gap-2">
-          <button className="button" onClick={() => controller(null)}>
+        <div className="flex gap-2 center">
+          <button className="button ml-1" onClick={() => controller(null)}>
             Eiku
           </button>
-          <button className="button" onClick={handleSubmit}>
+          <button className="button mr-1" onClick={handleSubmit}>
             Sakkoa
           </button>
         </div>
@@ -320,7 +321,7 @@ export function DrinkSelectionCard({
                 ...turnDrink,
                 n: n,
               }
-            : existingDrink
+            : existingDrink,
         ),
       };
     });
@@ -328,7 +329,7 @@ export function DrinkSelectionCard({
 
   return (
     <div
-      className="flex flex-col gap-2 w-full box p-2 cursor-pointer"
+      className="flex gap-2 w-full box p-2 cursor-pointer center"
       onClick={() => {
         setShowEverything(!showEverything);
       }}
@@ -347,36 +348,35 @@ export function DrinkSelectionCard({
           </div>
         )}
       </div>
-      <>
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          <div className={`flex gap-2 w-1/2 box center`}>
-            <div className="w-1/3 center button p-1">
-              <p
-                className="text-center w-full select-none"
-                onClick={() => {
-                  if (n <= 1) return;
-                  setN(n - 1);
-                }}
-              >
-                -
-              </p>
-            </div>
-            <div className="w-1/3 center p-1">
-              <p className="text-sm text-center w-full">{n}</p>
-            </div>
-            <div className="w-1/3 center button p-1">
-              <p
-                className="text-center w-full select-none"
-                onClick={() => {
-                  setN(n + 1);
-                }}
-              >
-                +
-              </p>
-            </div>
-          </div>
+      <div
+        className="flex gap-2 w-1/2 center ml-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-1/3 center button p-1">
+          <p
+            className="text-center w-full select-none"
+            onClick={() => {
+              if (n <= 1) return;
+              setN(n - 1);
+            }}
+          >
+            -
+          </p>
         </div>
-      </>
+        <div className="w-1/3 center p-1">
+          <p className="text-sm text-center w-full">{n}</p>
+        </div>
+        <div className="w-1/3 center button p-1">
+          <p
+            className="text-center w-full select-none"
+            onClick={() => {
+              setN(n + 1);
+            }}
+          >
+            +
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

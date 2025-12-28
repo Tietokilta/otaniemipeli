@@ -226,13 +226,8 @@ pub async fn get_team_turns_with_board(
               t.dice1,
               t.dice2,
               t.finished,
-              t.end_time,
-              td.n,
-              d.drink_id,
-              d.name
+              t.end_time
             FROM turns t
-            LEFT JOIN turn_drinks td ON td.turn_id = t.turn_id
-            LEFT JOIN drinks d ON d.drink_id = td.drink_id
             WHERE t.team_id = $1 AND t.game_id = $2
             ORDER BY t.turn_id ASC",
             &[&team_id, &game_id],
@@ -267,60 +262,21 @@ pub async fn get_team_turns_with_board(
                     dice2: row.get(5),
                     finished: row.get(6),
                     end_time,
-                    drinks: Vec::new(),
+                    drinks: get_turn_drinks(client, turn_id).await.unwrap_or_else(|e| {
+                        tracing::error!("Error getting turn drinks for turn_id {}: {}", turn_id, e);
+                        TurnDrinks { drinks: Vec::new() }
+                    }),
                 },
             );
             ordered_ids.push(turn_id);
         }
 
-        let n_opt: Option<i32> = row.try_get(8).ok();
-        let drink_id_opt: Option<i32> = row.try_get(9).ok();
-        let drink_name_opt: Option<String> = row.try_get(10).ok();
-
-        if let (Some(n), Some(drink_id), Some(drink_name)) = (n_opt, drink_id_opt, drink_name_opt) {
-            let turn = turns_by_id.get_mut(&turn_id).unwrap();
-            if let Some(td) = turn.drinks.iter_mut().find(|x| x.drink.id == drink_id) {
-                td.n += n;
-            } else {
-                turn.drinks.push(TurnDrink {
-                    drink: Drink {
-                        id: drink_id,
-                        name: drink_name,
-                    },
-                    turn_id,
-                    n,
-                    penalty: false,
-                });
-            }
-        }
     }
 
-    let mut turns: Vec<Turn> = ordered_ids
+    let turns: Vec<Turn> = ordered_ids
         .into_iter()
         .filter_map(|id| turns_by_id.remove(&id))
         .collect();
-    for i in 0..turns.len() {
-        let place = get_team_board_place(client, game_id, board_id, team_id).await?;
-
-        let turn_id = turns[i].turn_id;
-        let turn_drinks = &mut turns[i].drinks;
-
-        for drink in place.drinks.drinks {
-            if let Some(td) = turn_drinks
-                .iter_mut()
-                .find(|d| d.drink.id == drink.drink.id)
-            {
-                td.n += drink.n;
-            } else {
-                turn_drinks.push(TurnDrink {
-                    drink: drink.drink.clone(),
-                    turn_id,
-                    n: drink.n,
-                    penalty: false,
-                });
-            }
-        }
-    }
     Ok(turns)
 }
 pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
@@ -331,4 +287,48 @@ pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
         )));
     }
     Ok(())
+}
+pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks, PgError> {
+    let rows = client
+        .query(
+            "\
+        SELECT td.drink_id, d.name, td.n, td.penalty
+        FROM turn_drinks td
+        JOIN drinks d ON td.drink_id = d.drink_id
+        WHERE td.turn_id = $1",
+            &[&turn_id],
+        )
+        .await?;
+
+    let turn_drinks = TurnDrinks {
+        drinks: rows
+            .iter()
+            .map(|row| TurnDrink {
+                drink: Drink {
+                    id: row.get(0),
+                    name: row.get(1),
+                },
+                turn_id,
+                n: row.get(2),
+                penalty: row.get(3),
+            }).collect()
+    };
+
+    Ok(turn_drinks)
+}
+pub async fn place_visited(client: &Client, game_id: i32, board_id: i32, place_number: i32) -> Result<bool, AppError> {
+    let query_str = "\
+    SELECT * FROM game_places WHERE game_id = $1 AND place_number = $2 AND board_id = $3";
+    match client
+        .query_opt(query_str, &[&game_id, &place_number, &board_id])
+        .await {
+        Ok(row_opt) => {
+            if row_opt.is_some() {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+        Err(e) => Err(AppError::Database(e.to_string())),
+    }
 }

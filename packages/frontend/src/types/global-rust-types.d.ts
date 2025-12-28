@@ -109,7 +109,7 @@ declare global {
     dice2: number;
     finished: boolean;
     end_time: string;
-    drinks: TurnDrink[];
+    drinks: TurnDrinks;
   }
 
   interface Turns {

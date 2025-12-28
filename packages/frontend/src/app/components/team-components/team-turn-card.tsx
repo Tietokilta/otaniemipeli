@@ -12,7 +12,7 @@ interface TurnCombined {
   team_id: number;
   game_id: number;
   dice_throws: [number, number][];
-  drinks: TurnDrink[];
+  drinks: TurnDrinks;
 }
 const getTimeInBetween = (turns: Turn[]): number[] => {
   return turns.map((turn: Turn) => {
@@ -77,7 +77,9 @@ export default function TeamTurnCard({
       team_id: team.team.team_id,
       game_id: lastTurn.game_id,
       dice_throws: teamTurns.map((t) => [t.dice1, t.dice2] as [number, number]),
-      drinks: sumByDrinkId(teamTurns.flatMap((t) => t.drinks)),
+      drinks: {
+        drinks: sumByDrinkId(teamTurns.flatMap((t) => t.drinks.drinks)),
+      },
     };
     setCombinedTurns(combinedTurn);
   }, [setCombinedTurns, collect, lastTurn, team, teamTurns]);
@@ -125,9 +127,14 @@ export default function TeamTurnCard({
           <p className="text-juvu-puna">Place not found</p>
         ))}
       <VerticalList className="mt-2 flex-1 gap-2 px-2 py-4">
-        {(combinedTurns ? combinedTurns : lastTurn).drinks.map((drink) => (
-          <TurnDrinkCard key={drink.drink.id} drink={drink} />
-        ))}
+        {(combinedTurns ? combinedTurns : lastTurn).drinks.drinks.map(
+          (drink) => (
+            <TurnDrinkCard
+              key={`${drink.drink.id}-${drink.penalty}`}
+              drink={drink}
+            />
+          ),
+        )}
       </VerticalList>
     </div>
   );

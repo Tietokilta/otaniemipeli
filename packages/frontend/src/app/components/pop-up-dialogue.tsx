@@ -27,7 +27,7 @@ const PopUpDialogue = ({
       >
         <div className="flex bg-primary-500 w-full p-2">
           <button
-            className="ml-auto h-5 w-5 bg-tertiary-500 hover:bg-tertiary-100 center cursor-pointer"
+            className="ml-auto h-6 w-6 bg-tertiary-500 hover:bg-tertiary-100 text-secondary-100 center cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               setOpen(false);
@@ -35,7 +35,7 @@ const PopUpDialogue = ({
             aria-label="Close"
             type="button"
           >
-            X
+            <p className="center">X</p>
           </button>
         </div>
         {children}
