@@ -212,14 +212,13 @@ const AddTeamPenaltyForm = ({
     if (selectedDrink) {
       setPenaltyDrinks((prev) => {
         if (!prev.drinks.find((drink) => drink.drink.id === selectedDrink.id)) {
+          const currentTurn = teamsCurrentTurn(team);
           return {
             drinks: [
               ...prev.drinks,
               {
                 drink: selectedDrink.drink,
-                turn_id: teamsCurrentTurn(team)
-                  ? teamsCurrentTurn(team)!.turn_id
-                  : -1,
+                turn_id: currentTurn?.turn_id ?? -1,
                 n: 1,
                 penalty: true,
               },
