@@ -314,13 +314,15 @@ export function DrinkSelectionCard({
   useEffect(() => {
     updateDrinks((dr) => {
       return {
-        drinks: [
-          ...dr.drinks.filter((dr) => !(dr.drink.id === turnDrink.drink.id)),
-          {
-            ...turnDrink,
-            n: n,
-          },
-        ],
+        drinks: dr.drinks.map((existingDrink) =>
+          existingDrink.drink.id === turnDrink.drink.id
+            ? {
+                ...existingDrink,
+                ...turnDrink,
+                n: n,
+              }
+            : existingDrink
+        ),
       };
     });
   }, [n, turnDrink.drink.id, turnDrink.drink, turnDrink.turn_id, updateDrinks]);
