@@ -15,7 +15,9 @@ export default function GameStartDialogue({
   const socket = useSocket();
 
   const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
-  const [selectedDrinks, setSelectedDrinks] = useState<TurnDrink[]>([]);
+  const [selectedDrinks, setSelectedDrinks] = useState<TurnDrinks>({
+    drinks: [],
+  });
   const [picked, setPicked] = useState<Drink | undefined>();
 
   const [open, setOpen] = useState(false);
@@ -51,10 +53,15 @@ export default function GameStartDialogue({
     if (!picked) return;
 
     setSelectedDrinks((prev) => {
-      const already = prev.some((td) => td.drink.id === picked.id);
+      const already = prev.drinks.some((td) => td.drink.id === picked.id);
       const nextSelected = already
         ? prev
-        : [...prev, { drink: picked, turn_id: -1, n: 1 }];
+        : {
+            drinks: [
+              ...prev.drinks,
+              { drink: picked, turn_id: -1, n: 1, penalty: false },
+            ],
+          };
 
       setAvailableDrinks((drs) => drs.filter((d) => d.id !== picked.id));
 
@@ -65,8 +72,8 @@ export default function GameStartDialogue({
 
   const handleDelete = (id: number) => {
     setSelectedDrinks((prev) => {
-      const removed = prev.find((td) => td.drink.id === id);
-      const next = prev.filter((td) => td.drink.id !== id);
+      const removed = prev.drinks.find((td) => td.drink.id === id);
+      const next = prev.drinks.filter((td) => td.drink.id !== id);
       if (removed) {
         setAvailableDrinks((drs) =>
           drs.some((d) => d.id === removed.drink.id)
@@ -74,7 +81,7 @@ export default function GameStartDialogue({
             : [...drs, removed.drink],
         );
       }
-      return next;
+      return { drinks: next };
     });
   };
 
@@ -86,10 +93,11 @@ export default function GameStartDialogue({
     });
     const firstTurn: FirstTurnPost = {
       game_id: game.id,
-      drinks: selectedDrinks.map((td) => ({
+      drinks: selectedDrinks.drinks.map((td) => ({
         drink: td.drink,
         turn_id: -1,
         n: td.n || 1,
+        penalty: td.penalty || false,
       })),
     };
     socket.emit("start-game", firstTurn);
@@ -134,11 +142,11 @@ export default function GameStartDialogue({
               />
 
               <div className="flex flex-col flex-1 gap-1 overflow-y-auto p-2">
-                {selectedDrinks.length === 0 && (
+                {selectedDrinks.drinks.length === 0 && (
                   <p className="text-tertiary-500">Ei valittuja juomia</p>
                 )}
 
-                {selectedDrinks.map((td) => (
+                {selectedDrinks.drinks.map((td) => (
                   <DrinkSelectionCard
                     key={td.drink.id}
                     turnDrink={td}
@@ -160,7 +168,7 @@ export default function GameStartDialogue({
               <button
                 type="submit"
                 className="button"
-                disabled={selectedDrinks.length === 0}
+                disabled={selectedDrinks.drinks.length === 0}
               >
                 Aloita peli
               </button>
@@ -179,15 +187,19 @@ function DrinkSelectionCard({
 }: {
   turnDrink: TurnDrink;
   onDelete: (id: number) => void;
-  updateDrinks: React.Dispatch<React.SetStateAction<TurnDrink[]>>;
+  updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
 }): JSX.Element {
   const [n, setN] = useState<number>(turnDrink.n || 1);
   useEffect(() => {
-    updateDrinks((list) =>
-      list.map((td) =>
-        td.drink.id === turnDrink.drink.id ? { ...td, n: Math.max(1, n) } : td,
-      ),
-    );
+    updateDrinks((list) => {
+      return {
+        drinks: list.drinks.map((td) =>
+          td.drink.id === turnDrink.drink.id
+            ? { ...td, n: Math.max(1, n) }
+            : td,
+        ),
+      };
+    });
   }, [n, turnDrink.drink.id, updateDrinks]);
 
   return (

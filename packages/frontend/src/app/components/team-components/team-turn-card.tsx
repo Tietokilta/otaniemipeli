@@ -34,7 +34,7 @@ function formatDhms(totalMs: number): string {
 export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
   const byId = new Map<number, TurnDrink>();
 
-  for (const { drink, turn_id, n } of rows) {
+  for (const { drink, turn_id, n, penalty } of rows) {
     const existing = byId.get(drink.id);
     if (existing) {
       existing.n += n; // add up
@@ -43,6 +43,7 @@ export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
         drink: { id: drink.id, name: drink.name },
         turn_id,
         n,
+        penalty,
       });
     }
   }

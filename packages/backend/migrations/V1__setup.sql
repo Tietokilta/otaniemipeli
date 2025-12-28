@@ -43,31 +43,12 @@ CREATE TABLE IF NOT EXISTS places
     rule       TEXT DEFAULT '',
     place_type PLACETYPE NOT NULL
 );
-CREATE TABLE IF NOT EXISTS teams
-(
-    team_id   SERIAL PRIMARY KEY,
-    game_id   INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    team_name      TEXT,
-    team_hash TEXT,
-    current_place_id INTEGER REFERENCES places (place_id) ON DELETE RESTRICT DEFAULT 0
-);
 CREATE TABLE IF NOT EXISTS ingredients
 (
     ingredient_id SERIAL PRIMARY KEY,
     name          TEXT,
     abv           FLOAT,
     carbonated    BOOLEAN
-);
-CREATE TABLE IF NOT EXISTS turns
-(
-    turn_id    SERIAL PRIMARY KEY,
-    start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    end_time   TIMESTAMPTZ,
-    finished   BOOLEAN DEFAULT FALSE,
-    team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
-    game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    dice1      INTEGER,
-    dice2      INTEGER
 );
 
 -- Relation-tables
@@ -77,14 +58,6 @@ CREATE TABLE IF NOT EXISTS drink_ingredients
     ingredient_id INTEGER REFERENCES ingredients (ingredient_id) ON DELETE CASCADE,
     quantity      FLOAT,
     PRIMARY KEY (drink_id, ingredient_id)
-);
-CREATE TABLE IF NOT EXISTS turn_drinks
-(
-    drink_id INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
-    turn_id  INTEGER REFERENCES turns (turn_id) ON DELETE CASCADE,
-    n        INTEGER DEFAULT 1,
-    penalty  BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (drink_id, turn_id, penalty)
 );
 CREATE TABLE IF NOT EXISTS board_places
 (
@@ -97,6 +70,25 @@ CREATE TABLE IF NOT EXISTS board_places
     y            FLOAT   default 0.0,
     PRIMARY KEY (board_id, place_number)
 );
+CREATE TABLE IF NOT EXISTS teams
+(
+    team_id   SERIAL PRIMARY KEY,
+    game_id   INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
+    team_name      TEXT,
+    team_hash TEXT,
+    current_place_n INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS turns
+(
+    turn_id    SERIAL PRIMARY KEY,
+    start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+    end_time   TIMESTAMPTZ,
+    finished   BOOLEAN DEFAULT FALSE,
+    team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
+    dice1      INTEGER,
+    dice2      INTEGER
+);
 CREATE TABLE IF NOT EXISTS game_places
 (
     game_id      INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
@@ -108,6 +100,14 @@ CREATE TABLE IF NOT EXISTS game_places
     FOREIGN KEY (board_id, place_number)
         REFERENCES board_places (board_id, place_number)
         ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS turn_drinks
+(
+    drink_id INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    turn_id  INTEGER REFERENCES turns (turn_id) ON DELETE CASCADE,
+    n        INTEGER DEFAULT 1,
+    penalty  BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY (drink_id, turn_id, penalty)
 );
 CREATE TABLE IF NOT EXISTS place_drinks
 (

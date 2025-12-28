@@ -347,38 +347,36 @@ export function DrinkSelectionCard({
           </div>
         )}
       </div>
-      {showEverything && (
-        <>
-          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-            <div className={`flex gap-2 w-1/2 box center`}>
-              <div className="w-1/3 center button p-1">
-                <p
-                  className="text-center w-full select-none"
-                  onClick={() => {
-                    if (n <= 1) return;
-                    setN(n - 1);
-                  }}
-                >
-                  -
-                </p>
-              </div>
-              <div className="w-1/3 center p-1">
-                <p className="text-sm text-center w-full">{n}</p>
-              </div>
-              <div className="w-1/3 center button p-1">
-                <p
-                  className="text-center w-full select-none"
-                  onClick={() => {
-                    setN(n + 1);
-                  }}
-                >
-                  +
-                </p>
-              </div>
+      <>
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <div className={`flex gap-2 w-1/2 box center`}>
+            <div className="w-1/3 center button p-1">
+              <p
+                className="text-center w-full select-none"
+                onClick={() => {
+                  if (n <= 1) return;
+                  setN(n - 1);
+                }}
+              >
+                -
+              </p>
+            </div>
+            <div className="w-1/3 center p-1">
+              <p className="text-sm text-center w-full">{n}</p>
+            </div>
+            <div className="w-1/3 center button p-1">
+              <p
+                className="text-center w-full select-none"
+                onClick={() => {
+                  setN(n + 1);
+                }}
+              >
+                +
+              </p>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </>
     </div>
   );
 }

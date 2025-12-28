@@ -115,9 +115,11 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
+            tracing::info!("Here");
             let team: Team = match create_team(&client, team).await {
                 Ok(team) => team,
                 Err(e) => {
+                    tracing::info!("Here");
                     if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
                         tracing::error!("Failed replying game data: {err}")
                     };
