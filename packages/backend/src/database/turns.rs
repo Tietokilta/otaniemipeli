@@ -96,15 +96,15 @@ async fn add_drink_to_turn(
     client
         .execute(
             "INSERT INTO turn_drinks (turn_id, drink_id, n, penalty) VALUES ($1, $2, $3, $4) returning n",
-            &[&drink.turn_id, &drink.drink.id, &drink.n, &true],
+            &[&drink.turn_id, &drink.drink.id, &drink.n, &drink.penalty],
         )
         .await
 }
 async fn modify_drink_to_turn(client: &Client, drink: TurnDrink) -> Result<u64, PgError> {
     client
         .execute(
-            "UPDATE turn_drinks SET n = n + $1 WHERE turn_id = $2 AND drink_id = $3 returning n",
-            &[&drink.n, &drink.turn_id, &drink.drink.id],
+            "UPDATE turn_drinks SET n = n + $1 WHERE turn_id = $2 AND drink_id = $3 AND penalty = $4 returning n",
+            &[&drink.n, &drink.turn_id, &drink.drink.id, &drink.penalty],
         )
         .await
 }
