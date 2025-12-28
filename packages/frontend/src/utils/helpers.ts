@@ -28,7 +28,7 @@ export function teamsCurrentTurn(team: GameTeam): Turn | null {
   if (team.turns.length === 0) {
     return null;
   }
-  let turn = team.turns.find((t) => !t.finished);
+  const turn = team.turns.find((t) => !t.finished);
   if (!turn) {
     return null;
   }

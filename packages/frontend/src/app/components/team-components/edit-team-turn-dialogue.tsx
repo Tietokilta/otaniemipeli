@@ -325,7 +325,7 @@ export function DrinkSelectionCard({
         ),
       };
     });
-  }, [n, turnDrink.drink.id, turnDrink.drink, turnDrink.turn_id, updateDrinks]);
+  }, [n, turnDrink, updateDrinks]);
 
   return (
     <div
