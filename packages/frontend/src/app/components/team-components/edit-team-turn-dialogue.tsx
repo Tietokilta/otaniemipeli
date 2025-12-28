@@ -234,7 +234,7 @@ const AddTeamPenaltyForm = ({
         }
       });
     }
-  }, [selectedDrink]);
+  }, [selectedDrink, team]);
 
   const deleteDrink = (id: number) => {
     setPenaltyDrinks((prev) => {
