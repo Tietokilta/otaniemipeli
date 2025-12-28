@@ -5,7 +5,7 @@ use crate::database::team::{create_team, get_teams};
 use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, TurnDrinks, UserType};
+use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, UserType};
 use deadpool_postgres::Client;
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
