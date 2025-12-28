@@ -61,6 +61,7 @@ declare global {
     game_id: number;
     team_name: string;
     team_hash: string;
+    current_place_id: number;
   }
 
   interface Teams {
@@ -71,6 +72,16 @@ declare global {
     drink: Drink;
     turn_id: number;
     n: number;
+    penalty: boolean;
+  }
+
+  interface TurnDrinks {
+    drinks: TurnDrink[];
+  }
+
+  interface PostTurnDrinks {
+    turn_drinks: TurnDrinks;
+    game_id: number;
   }
 
   interface FirstTurnPost {
@@ -98,7 +109,7 @@ declare global {
     dice2: number;
     finished: boolean;
     end_time: string;
-    drinks: TurnDrink[];
+    drinks: TurnDrinks;
   }
 
   interface Turns {
@@ -253,7 +264,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};

@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
+use deadpool_postgres::Client;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
+use crate::database::games::place_visited;
+use crate::utils::state::AppError;
+
 pub type PgError = tokio_postgres::error::Error;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSql, FromSql)]
 #[postgres(name = "placetype")]
@@ -114,6 +118,7 @@ pub struct Team {
     pub game_id: i32,
     pub team_name: String,
     pub team_hash: String,
+    pub current_place_id: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Teams {
@@ -124,6 +129,16 @@ pub struct TurnDrink {
     pub drink: Drink,
     pub turn_id: i32,
     pub n: i32,
+    pub penalty: bool
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TurnDrinks {
+    pub drinks: Vec<TurnDrink>,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct PostTurnDrinks {
+    pub turn_drinks: TurnDrinks,
+    pub game_id: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FirstTurnPost {
@@ -151,7 +166,7 @@ pub struct Turn {
     pub dice2: i32,
     pub finished: bool,
     pub end_time: Option<DateTime<Utc>>,
-    pub drinks: Vec<TurnDrink>,
+    pub drinks: TurnDrinks,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Turns {
@@ -241,11 +256,29 @@ pub struct PlaceDrinks {
     pub drinks: Vec<PlaceDrink>,
 }
 impl PlaceDrinks {
-    pub fn to_turn_drinks(&self, turn_id: i32) -> Vec<TurnDrink> {
-        self.drinks
+    pub async fn to_turn_drinks(&self, client: &Client, turn_id: i32, game_id: i32) -> Result<TurnDrinks, AppError> {
+        let mut result = Vec::new();
+        for pd in &self.drinks {
+            if pd.refill {
+                result.push(pd);
+                continue;
+            }
+            let visited = place_visited(
+                client,
+                game_id,
+                pd.place_number,
+            )
+                .await?;
+
+            if !visited {
+                result.push(pd);
+            }
+        }
+        let drinks: Vec<TurnDrink> = result
             .iter()
             .map(|pd| pd.to_turn_drink(turn_id))
-            .collect()
+            .collect();
+        Ok(TurnDrinks { drinks })
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -264,6 +297,7 @@ impl PlaceDrink {
             drink: self.drink.clone(),
             turn_id,
             n: self.n,
+            penalty: false,
         }
     }
 }

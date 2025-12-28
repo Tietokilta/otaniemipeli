@@ -7,6 +7,9 @@ import React, {
 } from "react";
 import { useSocket } from "@/app/template";
 import PopUpDialogue from "../pop-up-dialogue";
+import DropdownMenu from "@/app/components/dropdown-menu";
+import { getDrinks } from "@/utils/fetchers";
+import { teamsCurrentTurn } from "@/utils/helpers";
 
 export const EditTeamTurnDialogue = ({
   team,
@@ -165,34 +168,215 @@ const AddTeamTurnForm = ({
   );
 };
 
+interface DrinkIngredientsWithID extends DrinkIngredients {
+  id: number;
+  name: string;
+}
+interface DrinksIngredientsWithID {
+  drink_ingredients: DrinkIngredientsWithID[];
+}
+
 const AddTeamPenaltyForm = ({
   team,
   controller,
+  setOpen,
 }: {
   team: GameTeam;
   controller: Dispatch<SetStateAction<"penalty" | "turn" | null>>;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
+  const [drinks, setDrinks] = useState<DrinksIngredientsWithID>({
+    drink_ingredients: [],
+  });
+  const [selectedDrink, setSelectedDrink] = useState<
+    DrinkIngredientsWithID | undefined
+  >();
+  const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
+    drinks: [],
+  });
+  const socket = useSocket();
+
+  useEffect(() => {
+    getDrinks().then((drinks) => {
+      setDrinks({
+        drink_ingredients: drinks.drink_ingredients.map((drink) => ({
+          ...drink,
+          name: drink.drink.name,
+          id: drink.drink.id,
+        })),
+      } as DrinksIngredientsWithID);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (selectedDrink) {
+      setPenaltyDrinks((prev) => {
+        if (!prev.drinks.find((drink) => drink.drink.id === selectedDrink.id)) {
+          const currentTurn = teamsCurrentTurn(team);
+          return {
+            drinks: [
+              ...prev.drinks,
+              {
+                drink: selectedDrink.drink,
+                turn_id: currentTurn?.turn_id ?? -1,
+                n: 1,
+                penalty: true,
+              },
+            ],
+          };
+        } else {
+          return {
+            drinks: prev.drinks.filter(
+              (drink) => drink.drink.id !== selectedDrink.id,
+            ),
+          };
+        }
+      });
+    }
+  }, [selectedDrink, team]);
+
+  const deleteDrink = (id: number) => {
+    setPenaltyDrinks((prev) => {
+      return {
+        drinks: prev.drinks.filter((drink) => drink.drink.id !== id),
+      };
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!socket) {
+      return;
+    }
+    const postPenalty: PostTurnDrinks = {
+      game_id: team.team.game_id,
+      turn_drinks: penaltyDrinks,
+    };
+    socket.emit("add-penalties", postPenalty);
+
+    setOpen(false);
+    controller(null);
+  };
+
   return (
-    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2">
-      <p>Lisätään rangaistusjoukkueelle: {team.team.team_name}</p>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <div className="flex flex-col w-full gap-2">
-          <div className="flex gap-2 center">
-            <h2>Syy:</h2>
-            <input type="text" required />
-          </div>
-          <div className="flex gap-2 center">
-            <h2>Aika (min):</h2>
-            <input type="number" min="1" defaultValue={5} required />
-          </div>
+    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2 pb-4">
+      <p>Lisätään rangaistus joukkueelle: {team.team.team_name}</p>
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <DropdownMenu
+          buttonText="Lisää juoma"
+          options={drinks.drink_ingredients}
+          selectedOption={selectedDrink}
+          setSelectedOption={setSelectedDrink}
+        />
+        <div>
+          {penaltyDrinks.drinks.length > 0 && (
+            <ul className="list-disc pl-5 gap-1">
+              {penaltyDrinks.drinks.map((drink) => (
+                <DrinkSelectionCard
+                  key={drink.drink.id}
+                  turnDrink={drink}
+                  onDelete={deleteDrink}
+                  updateDrinks={setPenaltyDrinks}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="flex gap-2 center">
+          <button className="button ml-1" onClick={() => controller(null)}>
+            Eiku
+          </button>
+          <button className="button mr-1" onClick={handleSubmit}>
+            Sakkoa
+          </button>
         </div>
       </form>
-      <div className="flex gap-2">
-        <button className="button" onClick={() => controller(null)}>
-          Eiku
-        </button>
-      </div>
     </div>
   );
 };
+
+export function DrinkSelectionCard({
+  turnDrink,
+  onDelete,
+  updateDrinks,
+}: {
+  turnDrink: TurnDrink;
+  onDelete: (id: number) => void;
+  updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
+}): JSX.Element {
+  const [n, setN] = useState<number>(turnDrink.n || 1);
+  const [showEverything, setShowEverything] = useState<boolean>(false);
+
+  useEffect(() => {
+    updateDrinks((dr) => {
+      return {
+        drinks: dr.drinks.map((existingDrink) =>
+          existingDrink.drink.id === turnDrink.drink.id
+            ? {
+                ...existingDrink,
+                ...turnDrink,
+                n: n,
+              }
+            : existingDrink,
+        ),
+      };
+    });
+  }, [n, turnDrink, updateDrinks]);
+
+  return (
+    <div
+      className="flex gap-2 w-full box p-2 cursor-pointer center"
+      onClick={() => {
+        setShowEverything(!showEverything);
+      }}
+    >
+      <div className="flex h-1/3">
+        <p className="mr-auto text-lg font-bold">{turnDrink.drink.name}</p>
+        {showEverything && (
+          <div
+            className="flex button ml-auto justify-center items-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(turnDrink.drink.id);
+            }}
+          >
+            <p>Poista</p>
+          </div>
+        )}
+      </div>
+      <div
+        className="flex gap-2 w-1/2 center ml-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-1/3 center button p-1">
+          <p
+            className="text-center w-full select-none"
+            onClick={() => {
+              if (n <= 1) return;
+              setN(n - 1);
+            }}
+          >
+            -
+          </p>
+        </div>
+        <div className="w-1/3 center p-1">
+          <p className="text-sm text-center w-full">{n}</p>
+        </div>
+        <div className="w-1/3 center button p-1">
+          <p
+            className="text-center w-full select-none"
+            onClick={() => {
+              setN(n + 1);
+            }}
+          >
+            +
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

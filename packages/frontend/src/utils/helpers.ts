@@ -24,3 +24,13 @@ export function getUserTypeFromPath(pathname: string): UserType | null {
   }
   return null;
 }
+export function teamsCurrentTurn(team: GameTeam): Turn | null {
+  if (team.turns.length === 0) {
+    return null;
+  }
+  const turn = team.turns.find((t) => !t.finished);
+  if (!turn) {
+    return null;
+  }
+  return turn;
+}

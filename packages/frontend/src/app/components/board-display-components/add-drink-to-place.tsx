@@ -119,7 +119,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
     </div>
   );
 }
-function DrinkSelectionCard({
+export function DrinkSelectionCard({
   placeDrink,
   onDelete,
   updateDrinks,

@@ -1,5 +1,6 @@
-use crate::utils::types::{PgError, PostStartTurn, Turn, Turns};
+use crate::utils::types::{PgError, PostStartTurn, Turn, TurnDrink, TurnDrinks, Turns};
 use deadpool_postgres::Client;
+use tokio_postgres::Row;
 
 pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Turn, PgError> {
     let row = client
@@ -12,17 +13,7 @@ pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Tur
         .await
         .map_err(PgError::from)?;
 
-    Ok(Turn {
-        turn_id: row.get(0),
-        start_time: row.get(1),
-        team_id: row.get(2),
-        game_id: row.get(3),
-        dice1: row.get(4),
-        dice2: row.get(5),
-        finished: row.get(6),
-        end_time: row.get(7),
-        drinks: vec![],
-    })
+    Ok(build_turn(row))
 }
 
 pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, PgError> {
@@ -37,17 +28,7 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Pg
         .await
         .map_err(PgError::from)?;
 
-    Ok(Turn {
-        turn_id: row.get(0),
-        start_time: row.get(1),
-        team_id: row.get(2),
-        game_id: row.get(3),
-        dice1: row.get(4),
-        dice2: row.get(5),
-        finished: row.get(6),
-        end_time: row.get(7),
-        drinks: vec![],
-    })
+    Ok(build_turn(row))
 }
 pub async fn get_turns_for_team(client: &Client, team_id: i32) -> Result<Turns, PgError> {
     let rows = client
@@ -60,20 +41,23 @@ pub async fn get_turns_for_team(client: &Client, team_id: i32) -> Result<Turns, 
 
     let turns: Vec<Turn> = rows
         .into_iter()
-        .map(|row| Turn {
-            turn_id: row.get(0),
-            start_time: row.get(1),
-            team_id: row.get(2),
-            game_id: row.get(3),
-            dice1: row.get(4),
-            dice2: row.get(5),
-            finished: row.get(6),
-            end_time: row.get(7),
-            drinks: vec![],
-        })
+        .map(|row| build_turn(row))
         .collect();
 
     Ok(Turns { turns })
+}
+fn build_turn(row: Row) -> Turn {
+    Turn {
+        turn_id: row.get(0),
+        start_time: row.get(1),
+        end_time: row.get(2),
+        finished: row.get(3),
+        team_id: row.get(4),
+        game_id: row.get(5),
+        dice1: row.get(6),
+        dice2: row.get(7),
+        drinks: TurnDrinks { drinks: vec![] },
+    }
 }
 pub async fn add_visited_place(
     client: &Client,
@@ -88,4 +72,54 @@ pub async fn add_visited_place(
         )
         .await
         .map_err(PgError::from)
+}
+pub async fn add_drinks_to_turn(
+    client: &Client,
+    drinks: TurnDrinks,
+) -> Result<u64, PgError> {
+    let mut total_added = 0;
+    for drink in drinks.drinks {
+        if !drink_in_turn(client, &drink).await? {
+            let n_added = add_drink_to_turn(client, drink).await?;
+            total_added += n_added;
+        } else {
+            let n_added = modify_drink_to_turn(client, drink).await?;
+            total_added += n_added;
+        }
+    }
+    Ok(total_added)
+}
+async fn add_drink_to_turn(
+    client: &Client,
+    drink: TurnDrink,
+) -> Result<u64, PgError> {
+    client
+        .execute(
+            "INSERT INTO turn_drinks (turn_id, drink_id, n, penalty) VALUES ($1, $2, $3, $4) returning n",
+            &[&drink.turn_id, &drink.drink.id, &drink.n, &drink.penalty],
+        )
+        .await
+}
+async fn modify_drink_to_turn(client: &Client, drink: TurnDrink) -> Result<u64, PgError> {
+    client
+        .execute(
+            "UPDATE turn_drinks SET n = n + $1 WHERE turn_id = $2 AND drink_id = $3 AND penalty = $4 returning n",
+            &[&drink.n, &drink.turn_id, &drink.drink.id, &drink.penalty],
+        )
+        .await
+}
+async fn drink_in_turn(
+    client: &Client,
+    drink: &TurnDrink,
+) -> Result<bool, PgError> {
+    let row = client
+        .query_one(
+            "SELECT COUNT(*) FROM turn_drinks WHERE turn_id = $1 AND drink_id = $2 AND penalty = $3",
+            &[&drink.turn_id, &drink.drink.id, &drink.penalty],
+        )
+        .await
+        .map_err(PgError::from)?;
+
+    let count: i64 = row.get(0);
+    Ok(count > 0)
 }

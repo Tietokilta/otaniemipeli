@@ -1,14 +1,11 @@
 use crate::database::boards::move_team;
 use crate::database::drinks::get_drinks_ingredients;
-use crate::database::games::{check_dice, get_games, get_team_data, post_game, start_game};
+use crate::database::games::{check_dice, get_games, get_team_data, place_visited, post_game, start_game};
 use crate::database::team::{create_team, get_teams};
-use crate::database::turns::{add_visited_place, end_turn, start_turn};
+use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{
-    EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, SocketAuth, Team, Teams,
-    UserType,
-};
+use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceDrink, PlaceDrinks, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, Turn, TurnDrink, UserType};
 use deadpool_postgres::Client;
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
@@ -118,9 +115,11 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
+            tracing::info!("Here");
             let team: Team = match create_team(&client, team).await {
                 Ok(team) => team,
                 Err(e) => {
+                    tracing::info!("Here");
                     if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
                         tracing::error!("Failed replying game data: {err}")
                     };
@@ -218,6 +217,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
+            let double = turn_start_data.dice1 == turn_start_data.dice2;
             if let Err(e) = check_dice(turn_start_data.dice1, turn_start_data.dice2) {
                 if let Err(err) = s.emit("response-error", &format!("dice error: {e}")) {
                     tracing::error!("Failed replying game data: {err}")
@@ -254,6 +254,48 @@ pub async fn referee_on_connect<A: Adapter>(
                                 return;
                             }
                         };
+                        let mut turn_drinks = match place_after.drinks.to_turn_drinks(&client, turn.turn_id, turn.game_id).await {
+                            Ok(td) => td,
+                            Err(e) => {
+                                if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                                    tracing::error!("Failed replying game data: {err}")
+                                };
+                                return;
+                            }
+                        };
+                        if double {
+                            turn_drinks.drinks = turn_drinks.drinks.iter().map(|d| TurnDrink {
+                                drink: d.drink.clone(),
+                                turn_id: d.turn_id,
+                                n: d.n * 2,
+                                penalty: false,
+                            }).collect();
+                        }
+                        match add_drinks_to_turn(&client, turn_drinks.clone()).await {
+                            Ok(_) => {}
+                            Err(e) => {
+                                if let Err(err) = s.emit(
+                                    "response-error",
+                                    &format!("db error: {e}"),
+                                ) {
+                                    tracing::error!("Failed replying game data: {err}")
+                                };
+                                return;
+                            }
+                        }
+                        if let Some(team_state) = game_data
+                            .teams
+                            .iter_mut()
+                            .find(|t| t.team.team_id == turn.team_id)
+                        {
+                            team_state.location = Some(place_after.clone());
+                            for t in team_state.turns.iter_mut() {
+                                if t.turn_id == turn.turn_id {
+                                    t.drinks = turn_drinks;
+                                    break;
+                                }
+                            }
+                        }
                         match add_visited_place(
                             &client,
                             turn.game_id,
@@ -272,16 +314,6 @@ pub async fn referee_on_connect<A: Adapter>(
                                 return;
                             }
                         }
-
-                        // write it back into the right Team
-                        if let Some(team_state) = game_data
-                            .teams
-                            .iter_mut()
-                            .find(|t| t.team.team_id == turn.team_id)
-                        {
-                            team_state.location = Some(place_after);
-                        }
-
                         if let Err(err) = s.emit("reply-game", &game_data) {
                             tracing::error!("Failed replying game data: {err}");
                         }
@@ -328,6 +360,34 @@ pub async fn referee_on_connect<A: Adapter>(
                 }
             }
         },
+    );
+    s.on("add-penalties", |s: SocketRef<A>, Data(turn_drinks): Data<PostTurnDrinks>, State(state): State<AppState>| async move {
+        println!("Referee: add-penalties called");
+        let client = match get_db_client(&state, &s).await {
+            Some(c) => c,
+            None => return,
+        };
+        match add_drinks_to_turn(&client, turn_drinks.turn_drinks).await {
+            Ok(_) => {
+                match get_team_data(&client, turn_drinks.game_id).await {
+                    Ok(game_data) => {
+                        if let Err(err) = s.emit("reply-game", &game_data) {
+                            tracing::error!("Failed replying game data: {err}")
+                        };
+                    }
+                    Err(e) => {
+                        if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                            tracing::error!("Failed replying game data: {err}")
+                        };
+                    }
+                }
+            }
+            Err(e) => {
+                if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                    tracing::error!("Failed replying game data: {err}")
+                };
+            }
+        }}
     );
 
     let ok = check_auth(&auth.token, &s, &state, UserType::Referee).await;

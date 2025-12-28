@@ -12,7 +12,7 @@ interface TurnCombined {
   team_id: number;
   game_id: number;
   dice_throws: [number, number][];
-  drinks: TurnDrink[];
+  drinks: TurnDrinks;
 }
 const getTimeInBetween = (turns: Turn[]): number[] => {
   return turns.map((turn: Turn) => {
@@ -34,7 +34,7 @@ function formatDhms(totalMs: number): string {
 export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
   const byId = new Map<number, TurnDrink>();
 
-  for (const { drink, turn_id, n } of rows) {
+  for (const { drink, turn_id, n, penalty } of rows) {
     const existing = byId.get(drink.id);
     if (existing) {
       existing.n += n; // add up
@@ -43,6 +43,7 @@ export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
         drink: { id: drink.id, name: drink.name },
         turn_id,
         n,
+        penalty,
       });
     }
   }
@@ -76,7 +77,9 @@ export default function TeamTurnCard({
       team_id: team.team.team_id,
       game_id: lastTurn.game_id,
       dice_throws: teamTurns.map((t) => [t.dice1, t.dice2] as [number, number]),
-      drinks: sumByDrinkId(teamTurns.flatMap((t) => t.drinks)),
+      drinks: {
+        drinks: sumByDrinkId(teamTurns.flatMap((t) => t.drinks.drinks)),
+      },
     };
     setCombinedTurns(combinedTurn);
   }, [setCombinedTurns, collect, lastTurn, team, teamTurns]);
@@ -124,9 +127,14 @@ export default function TeamTurnCard({
           <p className="text-juvu-puna">Place not found</p>
         ))}
       <VerticalList className="mt-2 flex-1 gap-2 px-2 py-4">
-        {(combinedTurns ? combinedTurns : lastTurn).drinks.map((drink) => (
-          <TurnDrinkCard key={drink.drink.id} drink={drink} />
-        ))}
+        {(combinedTurns ? combinedTurns : lastTurn).drinks.drinks.map(
+          (drink) => (
+            <TurnDrinkCard
+              key={`${drink.drink.id}-${drink.penalty}`}
+              drink={drink}
+            />
+          ),
+        )}
       </VerticalList>
     </div>
   );

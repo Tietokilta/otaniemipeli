@@ -107,7 +107,7 @@ export default function Page({
           />
         )}
       </div>
-      <div className="flex flex-col gap-2 flex-3 max-h-[66dvh] w-1/2">
+      <div className="flex flex-col gap-2 flex-3 max-h-[70dvh] w-1/2">
         <h1 className="text-2xl font-bold mb-4">Pelin kulku</h1>
         <GameTeamTurnsList gameData={gameData} className="h-64 flex-1" />
         <GameTeamTurnsList

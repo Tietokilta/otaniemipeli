@@ -17,6 +17,7 @@ export default function AddTeamForm({ gameId }: { gameId: number }) {
       game_id: gameId,
       team_name: data.get("name") as string,
       team_hash: "",
+      current_place_id: -1,
     };
     console.log(team);
     if (socket) {
