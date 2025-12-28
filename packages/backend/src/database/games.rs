@@ -316,14 +316,14 @@ pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks
 
     Ok(turn_drinks)
 }
-pub async fn place_visited(client: &Client, game_id: i32, board_id: i32, place_number: i32) -> Result<bool, AppError> {
+pub async fn place_visited(client: &Client, game_id: i32, place_number: i32) -> Result<bool, AppError> {
     let query_str = "\
-    SELECT * FROM game_places WHERE game_id = $1 AND place_number = $2 AND board_id = $3";
+    SELECT * FROM game_places WHERE game_id = $1 AND place_number = $2";
     match client
-        .query_opt(query_str, &[&game_id, &place_number, &board_id])
+        .query(query_str, &[&game_id, &place_number])
         .await {
-        Ok(row_opt) => {
-            if row_opt.is_some() {
+        Ok(rows) => {
+            if !rows.is_empty() {
                 Ok(true)
             } else {
                 Ok(false)

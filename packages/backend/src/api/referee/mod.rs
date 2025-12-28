@@ -254,6 +254,48 @@ pub async fn referee_on_connect<A: Adapter>(
                                 return;
                             }
                         };
+                        let mut turn_drinks = match place_after.drinks.to_turn_drinks(&client, turn.turn_id, turn.game_id).await {
+                            Ok(td) => td,
+                            Err(e) => {
+                                if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                                    tracing::error!("Failed replying game data: {err}")
+                                };
+                                return;
+                            }
+                        };
+                        if double {
+                            turn_drinks.drinks = turn_drinks.drinks.iter().map(|d| TurnDrink {
+                                drink: d.drink.clone(),
+                                turn_id: d.turn_id,
+                                n: d.n * 2,
+                                penalty: false,
+                            }).collect();
+                        }
+                        match add_drinks_to_turn(&client, turn_drinks.clone()).await {
+                            Ok(_) => {}
+                            Err(e) => {
+                                if let Err(err) = s.emit(
+                                    "response-error",
+                                    &format!("db error: {e}"),
+                                ) {
+                                    tracing::error!("Failed replying game data: {err}")
+                                };
+                                return;
+                            }
+                        }
+                        if let Some(team_state) = game_data
+                            .teams
+                            .iter_mut()
+                            .find(|t| t.team.team_id == turn.team_id)
+                        {
+                            team_state.location = Some(place_after.clone());
+                            for t in team_state.turns.iter_mut() {
+                                if t.turn_id == turn.turn_id {
+                                    t.drinks = turn_drinks;
+                                    break;
+                                }
+                            }
+                        }
                         match add_visited_place(
                             &client,
                             turn.game_id,
@@ -262,43 +304,7 @@ pub async fn referee_on_connect<A: Adapter>(
                         )
                         .await
                         {
-                            Ok(_) => {
-                                    let mut turn_drinks = place_after.drinks.to_turn_drinks(&client, turn.turn_id, turn.game_id).await;
-                                    if double {
-                                        turn_drinks.drinks = turn_drinks.drinks.iter().map(|d| TurnDrink {
-                                            drink: d.drink.clone(),
-                                            turn_id: d.turn_id,
-                                            n: d.n * 2,
-                                            penalty: false,
-                                        }).collect();
-                                    }
-                                    match add_drinks_to_turn(&client, turn_drinks.clone()).await {
-                                        Ok(_) => {}
-                                        Err(e) => {
-                                            if let Err(err) = s.emit(
-                                                "response-error",
-                                                &format!("db error: {e}"),
-                                            ) {
-                                                tracing::error!("Failed replying game data: {err}")
-                                            };
-                                            return;
-                                        }
-                                    }
-                                if let Some(team_state) = game_data
-                                    .teams
-                                    .iter_mut()
-                                    .find(|t| t.team.team_id == turn.team_id)
-                                {
-                                    team_state.location = Some(place_after);
-                                    for t in team_state.turns.iter_mut() {
-                                        if t.turn_id == turn.turn_id {
-                                            t.drinks = turn_drinks;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                            }
+                            Ok(_) => {}
                             Err(e) => {
                                 if let Err(err) =
                                     s.emit("response-error", &format!("db error: {e}"))

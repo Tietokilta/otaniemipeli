@@ -3,6 +3,7 @@ use deadpool_postgres::Client;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use crate::database::games::place_visited;
+use crate::utils::state::AppError;
 
 pub type PgError = tokio_postgres::error::Error;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSql, FromSql)]
@@ -255,7 +256,7 @@ pub struct PlaceDrinks {
     pub drinks: Vec<PlaceDrink>,
 }
 impl PlaceDrinks {
-    pub async fn to_turn_drinks(&self, client: &Client, turn_id: i32, game_id: i32) -> TurnDrinks {
+    pub async fn to_turn_drinks(&self, client: &Client, turn_id: i32, game_id: i32) -> Result<TurnDrinks, AppError> {
         let mut result = Vec::new();
         for pd in &self.drinks {
             if pd.refill {
@@ -265,11 +266,9 @@ impl PlaceDrinks {
             let visited = place_visited(
                 client,
                 game_id,
-                pd.board_id,
                 pd.place_number,
             )
-                .await
-                .unwrap_or(false);
+                .await?;
 
             if !visited {
                 result.push(pd);
@@ -279,7 +278,7 @@ impl PlaceDrinks {
             .iter()
             .map(|pd| pd.to_turn_drink(turn_id))
             .collect();
-        TurnDrinks { drinks }
+        Ok(TurnDrinks { drinks })
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
