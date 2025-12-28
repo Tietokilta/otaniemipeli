@@ -355,6 +355,7 @@ export function DrinkSelectionCard({
                 <p
                   className="text-center w-full select-none"
                   onClick={() => {
+                    if (n <= 1) return;
                     setN(n - 1);
                   }}
                 >
