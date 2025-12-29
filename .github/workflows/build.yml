@@ -52,4 +52,4 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build backend
-        run: cargo build --release
+        run: cargo build --release --manifest-path=packages/backend/Cargo.toml
