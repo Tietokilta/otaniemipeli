@@ -358,8 +358,8 @@ fn get_next_place<'a>(
     board_places: &'a BoardPlaces,
     mut throw: i8,
 ) -> BoardPlace {
-    let backwards: bool =
-        current_place.connections.connections.len() == 1 && current_place.connections.connections[0].backwards;
+    let backwards: bool = current_place.connections.connections.len() == 1
+        && current_place.connections.connections[0].backwards;
 
     while throw > 0 {
         throw -= 1;

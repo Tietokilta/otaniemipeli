@@ -51,5 +51,8 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Check formatting
+        run: cargo fmt --manifest-path packages/backend/Cargo.toml --all -- --check
+
       - name: Build backend
         run: cargo build --release --manifest-path=packages/backend/Cargo.toml

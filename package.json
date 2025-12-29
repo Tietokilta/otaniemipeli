@@ -10,7 +10,7 @@
     "start": "pnpm --filter frontend start",
     "lint": "pnpm --filter frontend lint",
     "lint:fix": "pnpm --filter frontend lint-fix",
-    "format": "prettier --write .",
+    "format": "prettier --write . && cargo fmt --manifest-path packages/backend/Cargo.toml --all --",
     "format:check": "prettier --check .",
     "typecheck": "pnpm --filter frontend typecheck",
     "clean": "rm -rf .next node_modules && pnpm install && pnpm --filter frontend clean",
