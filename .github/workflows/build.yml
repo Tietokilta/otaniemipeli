@@ -1,0 +1,60 @@
+name: Build & Test
+
+on:
+  pull_request:
+    branches: ["main"]
+
+  # Allow other workflows to call this one (i.e. from deploy.yml)
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Install pnpm
+      - uses: pnpm/action-setup@v4
+
+      # Use Node.js 22
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: "pnpm"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      # Run linter
+      - name: Run linter
+        run: pnpm lint
+
+      # Run prettier check
+      - name: Run prettier
+        run: pnpm format:check
+
+      - name: Run typecheck
+        run: pnpm typecheck
+
+      # Check need for migrations
+      - name: Check migrations
+        run: |
+          output=$(pnpm migrate:create --skip-empty 2>&1)
+          echo "$output"
+          if echo "$output" | grep -q "Migration created"; then
+            echo "Database schema is not up to date! Run 'pnpm migrate:create' locally and commit the new migration file."
+            exit 1
+          fi
+        env:
+          PAYLOAD_SECRET: verysecretkey
+
+      # Build the project
+      - name: Build
+        run: pnpm build
