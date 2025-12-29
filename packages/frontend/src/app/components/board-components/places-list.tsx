@@ -36,6 +36,7 @@ export default async function PlacesList({
                   },
                   connections: [],
                   start: false,
+                  area: "normal",
                   end: false,
                   x: -100,
                   y: -100,

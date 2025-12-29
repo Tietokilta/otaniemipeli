@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS board_places
     board_id     INTEGER NOT NULL REFERENCES boards (board_id) ON DELETE CASCADE,
     place_number INTEGER,
     place_id     INTEGER NOT NULL REFERENCES places (place_id) ON DELETE CASCADE,
+    area         TEXT    default 'normal',
     start        BOOLEAN default FALSE,
     "end"        BOOLEAN default FALSE,
     x            FLOAT   default 0.0,

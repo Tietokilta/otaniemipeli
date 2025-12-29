@@ -1,6 +1,6 @@
 use crate::database::boards::{get_board_place, get_first_place};
 use crate::database::team::get_teams;
-use crate::database::turns::{add_visited_place, get_turns_for_team};
+use crate::database::turns::{add_visited_place, end_game_turns, get_turns_for_team};
 use crate::utils::state::AppError;
 use crate::utils::types::*;
 use chrono::{DateTime, Utc};
@@ -116,6 +116,19 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
 
     Ok(build_game_from_row(&row))
 }
+pub async fn end_game(client: &Client, game_id: i32) -> Result<Game, PgError> {
+    let row = client
+        .query_one(
+            "UPDATE games
+             SET finished = true
+             WHERE game_id = $1
+             RETURNING *",
+            &[&game_id],
+        )
+        .await?;
+    end_game_turns(client, game_id).await?;
+    Ok(build_game_from_row(&row))
+}
 
 fn build_game_from_row(row: &Row) -> Game {
     Game {
@@ -148,7 +161,7 @@ pub async fn get_team_data(client: &Client, game_id: i32) -> Result<GameData, Pg
     let board_id = game.board;
 
     let teams = join_all(teams.into_iter().map(|team| async move {
-        let turns = get_team_turns_with_board(client, team.team_id, game_id, board_id)
+        let turns = get_team_turns_with_board(client, team.team_id, game_id)
             .await
             .unwrap_or_default();
 
@@ -213,7 +226,6 @@ pub async fn get_team_turns_with_board(
     client: &Client,
     team_id: i32,
     game_id: i32,
-    board_id: i32,
 ) -> Result<Vec<Turn>, AppError> {
     let rows_un = client
         .query(

@@ -16,6 +16,7 @@ export default function Page({
     x: 0,
     y: 0,
     start: false,
+    area: "normal",
     end: false,
     board_id: 1,
     place: {

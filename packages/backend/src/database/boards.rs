@@ -82,7 +82,8 @@ pub async fn get_board_places(client: &Client, board_id: i32) -> Result<BoardPla
         bp.start,\
         bp.end, \
         bp.x, \
-        bp.y \
+        bp.y, \
+        bp.area \
     FROM board_places AS bp \
     LEFT JOIN places AS p \
         ON bp.place_id = p.place_id \
@@ -105,6 +106,7 @@ pub async fn get_board_places(client: &Client, board_id: i32) -> Result<BoardPla
                 },
                 place_number: row.get(5),
                 start: row.get(6),
+                area: row.get(10),
                 end: row.get(7),
                 x: row.get(8),
                 y: row.get(9),
@@ -141,7 +143,8 @@ pub async fn get_board_place(
         bp.start,\
         bp.end, \
         bp.x, \
-        bp.y \
+        bp.y, \
+        bp.area \
     FROM board_places AS bp \
     LEFT JOIN places AS p \
         ON bp.place_id = p.place_id \
@@ -160,6 +163,7 @@ pub async fn get_board_place(
             },
             place_number: row.get(5),
             start: row.get(6),
+            area: row.get(10),
             end: row.get(7),
             x: row.get(8),
             y: row.get(9),
