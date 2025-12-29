@@ -1,11 +1,11 @@
 use crate::database::boards::move_team;
 use crate::database::drinks::get_drinks_ingredients;
-use crate::database::games::{check_dice, get_games, get_team_data, place_visited, post_game, start_game};
+use crate::database::games::{check_dice, end_game, get_games, get_team_data, post_game, start_game};
 use crate::database::team::{create_team, get_teams};
 use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceDrink, PlaceDrinks, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, Turn, TurnDrink, UserType};
+use crate::utils::types::{EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team, Teams, TurnDrink, UserType};
 use deadpool_postgres::Client;
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
@@ -296,6 +296,19 @@ pub async fn referee_on_connect<A: Adapter>(
                                 }
                             }
                         }
+                        if place_after.end {
+                            match end_game(&client, turn.game_id).await {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    if let Err(err) =
+                                        s.emit("response-error", &format!("db error: {e}"))
+                                    {
+                                        tracing::error!("Failed replying game data: {err}")
+                                    };
+                                    return;
+                                }
+                            };
+                        }
                         match add_visited_place(
                             &client,
                             turn.game_id,
@@ -348,12 +361,14 @@ pub async fn referee_on_connect<A: Adapter>(
                         };
                     }
                     Err(e) => {
+                        tracing::error!("error getting game data: {e}");
                         if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
                             tracing::error!("Failed replying game data: {err}")
                         };
                     }
                 },
                 Err(e) => {
+                    tracing::error!("error getting game data: {e}");
                     if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
                         tracing::error!("Failed replying game data: {err}")
                     };

@@ -245,6 +245,7 @@ pub struct BoardPlace {
     pub place: Place,
     pub place_number: i32,
     pub start: bool,
+    pub area: String,
     pub end: bool,
     pub x: f64,
     pub y: f64,

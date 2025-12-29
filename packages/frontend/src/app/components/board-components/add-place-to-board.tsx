@@ -69,6 +69,7 @@ export default function AddPlaceToBoard({
       place: selectedPlace,
       place_number: placeNumber,
       start,
+      area: "normal",
       end,
       x,
       y,

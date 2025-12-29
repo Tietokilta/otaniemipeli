@@ -4,7 +4,7 @@ use tokio_postgres::Row;
 
 pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Turn, PgError> {
     let row = client
-        .query_one(
+        .query(
             "UPDATE turns
              SET finished = TRUE, end_time = NOW()
              WHERE team_id = $1 AND game_id = $2 AND finished = FALSE returning *",
@@ -12,8 +12,28 @@ pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Tur
         )
         .await
         .map_err(PgError::from)?;
+    tracing::info!("n_rows: {}", row.len());
 
-    Ok(build_turn(row))
+    Ok(build_turn(row[0].clone()))
+}
+pub async fn end_game_turns(client: &Client, game_id: i32) -> Result<Vec<Turn>, PgError> {
+    let rows = client
+        .query(
+            "UPDATE turns
+             SET finished = TRUE, end_time = NOW()
+             WHERE game_id = $1 AND finished = FALSE
+             RETURNING *",
+            &[&game_id],
+        )
+        .await
+        .map_err(PgError::from)?;
+
+    let turns: Vec<Turn> = rows
+        .into_iter()
+        .map(|row| build_turn(row))
+        .collect();
+
+    Ok(turns)
 }
 
 pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, PgError> {

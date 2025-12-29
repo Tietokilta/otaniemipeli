@@ -182,6 +182,7 @@ declare global {
     place: Place;
     place_number: number;
     start: boolean;
+    area: string;
     end: boolean;
     x: number;
     y: number;
