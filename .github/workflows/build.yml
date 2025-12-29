@@ -50,3 +50,6 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Build backend
+        run: cargo build --release
