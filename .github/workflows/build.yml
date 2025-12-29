@@ -28,9 +28,6 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Install deps (workspace)
-        run: pnpm install --frozen-lockfile
-
       - name: Lint
         run: pnpm -C packages/frontend lint
 
