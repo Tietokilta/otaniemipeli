@@ -39,7 +39,7 @@ export default function LineLayer({
 
   const seen = new Set<string>();
   for (const p of places.places) {
-    for (const c of p.connections) {
+    for (const c of p.connections.connections) {
       const key = edgeKey(c.origin, c.target);
       if (seen.has(key)) continue;
       seen.add(key);

@@ -25,11 +25,6 @@ pub enum PlaceType {
 pub struct SocketAuth {
     pub token: String,
 }
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct VerifyAck {
-    pub ok: bool,
-    pub reason: Option<String>,
-}
 #[derive(Clone, Debug, Serialize, Deserialize, ToSql, FromSql)]
 #[postgres(name = "usertype")]
 pub enum UserType {
@@ -249,7 +244,7 @@ pub struct BoardPlace {
     pub end: bool,
     pub x: f64,
     pub y: f64,
-    pub connections: Vec<Connection>,
+    pub connections: Connections,
     pub drinks: PlaceDrinks,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
