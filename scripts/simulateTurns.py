@@ -177,6 +177,7 @@ def main() -> int:
     ap.add_argument("--game-id", type=int, default=None, help="if omitted, first from reply-games")
     ap.add_argument("--team-id", type=int, default=None, help="if omitted, first team from reply-game")
     ap.add_argument("--fixed-dice", default=None, help='optional fixed dice like "3,5" (no spaces)')
+    ap.add_argument("--sleep", default=None, type=bool, help="if set, sleep random 1-10s between turns")
     args = ap.parse_args()
 
     if args.seed is not None:
@@ -278,7 +279,8 @@ def main() -> int:
 
         try:
             if len([i for i in team.get("turns") if not i.get("finished")]):
-                time.sleep(random.randrange(1, 10))
+                if args.sleep:
+                    time.sleep(random.randrange(1, 10))
 
                 print(f"  chosen team_id={team_id}")
 
@@ -290,7 +292,8 @@ def main() -> int:
                     args.timeout,
                 )
             else:
-                time.sleep(random.randrange(1, 10))
+                if args.sleep:
+                    time.sleep(random.randrange(1, 10))
                 start_turn(
                     sio,
                     waiter,

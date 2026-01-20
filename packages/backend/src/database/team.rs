@@ -16,6 +16,7 @@ pub async fn create_team(client: &Client, team: Team) -> Result<Team, PgError> {
                 team_name: row.get(2),
                 team_hash: row.get(3),
                 current_place_id: row.get(4),
+                double: row.get(5)
             };
             Ok(team)
         }
@@ -36,10 +37,30 @@ pub async fn get_teams(client: &Client, game_id: i32) -> Result<Vec<Team>, PgErr
                     team_name: row.get(2),
                     team_hash: row.get(3),
                     current_place_id: row.get(4),
+                    double: row.get(5)
                 })
                 .collect();
             Ok(teams)
         }
+        Err(e) => Err(PgError::from(e)),
+    }
+}
+
+pub async fn make_team_double(client: &Client, team_id: i32) -> Result<(), PgError> {
+    let query_str = "\
+    UPDATE teams SET doubled = TRUE WHERE team_id = $1";
+    let query = client.execute(query_str, &[&team_id]).await;
+    match query {
+        Ok(_) => Ok(()),
+        Err(e) => Err(PgError::from(e)),
+    }
+}
+pub async fn make_team_normal(client: &Client, team_id: i32) -> Result<(), PgError> {
+    let query_str = "\
+    UPDATE teams SET doubled = FALSE WHERE team_id = $1";
+    let query = client.execute(query_str, &[&team_id]).await;
+    match query {
+        Ok(_) => Ok(()),
         Err(e) => Err(PgError::from(e)),
     }
 }

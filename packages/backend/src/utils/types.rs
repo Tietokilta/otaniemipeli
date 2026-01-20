@@ -114,6 +114,7 @@ pub struct Team {
     pub team_name: String,
     pub team_hash: String,
     pub current_place_id: i32,
+    pub double: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Teams {

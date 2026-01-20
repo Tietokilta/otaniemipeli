@@ -57,6 +57,7 @@ declare global {
     team_name: string;
     team_hash: string;
     current_place_id: number;
+    double: boolean;
   }
 
   interface Teams {
@@ -261,6 +262,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};
