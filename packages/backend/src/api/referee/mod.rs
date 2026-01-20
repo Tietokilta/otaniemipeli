@@ -232,115 +232,33 @@ pub async fn referee_on_connect<A: Adapter>(
             match start_turn(&client, turn_start_data).await {
                 Ok(turn) => {
                     match get_team_data(&client, turn.game_id).await {
-                    Ok(mut game_data) => {
-                        let team_double = match game_data.teams.iter().find(|t| t.team.team_id == turn.team_id) {
-                            Some(team) => team.team.double,
-                            None => false,
-                        };
-                        let throw = (turn.dice1 as i8, turn.dice2 as i8);
-
-                        // find current place for that Team (avoid cloning whole game_data)
-                        let current_place = game_data
-                            .teams
-                            .iter()
-                            .find(|t| t.team.team_id == turn.team_id)
-                            .and_then(|t| t.location.clone()) // Option<BoardPlace>
-                            .unwrap();
-
-                        let pl = PlaceThrow {
-                            place: current_place.clone(),
-                            throw,
-                            team_id: turn.team_id,
-                        };
-
-                        let place_after = match move_team(&client, pl).await {
-                            Ok(p) => p,
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                                return;
-                            }
-                        };
-                        if current_place.area == "normal" && place_after.area == "tampere" && double {
-                            match make_team_double(&client, turn.team_id).await {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    if let Err(err) =
-                                        s.emit("response-error", &format!("db error: {e}"))
-                                    {
-                                        tracing::error!("Failed replying game data: {err}")
-                                    };
-                                }
-                            };
-                        } else if current_place.area == "tampere" && place_after.area == "normal" && team_double {
-                            match make_team_normal(&client, turn.team_id).await {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    if let Err(err) =
-                                        s.emit("response-error", &format!("db error: {e}"))
-                                    {
-                                        tracing::error!("Failed replying game data: {err}")
-                                    };
-                                }
-                            };
-                        }
-                        let mut turn_drinks = match place_after
-                            .drinks
-                            .to_turn_drinks(&client, turn.turn_id, turn.game_id)
-                            .await
-                        {
-                            Ok(td) => td,
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                                return;
-                            }
-                        };
-                        if double || team_double {
-                            turn_drinks.drinks = turn_drinks
-                                .drinks
+                        Ok(mut game_data) => {
+                            let team_double = match game_data
+                                .teams
                                 .iter()
-                                .map(|d| TurnDrink {
-                                    drink: d.drink.clone(),
-                                    turn_id: d.turn_id,
-                                    n: d.n * 2,
-                                    penalty: false,
-                                })
-                                .collect();
-                        }
-                        match add_drinks_to_turn(&client, turn_drinks.clone()).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                                return;
-                            }
-                        }
-                        if let Some(team_state) = game_data
-                            .teams
-                            .iter_mut()
-                            .find(|t| t.team.team_id == turn.team_id)
-                        {
-                            team_state.location = Some(place_after.clone());
-                            for t in team_state.turns.iter_mut() {
-                                if t.turn_id == turn.turn_id {
-                                    t.drinks = turn_drinks;
-                                    break;
-                                }
-                            }
-                        }
-                        if place_after.end {
-                            match end_game(&client, turn.game_id).await {
-                                Ok(_) => {}
+                                .find(|t| t.team.team_id == turn.team_id)
+                            {
+                                Some(team) => team.team.double,
+                                None => false,
+                            };
+                            let throw = (turn.dice1 as i8, turn.dice2 as i8);
+
+                            // find current place for that Team (avoid cloning whole game_data)
+                            let current_place = game_data
+                                .teams
+                                .iter()
+                                .find(|t| t.team.team_id == turn.team_id)
+                                .and_then(|t| t.location.clone()) // Option<BoardPlace>
+                                .unwrap();
+
+                            let pl = PlaceThrow {
+                                place: current_place.clone(),
+                                throw,
+                                team_id: turn.team_id,
+                            };
+
+                            let place_after = match move_team(&client, pl).await {
+                                Ok(p) => p,
                                 Err(e) => {
                                     if let Err(err) =
                                         s.emit("response-error", &format!("db error: {e}"))
@@ -350,36 +268,129 @@ pub async fn referee_on_connect<A: Adapter>(
                                     return;
                                 }
                             };
-                        }
-                        match add_visited_place(
-                            &client,
-                            turn.game_id,
-                            place_after.place_number,
-                            turn.team_id,
-                            turn.turn_id,
-                        )
-                        .await
-                        {
-                            Ok(_) => {}
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
+                            if current_place.area == "normal"
+                                && place_after.area == "tampere"
+                                && double
+                            {
+                                match make_team_double(&client, turn.team_id).await {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        if let Err(err) =
+                                            s.emit("response-error", &format!("db error: {e}"))
+                                        {
+                                            tracing::error!("Failed replying game data: {err}")
+                                        };
+                                    }
                                 };
-                                return;
+                            } else if current_place.area == "tampere"
+                                && place_after.area == "normal"
+                                && team_double
+                            {
+                                match make_team_normal(&client, turn.team_id).await {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        if let Err(err) =
+                                            s.emit("response-error", &format!("db error: {e}"))
+                                        {
+                                            tracing::error!("Failed replying game data: {err}")
+                                        };
+                                    }
+                                };
+                            }
+                            let mut turn_drinks = match place_after
+                                .drinks
+                                .to_turn_drinks(&client, turn.turn_id, turn.game_id)
+                                .await
+                            {
+                                Ok(td) => td,
+                                Err(e) => {
+                                    if let Err(err) =
+                                        s.emit("response-error", &format!("db error: {e}"))
+                                    {
+                                        tracing::error!("Failed replying game data: {err}")
+                                    };
+                                    return;
+                                }
+                            };
+                            if double || team_double {
+                                turn_drinks.drinks = turn_drinks
+                                    .drinks
+                                    .iter()
+                                    .map(|d| TurnDrink {
+                                        drink: d.drink.clone(),
+                                        turn_id: d.turn_id,
+                                        n: d.n * 2,
+                                        penalty: false,
+                                    })
+                                    .collect();
+                            }
+                            match add_drinks_to_turn(&client, turn_drinks.clone()).await {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    if let Err(err) =
+                                        s.emit("response-error", &format!("db error: {e}"))
+                                    {
+                                        tracing::error!("Failed replying game data: {err}")
+                                    };
+                                    return;
+                                }
+                            }
+                            if let Some(team_state) = game_data
+                                .teams
+                                .iter_mut()
+                                .find(|t| t.team.team_id == turn.team_id)
+                            {
+                                team_state.location = Some(place_after.clone());
+                                for t in team_state.turns.iter_mut() {
+                                    if t.turn_id == turn.turn_id {
+                                        t.drinks = turn_drinks;
+                                        break;
+                                    }
+                                }
+                            }
+                            if place_after.end {
+                                match end_game(&client, turn.game_id).await {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        if let Err(err) =
+                                            s.emit("response-error", &format!("db error: {e}"))
+                                        {
+                                            tracing::error!("Failed replying game data: {err}")
+                                        };
+                                        return;
+                                    }
+                                };
+                            }
+                            match add_visited_place(
+                                &client,
+                                turn.game_id,
+                                place_after.place_number,
+                                turn.team_id,
+                                turn.turn_id,
+                            )
+                            .await
+                            {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    if let Err(err) =
+                                        s.emit("response-error", &format!("db error: {e}"))
+                                    {
+                                        tracing::error!("Failed replying game data: {err}")
+                                    };
+                                    return;
+                                }
+                            }
+                            if let Err(err) = s.emit("reply-game", &game_data) {
+                                tracing::error!("Failed replying game data: {err}");
                             }
                         }
-                        if let Err(err) = s.emit("reply-game", &game_data) {
-                            tracing::error!("Failed replying game data: {err}");
+                        Err(e) => {
+                            if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
+                                tracing::error!("Failed replying game data: {err}")
+                            };
                         }
                     }
-                    Err(e) => {
-                        if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                }},
+                }
                 Err(e) => {
                     if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
                         tracing::error!("Failed replying game data: {err}")

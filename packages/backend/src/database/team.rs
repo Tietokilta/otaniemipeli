@@ -16,7 +16,7 @@ pub async fn create_team(client: &Client, team: Team) -> Result<Team, PgError> {
                 team_name: row.get(2),
                 team_hash: row.get(3),
                 current_place_id: row.get(4),
-                double: row.get(5)
+                double: row.get(5),
             };
             Ok(team)
         }
@@ -37,7 +37,7 @@ pub async fn get_teams(client: &Client, game_id: i32) -> Result<Vec<Team>, PgErr
                     team_name: row.get(2),
                     team_hash: row.get(3),
                     current_place_id: row.get(4),
-                    double: row.get(5)
+                    double: row.get(5),
                 })
                 .collect();
             Ok(teams)
