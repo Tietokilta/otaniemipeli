@@ -54,16 +54,28 @@ export default function TeamTurnCard({
   team,
   collect,
   teamTurns,
+  board,
 }: {
   team: GameTeam;
   collect?: boolean;
   teamTurns: Turn[];
+  board?: BoardPlaces;
 }): JSX.Element {
   const lastTurn = teamTurns[teamTurns.length - 1];
   const [combinedTurns, setCombinedTurns] = React.useState<TurnCombined | null>(
     null,
   );
   const [showDialogue, setShowDialogue] = React.useState<boolean>(false);
+  const [location, setLocation] = React.useState<BoardPlace | undefined>();
+
+  useEffect(() => {
+    if (board) {
+      const loc = board.places.find((p) => {
+        return p.place_number === teamTurns[0].location;
+      });
+      setLocation(loc);
+    }
+  }, [board, teamTurns]);
 
   useEffect(() => {
     if (!collect) return;
@@ -121,7 +133,9 @@ export default function TeamTurnCard({
         <TurnElapsed iso={lastTurn.start_time} />
       )}
       {!combinedTurns &&
-        (team.location ? (
+        (location ? (
+          <PlaceCard place={location} showInfo={false} />
+        ) : team.location ? (
           <PlaceCard place={team.location} showInfo={false} />
         ) : (
           <p className="text-juvu-puna">Place not found</p>

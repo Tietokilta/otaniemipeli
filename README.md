@@ -40,7 +40,7 @@ iii. Fill in the wanted DB credentials and use the same ones for the flyway cred
 10. Run `docker-compose up --build` to start the backend.
 11. Run `pnpm dev` to start the frontend.
 
-For Production build docker image run
+For Production build docker image which contains front and backends run
 
 ```bash
 docker-compose -f docker-compose-prod.yml up --build

@@ -278,6 +278,7 @@ def main() -> int:
 
         try:
             if len([i for i in team.get("turns") if not i.get("finished")]):
+                time.sleep(random.randrange(1, 10))
 
                 print(f"  chosen team_id={team_id}")
 
@@ -289,6 +290,7 @@ def main() -> int:
                     args.timeout,
                 )
             else:
+                time.sleep(random.randrange(1, 10))
                 start_turn(
                     sio,
                     waiter,

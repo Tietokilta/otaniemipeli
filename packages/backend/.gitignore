@@ -1,7 +1,6 @@
 /target
 .env*
 ../.idea
-/backend/migrations/V4__seed_with_user_login.sql
 dump.sql
 .DS_Store
 scripts/global-rust-types.d.ts
