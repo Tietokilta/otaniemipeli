@@ -21,7 +21,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   if (error) {
     return <GameErrorDisplay error={error} />;
   }
-  
+
   if (!gameData) {
     return <GameLoadingSpinner />;
   }

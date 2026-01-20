@@ -28,24 +28,21 @@ export interface UseGameDataResult {
 
 /**
  * Custom hook to fetch game data via socket.io with retry logic and error handling
- * 
+ *
  * @param socket - The socket.io socket instance
  * @param gameId - The game ID to fetch data for
  * @param options - Optional configuration
  * @returns Game data, error state, loading state, and setter
- * 
+ *
  * @example
  * const { gameData, error, isLoading } = useGameData(socket, gameId);
  */
 export function useGameData(
   socket: Socket | null,
   gameId: number,
-  options: UseGameDataOptions = {}
+  options: UseGameDataOptions = {},
 ): UseGameDataResult {
-  const {
-    maxRetries = 5,
-    retryTimeout = 500,
-  } = options;
+  const { maxRetries = 5, retryTimeout = 500 } = options;
 
   const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
