@@ -9,13 +9,13 @@ export default function TeamCard({
   className?: string;
   link?: boolean;
 }) {
-  let path = usePathname();
+  const path = usePathname();
   return (
     <div
       className={`${className}flex-wrap box list-none center`}
-      onClick={() => {
-        link ? (window.location.href = `${path}/${team.team_id}`) : null;
-      }}
+      onClick={() =>
+        link ? (window.location.href = `${path}/${team.team_id}`) : null
+      }
     >
       {team.team_name}
     </div>
