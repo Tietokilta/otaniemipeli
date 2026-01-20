@@ -159,6 +159,7 @@ pub struct Turn {
     pub game_id: i32,
     pub dice1: i32,
     pub dice2: i32,
+    pub location: i32,
     pub finished: bool,
     pub end_time: Option<DateTime<Utc>>,
     pub drinks: TurnDrinks,

@@ -328,6 +328,7 @@ pub async fn referee_on_connect<A: Adapter>(
                             turn.game_id,
                             place_after.place_number,
                             turn.team_id,
+                            turn.turn_id,
                         )
                         .await
                         {

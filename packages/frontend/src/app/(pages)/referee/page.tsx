@@ -9,7 +9,7 @@ export default function Home() {
       <div className="flex gap-4 w-full h-full">
         <CreateUserForm className="w-100 box" />
         <CreateGameForm className="w-100" />
-        <GameList className="w-100" />
+        <GameList className="w-100" go_to_games={true} />
       </div>
     </div>
   );

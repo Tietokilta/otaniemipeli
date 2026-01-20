@@ -88,7 +88,8 @@ CREATE TABLE IF NOT EXISTS turns
     team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
     game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
     dice1      INTEGER,
-    dice2      INTEGER
+    dice2      INTEGER,
+    location   INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS game_places
 (

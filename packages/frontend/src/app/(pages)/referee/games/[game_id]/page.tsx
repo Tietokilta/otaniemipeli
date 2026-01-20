@@ -58,6 +58,7 @@ export default function Page({
 
       console.log("Received game data:", data);
       setGameData(data);
+      sessionStorage.setItem("game", JSON.stringify(data));
     };
 
     socket.on("reply-game", onReply);

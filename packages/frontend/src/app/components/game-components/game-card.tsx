@@ -1,21 +1,30 @@
 import { getUserTypeFromPath } from "@/utils/helpers";
+import { usePathname } from "next/navigation";
 
 export default function GameCard({
   game,
   link = false,
   className,
+  go_to_games,
 }: {
   game: Game;
   link?: boolean;
   className?: string;
+  go_to_games?: boolean;
 }) {
+  const path = usePathname();
+  console.log(path);
+  console.log(`${path}/${game.id}`);
+  console.log(go_to_games);
   return (
     <li
       key={game.id}
       className={`${className} box`}
       onClick={() =>
         link
-          ? (window.location.href = `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`)
+          ? go_to_games
+            ? (window.location.href = `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`)
+            : (window.location.href = `${path}/${game.id}`)
           : null
       }
       style={{ cursor: "pointer" }}

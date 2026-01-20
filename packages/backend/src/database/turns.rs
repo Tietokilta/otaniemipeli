@@ -21,7 +21,7 @@ pub async fn end_game_turns(client: &Client, game_id: i32) -> Result<Vec<Turn>, 
         .query(
             "UPDATE turns
              SET finished = TRUE, end_time = NOW()
-             WHERE game_id = $1 AND finished = FALSE
+             WHERE game_id = $1
              RETURNING *",
             &[&game_id],
         )
@@ -70,6 +70,7 @@ fn build_turn(row: Row) -> Turn {
         game_id: row.get(5),
         dice1: row.get(6),
         dice2: row.get(7),
+        location: row.get(8),
         drinks: TurnDrinks { drinks: vec![] },
     }
 }
@@ -78,11 +79,19 @@ pub async fn add_visited_place(
     game_id: i32,
     place_number: i32,
     team_id: i32,
+    turn_id: i32,
 ) -> Result<u64, PgError> {
     client
         .execute(
             "INSERT INTO game_places (game_id, place_number, team_id) VALUES ($1, $2, $3)",
             &[&game_id, &place_number, &team_id],
+        )
+        .await
+        .map_err(PgError::from)?;
+    client
+        .execute(
+            "UPDATE turns SET location = $1 WHERE turn_id = $2",
+            &[&place_number, &turn_id],
         )
         .await
         .map_err(PgError::from)
