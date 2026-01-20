@@ -14,11 +14,6 @@ use tracing_subscriber::FmtSubscriber;
 
 use crate::utils::state::{all_middleware, AppState};
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct TokenStore {
-    pub token: String,
-}
-
 pub async fn start() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 

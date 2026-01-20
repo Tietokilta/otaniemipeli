@@ -73,7 +73,7 @@ export default function AddPlaceToBoard({
       end,
       x,
       y,
-      connections: [],
+      connections: { connections: [] },
       drinks: { drinks: [] },
     };
     setSubmitted(!submitted);

@@ -17,11 +17,6 @@ declare global {
     token: string;
   }
 
-  interface VerifyAck {
-    ok: boolean;
-    reason: string | null;
-  }
-
   interface LoginInfo {
     username: string;
     password: string;
@@ -186,7 +181,7 @@ declare global {
     end: boolean;
     x: number;
     y: number;
-    connections: Connection[];
+    connections: Connections;
     drinks: PlaceDrinks;
   }
 

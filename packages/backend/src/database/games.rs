@@ -282,7 +282,6 @@ pub async fn get_team_turns_with_board(
             );
             ordered_ids.push(turn_id);
         }
-
     }
 
     let turns: Vec<Turn> = ordered_ids
@@ -323,17 +322,20 @@ pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks
                 turn_id,
                 n: row.get(2),
                 penalty: row.get(3),
-            }).collect()
+            })
+            .collect(),
     };
 
     Ok(turn_drinks)
 }
-pub async fn place_visited(client: &Client, game_id: i32, place_number: i32) -> Result<bool, AppError> {
+pub async fn place_visited(
+    client: &Client,
+    game_id: i32,
+    place_number: i32,
+) -> Result<bool, AppError> {
     let query_str = "\
     SELECT * FROM game_places WHERE game_id = $1 AND place_number = $2";
-    match client
-        .query(query_str, &[&game_id, &place_number])
-        .await {
+    match client.query(query_str, &[&game_id, &place_number]).await {
         Ok(rows) => {
             if !rows.is_empty() {
                 Ok(true)

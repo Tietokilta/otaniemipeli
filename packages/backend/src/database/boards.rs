@@ -112,7 +112,7 @@ pub async fn get_board_places(client: &Client, board_id: i32) -> Result<BoardPla
                 y: row.get(9),
                 connections: match get_board_place_connections(&client, board_id, row.get(5)).await
                 {
-                    Ok(r) => r,
+                    Ok(r) => Connections { connections: r },
                     Err(e) => return Err(e),
                 },
                 drinks: {
@@ -168,7 +168,7 @@ pub async fn get_board_place(
             x: row.get(8),
             y: row.get(9),
             connections: match get_board_place_connections(&client, board_id, row.get(5)).await {
-                Ok(r) => r,
+                Ok(r) => Connections { connections: r },
                 Err(e) => return Err(e),
             },
             drinks: {
@@ -358,49 +358,49 @@ fn get_next_place<'a>(
     board_places: &'a BoardPlaces,
     mut throw: i8,
 ) -> BoardPlace {
-    let backwards: bool =
-        current_place.connections.len() == 1 && current_place.connections[0].backwards;
+    let backwards: bool = current_place.connections.connections.len() == 1
+        && current_place.connections.connections[0].backwards;
 
     while throw > 0 {
         throw -= 1;
-        if current_place.connections.len() == 0 {
+        if current_place.connections.connections.len() == 0 {
             tracing::info!("No more connections, stopping movement.");
             break;
         }
         // If place has only one connection
-        if current_place.connections.len() == 1 {
+        if current_place.connections.connections.len() == 1 {
             let target_place_number;
             // If one connection is on land, stop propagation after the connection
             // else continue normally
-            if current_place.connections[0].on_land {
+            if current_place.connections.connections[0].on_land {
                 throw = 0;
                 target_place_number =
-                    get_connection_target(&current_place.connections, false, true);
+                    get_connection_target(&current_place.connections.connections, false, true);
             } else {
                 target_place_number =
-                    get_connection_target(&current_place.connections, backwards, false);
+                    get_connection_target(&current_place.connections.connections, backwards, false);
             }
             current_place = board_places
                 .find_place(target_place_number)
                 .unwrap_or(current_place);
-        } else if current_place.connections.len() > 1 {
+        } else if current_place.connections.connections.len() > 1 {
             let target_place_number;
             // If the team has moved all places already then move to the on_land connection
             // else move with the normal connection
             if throw == 0 {
                 target_place_number =
-                    get_connection_target(&current_place.connections, false, true);
+                    get_connection_target(&current_place.connections.connections, false, true);
             } else {
                 target_place_number =
-                    get_connection_target(&current_place.connections, false, false);
+                    get_connection_target(&current_place.connections.connections, false, false);
             }
             current_place = board_places
                 .find_place(target_place_number)
                 .unwrap_or(current_place);
         }
         // If there are multiple connections and one is on land, move to that one
-        if current_place.connections.len() > 1 {
-            for connection in &current_place.connections {
+        if current_place.connections.connections.len() > 1 {
+            for connection in &current_place.connections.connections {
                 if connection.on_land {
                     current_place = board_places
                         .find_place(connection.target)
