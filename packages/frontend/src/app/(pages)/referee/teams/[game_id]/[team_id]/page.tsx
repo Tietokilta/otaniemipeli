@@ -5,6 +5,11 @@ import TeamTurnCard from "@/app/components/team-components/team-turn-card";
 import { useSocket } from "@/app/template";
 import { usePathname } from "next/navigation";
 import { getBoardPlaces } from "@/utils/fetchers";
+import { useGameData } from "@/app/hooks/useGameData";
+import {
+  GameLoadingSpinner,
+  GameErrorDisplay,
+} from "@/app/components/game-components/game-loading-states";
 
 export default function Page({
   params,
@@ -13,71 +18,18 @@ export default function Page({
 }) {
   const { team_id } = use(params);
   const socket = useSocket();
-  const [gameData, setGameData] = useState<GameData | null>(null);
-  const [team, setTeam] = useState<GameTeam | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const path = usePathname();
+  const gameId = Number(path.split("/")[3]);
+  const { gameData, error, isLoading } = useGameData(socket, gameId);
+  const [team, setTeam] = useState<GameTeam | null>(null);
   const [board, setBoard] = useState<BoardPlaces | undefined>();
 
   useEffect(() => {
-    if (!socket) return;
-
-    const teamId = Number(team_id);
-    const gameId = Number(path.split("/")[3]);
-    console.log(gameId);
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let resolved = false;
-
-    let attempts = 0;
-    const MAX = 5;
-
-    const request = () => {
-      if (attempts >= MAX)
-        setError("Too many connect attempts, please try reloading the page.");
-      if (resolved || attempts >= MAX || error) return;
-      attempts++;
-      socket.emit("game-data", gameId);
-
-      timeoutId = setTimeout(() => {
-        if (!resolved) {
-          console.warn("No response, retrying…");
-          request();
-        }
-      }, 500);
-    };
-
-    const onReply = (data: GameData) => {
-      if (!data) {
-        return;
-      }
-      if (!data.game) {
-        setError("Game not found.");
-        return;
-      }
-      if (data.game.id !== gameId) return;
-
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-
-      console.log("Received game data:", data);
-      setGameData(data);
-      setTeam(data.teams.find((t) => t.team.team_id === teamId) || null);
-      console.log(data);
-    };
-
-    if (socket.connected) {
-      request();
-    } else {
-      socket.once("connect", request);
+    if (gameData) {
+      const teamId = Number(team_id);
+      setTeam(gameData.teams.find((t) => t.team.team_id === teamId) || null);
     }
-    socket.on("reply-game", onReply);
-
-    return () => {
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      socket.off("reply-game", onReply);
-    };
-  }, [socket, team_id, path, error]);
+  }, [gameData, team_id]);
   useEffect(() => {
     // get board places
     if (gameData) {
@@ -86,6 +38,14 @@ export default function Page({
       });
     }
   }, [gameData]);
+
+  if (isLoading) {
+    return <GameLoadingSpinner />;
+  }
+
+  if (error) {
+    return <GameErrorDisplay error={error} />;
+  }
 
   return (
     <div className="p-4">

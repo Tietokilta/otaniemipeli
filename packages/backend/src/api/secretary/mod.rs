@@ -59,7 +59,7 @@ pub async fn secretary_on_connect<A: Adapter>(
             };
             match get_team_data(&client, game_id).await {
                 Ok(game_data) => {
-                    s.emit("reply-game-data", &game_data)
+                    s.emit("reply-game", &game_data)
                         .expect("Failed replying game");
                 }
                 Err(e) => {

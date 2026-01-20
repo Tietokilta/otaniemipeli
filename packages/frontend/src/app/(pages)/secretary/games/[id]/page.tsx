@@ -1,28 +1,29 @@
 "use client";
 
-import React, { use, useEffect, useState } from "react";
+import React, { use } from "react";
 import { useSocket } from "@/app/template";
 import GameTeamTurnsList from "@/app/components/team-components/game-team-turns-list";
+import { useGameData } from "@/app/hooks/useGameData";
+import {
+  GameLoadingSpinner,
+  GameErrorDisplay,
+} from "@/app/components/game-components/game-loading-states";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const socket = useSocket();
+  const { gameData, error, isLoading } = useGameData(socket, parseInt(id));
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("reply-game", (data: GameData) => {
-      setGameData(data);
-    });
-    socket.emit("game-data", parseInt(id));
-  }, [setGameData, id, socket]);
+  if (isLoading) {
+    return <GameLoadingSpinner />;
+  }
 
+  if (error) {
+    return <GameErrorDisplay error={error} />;
+  }
+  
   if (!gameData) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-tertiary-900"></div>
-      </div>
-    );
+    return <GameLoadingSpinner />;
   }
   return (
     <div className="gap-4 4 h-[85dvh] box">
