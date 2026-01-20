@@ -5,11 +5,6 @@ import { Socket } from "socket.io-client";
 
 export interface UseGameDataOptions {
   /**
-   * Whether to cache the game data in sessionStorage
-   * @default false
-   */
-  useSessionCache?: boolean;
-  /**
    * Maximum number of retry attempts
    * @default 5
    */
@@ -48,7 +43,6 @@ export function useGameData(
   options: UseGameDataOptions = {}
 ): UseGameDataResult {
   const {
-    useSessionCache = false,
     maxRetries = 5,
     retryTimeout = 500,
   } = options;
@@ -108,10 +102,6 @@ export function useGameData(
       setGameData(data);
       setIsLoading(false);
       setError(null);
-
-      if (useSessionCache) {
-        sessionStorage.setItem("game", JSON.stringify(data));
-      }
     };
 
     socket.on("reply-game", onReply);
@@ -127,7 +117,7 @@ export function useGameData(
       if (timeoutId) clearTimeout(timeoutId);
       socket.off("reply-game", onReply);
     };
-  }, [socket, gameId, maxRetries, retryTimeout, useSessionCache]);
+  }, [socket, gameId, maxRetries, retryTimeout]);
 
   return { gameData, error, isLoading, setGameData };
 }

@@ -22,7 +22,6 @@ export default function Page({
   const { gameData, error, isLoading, setGameData } = useGameData(
     socket,
     Number(game_id),
-    { useSessionCache: true }
   );
 
   const doGameUpdate = (updatedGame: Game) => {
