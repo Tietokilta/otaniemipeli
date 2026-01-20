@@ -24,7 +24,7 @@ export default function SimpleAddForm({
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const name = data.get("name") as string;
-    
+
     await onSubmit(name);
     setOpen(false);
   }

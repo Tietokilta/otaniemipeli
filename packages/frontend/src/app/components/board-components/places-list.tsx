@@ -11,7 +11,9 @@ export default async function PlacesList({
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
-    return <ErrorDisplay message="Error fetching places!" status={res.status} />;
+    return (
+      <ErrorDisplay message="Error fetching places!" status={res.status} />
+    );
   }
   const places: Places = await res.json();
   return (

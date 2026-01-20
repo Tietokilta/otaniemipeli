@@ -8,11 +8,9 @@ import TeamCard from "@/app/components/team-components/team-card";
 export default function TeamList({
   game,
   className,
-  link,
 }: {
   game: Game;
   className?: string;
-  link?: boolean;
 }) {
   const [teams, setTeams] = useState<Teams>({ teams: [] });
   const socket = useSocket();
@@ -31,12 +29,7 @@ export default function TeamList({
       className={className}
     >
       {teams.teams.map((team) => (
-        <TeamCard
-          team={team}
-          key={team.team_id}
-          className="w-full"
-          link={link}
-        />
+        <TeamCard team={team} key={team.team_id} className="w-full" />
       ))}
     </ItemList>
   );
