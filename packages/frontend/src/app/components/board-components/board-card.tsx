@@ -1,5 +1,6 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
+import SimpleCard from "@/app/components/simple-card";
 
 export default function BoardCard({
   board,
@@ -12,12 +13,14 @@ export default function BoardCard({
 }): JSX.Element {
   const router = useRouter();
   const path = usePathname();
+
   return (
-    <div
-      className={`${className} ${active ? "button" : "box"} list-none center`}
-      onClick={() => active && router.push(`${path}/${board.id}`)}
+    <SimpleCard
+      className={className}
+      active={active}
+      onClick={() => router.push(`${path}/${board.id}`)}
     >
       {board.name}
-    </div>
+    </SimpleCard>
   );
 }
