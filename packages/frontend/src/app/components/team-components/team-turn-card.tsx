@@ -132,6 +132,11 @@ export default function TeamTurnCard({
       ) : (
         <TurnElapsed iso={lastTurn.start_time} />
       )}
+      {!combinedTurns && (
+        <p>
+          Heitot: {lastTurn.dice1} + {lastTurn.dice2}
+        </p>
+      )}
       {!combinedTurns &&
         (location ? (
           <PlaceCard place={location} showInfo={false} />
