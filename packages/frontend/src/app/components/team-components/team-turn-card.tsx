@@ -1,6 +1,6 @@
 import { TurnElapsed } from "@/app/components/time-since";
 import { TurnDrinkCard } from "@/app/components/drink-components/drink-card";
-import React, { use, useEffect } from "react";
+import React, { useEffect } from "react";
 import { VerticalList } from "@/app/components/generic-list-components";
 import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
 import PlaceCard from "@/app/components/board-components/place-card";
@@ -69,6 +69,15 @@ export default function TeamTurnCard({
   const [location, setLocation] = React.useState<BoardPlace | undefined>();
 
   useEffect(() => {
+    if (board) {
+      const loc = board.places.find((p) => {
+        return p.place_number === teamTurns[0].location;
+      });
+      setLocation(loc);
+    }
+  }, [board, teamTurns]);
+
+  useEffect(() => {
     if (!collect) return;
     if (!lastTurn) return;
     const combinedTurn: TurnCombined = {
@@ -99,14 +108,6 @@ export default function TeamTurnCard({
       </div>
     );
   }
-  useEffect(() => {
-    if (board) {
-      let loc = board.places.find((p) => {
-        return p.place_number === teamTurns[0].location;
-      });
-      setLocation(loc);
-    }
-  }, [board]);
   return (
     <div
       key={team.team.team_id}

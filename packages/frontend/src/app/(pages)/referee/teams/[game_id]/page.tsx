@@ -27,7 +27,7 @@ export default function Page({
     const request = () => {
       if (attempts >= MAX)
         setError("Too many connect attempts, please try reloading the page.");
-      if (resolved || attempts >= MAX) return;
+      if (resolved || attempts >= MAX || error) return;
       attempts++;
       console.log("Requesting game data for id:", gameId);
       socket.emit("game-data", gameId);
@@ -70,7 +70,7 @@ export default function Page({
       if (timeoutId) clearTimeout(timeoutId);
       socket.off("reply-game", onReply);
     };
-  }, [socket, game_id]);
+  }, [socket, game_id, error]);
 
   return (
     <div className="center w-full">

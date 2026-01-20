@@ -5,7 +5,6 @@ import TeamTurnCard from "@/app/components/team-components/team-turn-card";
 import { useSocket } from "@/app/template";
 import { usePathname } from "next/navigation";
 import { getBoardPlaces } from "@/utils/fetchers";
-import TeamList from "@/app/components/team-components/team-list";
 
 export default function Page({
   params,
@@ -35,7 +34,7 @@ export default function Page({
     const request = () => {
       if (attempts >= MAX)
         setError("Too many connect attempts, please try reloading the page.");
-      if (resolved || attempts >= MAX) return;
+      if (resolved || attempts >= MAX || error) return;
       attempts++;
       socket.emit("game-data", gameId);
 
@@ -78,7 +77,7 @@ export default function Page({
       if (timeoutId) clearTimeout(timeoutId);
       socket.off("reply-game", onReply);
     };
-  }, [socket, team_id]);
+  }, [socket, team_id, path, error]);
   useEffect(() => {
     // get board places
     if (gameData) {
