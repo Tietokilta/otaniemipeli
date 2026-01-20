@@ -17,7 +17,7 @@
     "backend": "docker compose up --build",
     "production:build": "docker compose -f docker-compose.prod.yml up --build",
     "typegen": "python3 scripts/generateTStypes.py",
-    "turn:gen": "python3 scripts/simulateTurns.py"
+    "turngen": "python3 scripts/simulateTurns.py"
   },
   "repository": {
     "type": "git",

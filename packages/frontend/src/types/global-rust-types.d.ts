@@ -107,6 +107,7 @@ declare global {
     game_id: number;
     dice1: number;
     dice2: number;
+    location: number;
     finished: boolean;
     end_time: string;
     drinks: TurnDrinks;
@@ -265,6 +266,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

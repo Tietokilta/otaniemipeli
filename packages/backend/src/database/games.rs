@@ -36,6 +36,7 @@ pub async fn get_game_id(client: &Client, game_id: i32) -> Result<Game, PgError>
     let row_opt = client
         .query_opt("SELECT * FROM games WHERE games.game_id = $1", &[&game_id])
         .await?;
+    tracing::info!("Game ID: {}", game_id);
 
     Ok(row_opt
         .map(|r| build_game_from_row(&r))
@@ -111,7 +112,14 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
             Ok(place) => place,
             Err(e) => return Err(e),
         };
-        add_visited_place(client, game.id, place_number, team.team.team_id).await?;
+        add_visited_place(
+            client,
+            game.id,
+            place_number,
+            team.team.team_id,
+            team.turns.first().unwrap().turn_id,
+        )
+        .await?;
     }
 
     Ok(build_game_from_row(&row))
@@ -238,7 +246,8 @@ pub async fn get_team_turns_with_board(
               t.dice1,
               t.dice2,
               t.finished,
-              t.end_time
+              t.end_time,
+              t.location
             FROM turns t
             WHERE t.team_id = $1 AND t.game_id = $2
             ORDER BY t.turn_id ASC",
@@ -274,6 +283,7 @@ pub async fn get_team_turns_with_board(
                     dice2: row.get(5),
                     finished: row.get(6),
                     end_time,
+                    location: row.get(8),
                     drinks: get_turn_drinks(client, turn_id).await.unwrap_or_else(|e| {
                         tracing::error!("Error getting turn drinks for turn_id {}: {}", turn_id, e);
                         TurnDrinks { drinks: Vec::new() }
@@ -282,7 +292,6 @@ pub async fn get_team_turns_with_board(
             );
             ordered_ids.push(turn_id);
         }
-
     }
 
     let turns: Vec<Turn> = ordered_ids
@@ -323,17 +332,20 @@ pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks
                 turn_id,
                 n: row.get(2),
                 penalty: row.get(3),
-            }).collect()
+            })
+            .collect(),
     };
 
     Ok(turn_drinks)
 }
-pub async fn place_visited(client: &Client, game_id: i32, place_number: i32) -> Result<bool, AppError> {
+pub async fn place_visited(
+    client: &Client,
+    game_id: i32,
+    place_number: i32,
+) -> Result<bool, AppError> {
     let query_str = "\
     SELECT * FROM game_places WHERE game_id = $1 AND place_number = $2";
-    match client
-        .query(query_str, &[&game_id, &place_number])
-        .await {
+    match client.query(query_str, &[&game_id, &place_number]).await {
         Ok(rows) => {
             if !rows.is_empty() {
                 Ok(true)

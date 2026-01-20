@@ -4,7 +4,13 @@ import { getGames } from "@/utils/fetchers";
 import GameCard from "@/app/components/game-components/game-card";
 import ItemList from "@/app/components/item-list";
 import { useSocket } from "@/app/template";
-export default function GameList({ className }: { className?: string }) {
+export default function GameList({
+  className,
+  go_to_games,
+}: {
+  className?: string;
+  go_to_games?: boolean;
+}) {
   const [games, setGames] = useState<Games>({ games: [] });
   const socket = useSocket();
 
@@ -48,7 +54,14 @@ export default function GameList({ className }: { className?: string }) {
       {games ? (
         games.games
           .sort((a, b) => b.start_time.localeCompare(a.start_time))
-          .map((game: Game) => <GameCard game={game} key={game.id} link />)
+          .map((game: Game) => (
+            <GameCard
+              game={game}
+              key={game.id}
+              link
+              go_to_games={go_to_games}
+            />
+          ))
       ) : (
         <p>Ei pelejä!</p>
       )}

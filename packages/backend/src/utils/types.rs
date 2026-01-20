@@ -1,9 +1,9 @@
+use crate::database::games::place_visited;
+use crate::utils::state::AppError;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Client;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
-use crate::database::games::place_visited;
-use crate::utils::state::AppError;
 
 pub type PgError = tokio_postgres::error::Error;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSql, FromSql)]
@@ -129,7 +129,7 @@ pub struct TurnDrink {
     pub drink: Drink,
     pub turn_id: i32,
     pub n: i32,
-    pub penalty: bool
+    pub penalty: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TurnDrinks {
@@ -164,6 +164,7 @@ pub struct Turn {
     pub game_id: i32,
     pub dice1: i32,
     pub dice2: i32,
+    pub location: i32,
     pub finished: bool,
     pub end_time: Option<DateTime<Utc>>,
     pub drinks: TurnDrinks,
@@ -257,28 +258,25 @@ pub struct PlaceDrinks {
     pub drinks: Vec<PlaceDrink>,
 }
 impl PlaceDrinks {
-    pub async fn to_turn_drinks(&self, client: &Client, turn_id: i32, game_id: i32) -> Result<TurnDrinks, AppError> {
+    pub async fn to_turn_drinks(
+        &self,
+        client: &Client,
+        turn_id: i32,
+        game_id: i32,
+    ) -> Result<TurnDrinks, AppError> {
         let mut result = Vec::new();
         for pd in &self.drinks {
             if pd.refill {
                 result.push(pd);
                 continue;
             }
-            let visited = place_visited(
-                client,
-                game_id,
-                pd.place_number,
-            )
-                .await?;
+            let visited = place_visited(client, game_id, pd.place_number).await?;
 
             if !visited {
                 result.push(pd);
             }
         }
-        let drinks: Vec<TurnDrink> = result
-            .iter()
-            .map(|pd| pd.to_turn_drink(turn_id))
-            .collect();
+        let drinks: Vec<TurnDrink> = result.iter().map(|pd| pd.to_turn_drink(turn_id)).collect();
         Ok(TurnDrinks { drinks })
     }
 }
