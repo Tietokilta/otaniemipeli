@@ -146,14 +146,14 @@ export default function TeamTurnCard({
           <p className="text-juvu-puna">Place not found</p>
         ))}
       <VerticalList className="mt-2 flex-1 gap-2 px-2 py-4">
-        {(combinedTurns ? combinedTurns : lastTurn).drinks.drinks.map(
-          (drink) => (
+        {(combinedTurns ? combinedTurns : lastTurn).drinks.drinks
+          .sort((da, db) => db.n - da.n)
+          .map((drink) => (
             <TurnDrinkCard
               key={`${drink.drink.id}-${drink.penalty}`}
               drink={drink}
             />
-          ),
-        )}
+          ))}
       </VerticalList>
     </div>
   );

@@ -343,72 +343,66 @@ pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace,
 
     Ok(get_next_place(&place.place, &board_places, throw))
 }
-fn get_connection_target(connections: &Vec<Connection>, backwards: bool, on_land: bool) -> i32 {
-    for connection in connections {
-        return if (connection.backwards == backwards) && (connection.on_land == on_land) {
-            connection.target
-        } else {
-            continue;
-        };
-    }
-    -1
+fn pick_connection(
+    connections: &[Connection],
+    backwards_mode: bool,
+    on_land: bool,
+) -> Option<&Connection> {
+    connections
+        .iter()
+        .find(|c| c.backwards == backwards_mode && c.on_land == on_land)
 }
 fn get_next_place<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
-    mut throw: i8,
+    throw: i8,
 ) -> BoardPlace {
-    let backwards: bool = current_place.connections.connections.len() == 1
-        && current_place.connections.connections[0].backwards;
+    let mut backwards_mode = false;
+    let mut first_hop = true;
 
-    while throw > 0 {
-        throw -= 1;
-        if current_place.connections.connections.len() == 0 {
+    for step in 0..(throw.max(0) as usize) {
+        let conns = &current_place.connections.connections;
+
+        if conns.is_empty() {
             tracing::info!("No more connections, stopping movement.");
             break;
         }
-        // If place has only one connection
-        if current_place.connections.connections.len() == 1 {
-            let target_place_number;
-            // If one connection is on land, stop propagation after the connection
-            // else continue normally
-            if current_place.connections.connections[0].on_land {
-                throw = 0;
-                target_place_number =
-                    get_connection_target(&current_place.connections.connections, false, true);
-            } else {
-                target_place_number =
-                    get_connection_target(&current_place.connections.connections, backwards, false);
-            }
-            current_place = board_places
-                .find_place(target_place_number)
-                .unwrap_or(current_place);
-        } else if current_place.connections.connections.len() > 1 {
-            let target_place_number;
-            // If the team has moved all places already then move to the on_land connection
-            // else move with the normal connection
-            if throw == 0 {
-                target_place_number =
-                    get_connection_target(&current_place.connections.connections, false, true);
-            } else {
-                target_place_number =
-                    get_connection_target(&current_place.connections.connections, false, false);
-            }
-            current_place = board_places
-                .find_place(target_place_number)
-                .unwrap_or(current_place);
+
+        let is_last_hop = step + 1 == throw as usize;
+
+        // Decide if we WANT an on_land connection this hop
+        let want_on_land = if conns.len() == 1 {
+            conns[0].on_land
+        } else if is_last_hop {
+            conns.iter().any(|c| c.on_land)
+        } else {
+            false
+        };
+
+        // Pick the connection
+        let chosen = pick_connection(conns, backwards_mode, want_on_land)
+            .or_else(|| conns.iter().find(|c| c.on_land == want_on_land))
+            .or_else(|| conns.first());
+
+        let Some(chosen) = chosen else { break };
+
+        // Latch backwards_mode ONLY on the first hop
+        if first_hop {
+            backwards_mode =
+                (chosen.backwards && chosen.on_land) || (conns.len() == 1 && chosen.backwards);
+            first_hop = false;
         }
-        // If there are multiple connections and one is on land, move to that one
-        if current_place.connections.connections.len() > 1 {
-            for connection in &current_place.connections.connections {
-                if connection.on_land {
-                    current_place = board_places
-                        .find_place(connection.target)
-                        .unwrap_or(current_place);
-                }
-            }
+        let next = board_places
+            .find_place(chosen.target)
+            .unwrap_or(current_place);
+
+        current_place = next;
+        // If the only connection is on_land, stop after taking it
+        if conns.len() == 1 && conns[0].on_land {
+            break;
         }
     }
+
     current_place.clone()
 }
 

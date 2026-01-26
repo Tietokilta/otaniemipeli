@@ -42,7 +42,7 @@ export function useGameData(
   gameId: number,
   options: UseGameDataOptions = {},
 ): UseGameDataResult {
-  const { maxRetries = 5, retryTimeout = 500 } = options;
+  const { maxRetries = 5, retryTimeout = 1000 } = options;
 
   const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);

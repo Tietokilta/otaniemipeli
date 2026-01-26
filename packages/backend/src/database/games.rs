@@ -36,8 +36,6 @@ pub async fn get_game_id(client: &Client, game_id: i32) -> Result<Game, PgError>
     let row_opt = client
         .query_opt("SELECT * FROM games WHERE games.game_id = $1", &[&game_id])
         .await?;
-    tracing::info!("Game ID: {}", game_id);
-
     Ok(row_opt
         .map(|r| build_game_from_row(&r))
         .unwrap_or_else(default_game))

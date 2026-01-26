@@ -30,6 +30,15 @@ export default function TeamList({
       addDialog={!game.started && <AddTeamForm gameId={game.id} />}
       className={className}
     >
+      <div
+        className="box-hover"
+        onClick={() => {
+          window.location.href =
+            window.location.origin + `/referee/teams/${game.id}/all`;
+        }}
+      >
+        <h2>Näytä kaikki</h2>
+      </div>
       {teams.teams.map((team) => (
         <TeamCard
           team={team}

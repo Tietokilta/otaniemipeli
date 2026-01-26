@@ -1,4 +1,4 @@
-use crate::api::referee::get_db_client;
+use crate::api::referee::utils::get_db_client;
 use crate::database::games::{get_games, get_team_data};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;

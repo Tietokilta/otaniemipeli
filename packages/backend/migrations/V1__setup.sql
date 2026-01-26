@@ -96,8 +96,9 @@ CREATE TABLE IF NOT EXISTS game_places
     game_id      INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
     place_number INTEGER,
     team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    turn_id      INTEGER REFERENCES turns (turn_id) ON DELETE SET NULL,
     visited_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (game_id, place_number, team_id)
+    PRIMARY KEY (game_id, place_number, team_id, turn_id)
 );
 CREATE TABLE IF NOT EXISTS turn_drinks
 (
