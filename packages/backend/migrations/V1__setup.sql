@@ -93,18 +93,27 @@ CREATE TABLE IF NOT EXISTS turns
 );
 CREATE TABLE IF NOT EXISTS game_places
 (
-    game_id      INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    place_number INTEGER,
-    team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
+    place_id     INTEGER NOT NULL REFERENCES places (place_id) ON DELETE CASCADE, 
+    team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
     visited_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (game_id, place_number, team_id)
 );
-CREATE TABLE IF NOT EXISTS turn_drinks
+CREATE TABLE IF NOT EXISTS servings
 (
-    drink_id INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
-    turn_id  INTEGER REFERENCES turns (turn_id) ON DELETE CASCADE,
-    n        INTEGER DEFAULT 1,
-    penalty  BOOLEAN DEFAULT FALSE,
+    serving_id   SERIAL PRIMARY KEY,
+    team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
+    received_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    drunk_at     TIMESTAMPTZ,
+    -- rest for informational purposes only, no gameplay effect
+    penalty      BOOLEAN,
+    place_id     INTEGER DEFAULT NULL REFERENCES places (place_id) ON DELETE CASCADE,
+);
+CREATE TABLE IF NOT EXISTS penalty_drinks
+(
+    serving_id INTEGER REFERENCES servings (serving_id) ON DELETE CASCADE,
+    drink_id   INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    n          INTEGER DEFAULT 1,
     PRIMARY KEY (drink_id, turn_id, penalty)
 );
 CREATE TABLE IF NOT EXISTS place_drinks
