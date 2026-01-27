@@ -195,7 +195,7 @@ pub async fn referee_on_connect<A: Adapter>(
     s.on(
         "game-data",
         |s: SocketRef<A>, Data(game_id): Data<i32>, State(state): State<AppState>| async move {
-            tracing::info!("Referee: game-data called");
+            tracing::info!("Referee: game_data called");
             let client = match get_db_client(&state, &s).await {
                 Some(c) => c,
                 None => return,

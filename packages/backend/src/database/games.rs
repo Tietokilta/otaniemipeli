@@ -183,6 +183,26 @@ pub async fn get_team_data(client: &Client, game_id: i32) -> Result<GameData, Pg
 
     Ok(GameData { game, teams })
 }
+pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
+    let rows = client.query("SELECT game_id FROM games", &[]).await?;
+    let game_ids: Vec<i32> = rows.iter().map(|row| row.get(0)).collect();
+
+    let game_datas = join_all(
+        game_ids
+            .into_iter()
+            .map(|game_id| async move { get_team_data(client, game_id).await }),
+    )
+    .await;
+
+    let mut result = Vec::new();
+    for game_data in game_datas {
+        if let Ok(data) = game_data {
+            result.push(data);
+        }
+    }
+
+    Ok(result)
+}
 
 pub async fn get_team_board_place(
     client: &Client,

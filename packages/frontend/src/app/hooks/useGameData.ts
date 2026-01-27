@@ -35,7 +35,7 @@ export interface UseGameDataResult {
  * @returns Game data, error state, loading state, and setter
  *
  * @example
- * const { gameData, error, isLoading } = useGameData(socket, gameId);
+ * const { game_data, error, isLoading } = useGameData(socket, gameId);
  */
 export function useGameData(
   socket: Socket | null,

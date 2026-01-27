@@ -4,7 +4,7 @@
 declare global {
   type PlaceType = "Normal" | "Food" | "Sauna" | "Special" | "Guild";
 
-  type UserType = "Admin" | "Ie" | "Referee" | "Secretary" | "Team";
+  type UserType = "Admin" | "Ie" | "Referee" | "Secretary";
 
   type WithNameAndId = { id: string | number; name: string };
 
@@ -262,6 +262,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

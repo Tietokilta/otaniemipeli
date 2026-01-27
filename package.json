@@ -17,8 +17,9 @@
     "backend": "docker compose up --build",
     "backend:build": "cargo build --release --manifest-path=packages/backend/Cargo.toml",
     "production:build": "docker compose -f docker-compose.prod.yml up --build",
-    "typegen": "python3 scripts/generateTStypes.py",
-    "turngen": "python3 scripts/simulateTurns.py"
+    "typegen": "python3 scripts/generateTStypes.py && python3 scripts/generatePYclasses.py",
+    "turngen": "python3 scripts/simulateTurns.py",
+    "analyse": "python3 scripts/analysis.py"
   },
   "repository": {
     "type": "git",

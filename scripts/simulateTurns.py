@@ -227,9 +227,9 @@ def start_game(
 
 def fetch_game_data(sio: socketio.Client, waiter: WaitAny, timeout: float, *, game_id: int) -> dict:
     sio.emit("game-data", int(game_id), namespace=REF_NS)
-    res = wait_or_raise(waiter, timeout, context="game-data")
+    res = wait_or_raise(waiter, timeout, context="game_data")
     if res.name != "reply-game":
-        raise RuntimeError(f"unexpected event after game-data: {res.name}")
+        raise RuntimeError(f"unexpected event after game_data: {res.name}")
     if not isinstance(res.payload, dict):
         raise RuntimeError("reply-game payload not a dict")
     return res.payload
@@ -239,7 +239,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default="http://localhost:2568", help="ex: http://localhost:2568")
     ap.add_argument("--auth-json", default="./scripts/auth.json", help="path to auth.json with username/password")
-    ap.add_argument("--turns", type=int, default=200)
+    ap.add_argument("--turns", type=int, default=500)
     ap.add_argument("--timeout", type=float, default=10.0)
     ap.add_argument("--delay", type=float, default=0.15)
     ap.add_argument("--seed", type=int, default=None)
@@ -247,7 +247,7 @@ def main() -> int:
     ap.add_argument("--fixed-dice", default=None, help='optional fixed dice like "3,5" (no spaces)')
     ap.add_argument("--sleep", action="store_true", help="sleep random 1-10s between turns")
     ap.add_argument("--board", type=int, default=1, help="board id for the newly created game")
-    ap.add_argument("--teams", type=int, default=4, help="how many teams to create")
+    ap.add_argument("--teams", type=int, default=8, help="how many teams to create")
     ap.add_argument("--game-name", default=None, help="optional explicit game name")
     ap.add_argument("--threads", type=int, default=1, help="number of simulations to run in parallel")
     ap.add_argument(

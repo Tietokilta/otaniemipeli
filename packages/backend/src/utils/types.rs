@@ -36,8 +36,6 @@ pub enum UserType {
     Referee,
     #[postgres(name = "Secretary")]
     Secretary,
-    #[postgres(name = "Team")]
-    Team,
 }
 impl UserType {
     pub fn as_str(&self) -> &str {
@@ -46,7 +44,6 @@ impl UserType {
             UserType::Ie => "Ie",
             UserType::Referee => "Referee",
             UserType::Secretary => "Secretary",
-            UserType::Team => "Team",
         }
     }
 }
