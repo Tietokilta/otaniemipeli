@@ -1,6 +1,7 @@
 use crate::utils::types::*;
 use deadpool_postgres::Client;
 use std::cmp::min;
+use crate::utils::state::AppError;
 
 pub async fn get_boards(client: &Client) -> Result<Boards, PgError> {
     let query_str = "\
@@ -337,73 +338,115 @@ pub async fn update_coordinates(
         )
         .await
 }
-pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace, PgError> {
-    let board_places: BoardPlaces = get_board_places(client, place.place.board_id).await?;
+pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace, AppError> {
+    let board_places: BoardPlaces = match get_board_places(client, place.place.board_id).await {
+        Ok(bp) => bp,
+        Err(e) => return Err(AppError::Database(e.to_string())),
+    };
     let throw: i8 = min(place.throw.0, place.throw.1);
 
-    Ok(get_next_place(&place.place, &board_places, throw))
+    get_next_place(&place.place, &board_places, throw)
 }
 fn pick_connection(
-    connections: &[Connection],
-    backwards_mode: bool,
-    on_land: bool,
+  connections: &[Connection],
+  backwards_mode: bool,
+  on_land: bool,
 ) -> Option<&Connection> {
     connections
         .iter()
         .find(|c| c.backwards == backwards_mode && c.on_land == on_land)
 }
+fn move_forwards<'a>(
+  mut current_place: &'a BoardPlace,
+  board_places: &'a BoardPlaces,
+  throw: i8,
+) -> Result<BoardPlace, AppError> {
+  let mut first_hop = true;
+
+  for step in 0..(throw.max(0) as usize) {
+    let conns = &current_place.connections.connections;
+
+    if conns.is_empty() {
+      tracing::info!("No more connections, stopping movement.");
+      break;
+    }
+
+    let is_last_hop = step + 1 == throw as usize;
+
+    // Decide if we WANT an on_land connection this hop
+    let want_on_land = if conns.len() == 1 {
+      conns[0].on_land
+    } else if is_last_hop {
+      conns.iter().any(|c| c.on_land)
+    } else {
+      false
+    };
+
+    if conns.len() == 1 && conns[0].backwards {
+      return move_backwards(current_place, board_places, throw - step as i8)
+    }
+
+    // Pick the connection
+    let chosen = pick_connection(conns, false, want_on_land)
+      .or_else(|| conns.iter().find(|c| c.on_land == want_on_land))
+      .or_else(|| conns.first());
+
+    let Some(chosen) = chosen else { break };
+
+    let next = board_places
+      .find_place(chosen.target)
+      .unwrap_or(current_place);
+
+    current_place = next;
+    // If the only connection is on_land, stop after taking it
+    if conns.len() == 1 && conns[0].on_land {
+      break;
+    }
+  }
+
+  Ok(current_place.clone())
+}
+fn move_backwards<'a>(
+  mut current_place: &'a BoardPlace,
+  board_places: &'a BoardPlaces,
+  throw: i8,
+) -> Result<BoardPlace, AppError> {
+  let mut first = true;
+
+  for _ in 0..throw {
+    let conns = &current_place.connections.connections;
+
+    let mut conn = if first {
+      first = false;
+      pick_connection(conns, true, true)
+    } else {
+      pick_connection(conns, true, false)
+    };
+    current_place = match conn {
+      Some(c) => {
+        board_places .find_place(c.target) .unwrap_or(current_place)
+      },
+      None => {
+        return Err(AppError::NotFound("No valid backwards connection found".to_string()));
+      }
+    };
+  }
+  Ok(current_place.clone())
+}
 fn get_next_place<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
-) -> BoardPlace {
-    let mut backwards_mode = false;
-    let mut first_hop = true;
-
-    for step in 0..(throw.max(0) as usize) {
-        let conns = &current_place.connections.connections;
-
-        if conns.is_empty() {
-            tracing::info!("No more connections, stopping movement.");
-            break;
-        }
-
-        let is_last_hop = step + 1 == throw as usize;
-
-        // Decide if we WANT an on_land connection this hop
-        let want_on_land = if conns.len() == 1 {
-            conns[0].on_land
-        } else if is_last_hop {
-            conns.iter().any(|c| c.on_land)
-        } else {
-            false
-        };
-
-        // Pick the connection
-        let chosen = pick_connection(conns, backwards_mode, want_on_land)
-            .or_else(|| conns.iter().find(|c| c.on_land == want_on_land))
-            .or_else(|| conns.first());
-
-        let Some(chosen) = chosen else { break };
-
-        // Latch backwards_mode ONLY on the first hop
-        if first_hop {
-            backwards_mode =
-                (chosen.backwards && chosen.on_land) || (conns.len() == 1 && chosen.backwards);
-            first_hop = false;
-        }
-        let next = board_places
-            .find_place(chosen.target)
-            .unwrap_or(current_place);
-
-        current_place = next;
-        // If the only connection is on_land, stop after taking it
-        if conns.len() == 1 && conns[0].on_land {
-            break;
-        }
+) -> Result<BoardPlace, AppError> {
+    println!(
+        "Throw: {throw}\nCurrent place: {}\n",
+        serde_json::to_string_pretty(&current_place.place).unwrap()
+    );
+    if current_place.connections.connections.iter().any(|c| {c.on_land && c.backwards} ) {
+      move_backwards(&mut current_place, board_places, throw)
+    } else {
+      move_forwards(&mut current_place, board_places, throw)
     }
-
-    current_place.clone()
 }
 
 pub async fn get_first_place(client: &Client, board_id: i32) -> Result<i32, PgError> {
