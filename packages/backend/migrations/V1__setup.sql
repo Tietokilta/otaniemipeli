@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS turns
     game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
     -- when dice were thrown OR "give penalty" clicked (including game start penalty)
     start_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    -- when dice throw and square results were confirmed by referee
+    -- when dice throw and square results were confirmed by referee, or penalty confirmed
     confirmed_at TIMESTAMPTZ,
     -- when IE started making the drink (= confirmed_at if no drinks awarded)
     mixing_at    TIMESTAMPTZ,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS turns
     mixed_at     TIMESTAMPTZ,
     -- when the drink was delivered to the players (= confirmed_at if no drinks awarded)
     delivered_at TIMESTAMPTZ,
-    -- when the drink was destroyed by the players (= confirmed_at if no drinks awarded)
+    -- when hands were raised by the players
     end_time     TIMESTAMPTZ,
     -- dice numbers (if thrown)
     dice1        INTEGER,
