@@ -369,11 +369,10 @@ fn move_forwards<'a>(
             break;
         }
         let want_on_land = if conns.iter().len() == 1 {
-          conns[0].on_land
+            conns[0].on_land
         } else {
-          false
+            false
         };
-
 
         if conns.len() == 1 && conns[0].backwards {
             return move_backwards(current_place, board_places, throw - step as i8, true);
@@ -400,9 +399,7 @@ fn move_forwards<'a>(
     if conns.iter().any(|c| c.on_land && !c.backwards) {
         let on_land_conn = pick_connection(conns, false, true);
         if let Some(olc) = on_land_conn {
-            current_place = board_places
-                .find_place(olc.target)
-                .unwrap_or(current_place);
+            current_place = board_places.find_place(olc.target).unwrap_or(current_place);
         }
     }
     Ok(current_place.clone())
@@ -418,7 +415,7 @@ fn move_backwards<'a>(
     for _ in 0..throw {
         let conns = &current_place.connections.connections;
 
-        let mut conn = if first && !changed {
+        let conn = if first && !changed {
             first = false;
             pick_connection(conns, true, true)
         } else {

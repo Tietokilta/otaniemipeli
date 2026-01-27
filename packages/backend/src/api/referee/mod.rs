@@ -14,7 +14,6 @@ use crate::utils::types::{
     EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth,
     Team, Teams, TurnDrink, UserType,
 };
-use deadpool_postgres::Client;
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
 

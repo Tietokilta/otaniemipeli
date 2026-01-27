@@ -6,7 +6,11 @@ export const UserTypeEnum = {
   ie: "IE",
   referee: "Tuomari",
   secretary: "Sihteeri",
-};
+  Admin: "Admin",
+  Ie: "IE",
+  Referee: "Tuomari",
+  Secretary: "Sihteeri",
+} as const;
 export const UserTypes: UserType[] = ["Admin", "Ie", "Referee", "Secretary"];
 export function getUserTypeFromPath(pathname: string): UserType | null {
   const path = pathname.toLowerCase();
