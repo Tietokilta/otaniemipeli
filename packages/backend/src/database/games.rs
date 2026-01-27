@@ -36,8 +36,6 @@ pub async fn get_game_id(client: &Client, game_id: i32) -> Result<Game, PgError>
     let row_opt = client
         .query_opt("SELECT * FROM games WHERE games.game_id = $1", &[&game_id])
         .await?;
-    tracing::info!("Game ID: {}", game_id);
-
     Ok(row_opt
         .map(|r| build_game_from_row(&r))
         .unwrap_or_else(default_game))
@@ -184,6 +182,26 @@ pub async fn get_team_data(client: &Client, game_id: i32) -> Result<GameData, Pg
     .await;
 
     Ok(GameData { game, teams })
+}
+pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
+    let rows = client.query("SELECT game_id FROM games", &[]).await?;
+    let game_ids: Vec<i32> = rows.iter().map(|row| row.get(0)).collect();
+
+    let game_datas = join_all(
+        game_ids
+            .into_iter()
+            .map(|game_id| async move { get_team_data(client, game_id).await }),
+    )
+    .await;
+
+    let mut result = Vec::new();
+    for game_data in game_datas {
+        if let Ok(data) = game_data {
+            result.push(data);
+        }
+    }
+
+    Ok(result)
 }
 
 pub async fn get_team_board_place(

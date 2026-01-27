@@ -65,7 +65,7 @@ export const EditTeamTurnDialogue = ({
                       game_id: team.team.game_id,
                     };
                     socket.emit("end-turn", params);
-                    socket.emit("game-data", team.team.game_id);
+                    socket.emit("gameData", team.team.game_id);
                     setChoice(null);
                   }}
                 >
@@ -117,7 +117,7 @@ const AddTeamTurnForm = ({
 
     // adjust event name to your backend
     socket.emit("start-turn", postTurn);
-    socket.emit("game-data", team.team.game_id);
+    socket.emit("gameData", team.team.game_id);
     setOpen(false);
     controller(null);
   };

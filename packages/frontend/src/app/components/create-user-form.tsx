@@ -32,7 +32,7 @@ export default function CreateUserForm({
     username: "",
     email: "",
     password: "",
-    user_type: firstUser ? "Admin" : "Team",
+    user_type: firstUser ? "Admin" : "Secretary",
   });
   const [passwordConfirm, setPasswordConfirm] = useState<{
     pw: string;

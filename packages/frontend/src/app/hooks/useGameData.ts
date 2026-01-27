@@ -35,14 +35,14 @@ export interface UseGameDataResult {
  * @returns Game data, error state, loading state, and setter
  *
  * @example
- * const { gameData, error, isLoading } = useGameData(socket, gameId);
+ * const { game_data, error, isLoading } = useGameData(socket, gameId);
  */
 export function useGameData(
   socket: Socket | null,
   gameId: number,
   options: UseGameDataOptions = {},
 ): UseGameDataResult {
-  const { maxRetries = 5, retryTimeout = 500 } = options;
+  const { maxRetries = 5, retryTimeout = 1000 } = options;
 
   const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
