@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS turns
     start_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- when dice throw and square results were confirmed by referee
     confirmed_at TIMESTAMPTZ,
+    -- when IE started making the drink (= confirmed_at if no drinks awarded)
+    mixing_at    TIMESTAMPTZ,
     -- when IE finished the drink (= confirmed_at if no drinks awarded)
     mixed_at     TIMESTAMPTZ,
     -- when the drink was delivered to the players (= confirmed_at if no drinks awarded)
