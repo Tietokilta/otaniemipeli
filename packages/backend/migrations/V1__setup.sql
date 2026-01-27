@@ -88,45 +88,45 @@ CREATE TABLE IF NOT EXISTS teams
 
 CREATE TABLE IF NOT EXISTS turns
 (
-    turn_id    SERIAL PRIMARY KEY,
-    start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    end_time   TIMESTAMPTZ,
-    team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
-    game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    dice1      INTEGER,
-    dice2      INTEGER,
-    location   INTEGER DEFAULT 0
+    turn_id      SERIAL PRIMARY KEY,
+    team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
+    game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
+    -- when dice were thrown OR "give penalty" clicked (including game start penalty)
+    start_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- when dice throw and square results were confirmed by referee
+    confirmed_at TIMESTAMPTZ,
+    -- when IE finished the drink (= confirmed_at if no drinks awarded)
+    mixed_at     TIMESTAMPTZ,
+    -- when the drink was delivered to the players (= confirmed_at if no drinks awarded)
+    delivered_at TIMESTAMPTZ,
+    -- when the drink was destroyed by the players (= confirmed_at if no drinks awarded)
+    end_time     TIMESTAMPTZ,
+    -- dice numbers (if thrown)
+    dice1        INTEGER,
+    dice2        INTEGER,
+    -- where the player ended up (if dice thrown)
+    place_number INTEGER,
+    -- whether this is a penalty turn (no dice thrown)
+    penalty      BOOLEAN NOT NULL,
 );
 
 -- when people visited a square
 CREATE TABLE IF NOT EXISTS game_places
 (
     game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
-    place_id     INTEGER NOT NULL REFERENCES places (place_id) ON DELETE CASCADE, 
+    place_number INTEGER NOT NULL,
     team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
     visited_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (game_id, place_number, team_id)
 );
 
--- each time a team has received a bunch of drinks
-CREATE TABLE IF NOT EXISTS servings
+-- what drinks are included in a turn
+CREATE TABLE IF NOT EXISTS turn_drinks
 (
-    serving_id   SERIAL PRIMARY KEY,
-    team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
-    received_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    drunk_at     TIMESTAMPTZ,
-    -- rest for informational purposes only, no gameplay effect
-    penalty      BOOLEAN,
-    place_id     INTEGER DEFAULT NULL REFERENCES places (place_id) ON DELETE CASCADE,
-);
-
--- what drinks are included in a serving
-CREATE TABLE IF NOT EXISTS serving_drinks
-(
-    serving_id INTEGER REFERENCES servings (serving_id) ON DELETE CASCADE,
-    drink_id   INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
-    n          INTEGER DEFAULT 1,
-    PRIMARY KEY (drink_id, turn_id, penalty)
+    drink_id INTEGER NOT NULL REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    turn_id  INTEGER NOT NULL REFERENCES turns (turn_id) ON DELETE CASCADE,
+    n        INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (drink_id, turn_id)
 );
 
 -- what drinks you get by landing at a place
