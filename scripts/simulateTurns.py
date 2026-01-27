@@ -239,7 +239,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default="http://localhost:2568", help="ex: http://localhost:2568")
     ap.add_argument("--auth-json", default="./scripts/auth.json", help="path to auth.json with username/password")
-    ap.add_argument("--turns", type=int, default=5)
+    ap.add_argument("--turns", type=int, default=200)
     ap.add_argument("--timeout", type=float, default=10.0)
     ap.add_argument("--delay", type=float, default=0.15)
     ap.add_argument("--seed", type=int, default=None)

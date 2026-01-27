@@ -361,7 +361,6 @@ fn move_forwards<'a>(
   board_places: &'a BoardPlaces,
   throw: i8,
 ) -> Result<BoardPlace, AppError> {
-  let mut first_hop = true;
 
   for step in 0..(throw.max(0) as usize) {
     let conns = &current_place.connections.connections;
@@ -383,7 +382,7 @@ fn move_forwards<'a>(
     };
 
     if conns.len() == 1 && conns[0].backwards {
-      return move_backwards(current_place, board_places, throw - step as i8)
+      return move_backwards(current_place, board_places, throw - step as i8, true)
     }
 
     // Pick the connection
@@ -410,13 +409,14 @@ fn move_backwards<'a>(
   mut current_place: &'a BoardPlace,
   board_places: &'a BoardPlaces,
   throw: i8,
+  changed: bool,
 ) -> Result<BoardPlace, AppError> {
   let mut first = true;
 
   for _ in 0..throw {
     let conns = &current_place.connections.connections;
 
-    let mut conn = if first {
+    let mut conn = if first && !changed {
       first = false;
       pick_connection(conns, true, true)
     } else {
@@ -438,12 +438,8 @@ fn get_next_place<'a>(
     board_places: &'a BoardPlaces,
     throw: i8,
 ) -> Result<BoardPlace, AppError> {
-    println!(
-        "Throw: {throw}\nCurrent place: {}\n",
-        serde_json::to_string_pretty(&current_place.place).unwrap()
-    );
     if current_place.connections.connections.iter().any(|c| {c.on_land && c.backwards} ) {
-      move_backwards(&mut current_place, board_places, throw)
+      move_backwards(&mut current_place, board_places, throw, false)
     } else {
       move_forwards(&mut current_place, board_places, throw)
     }
