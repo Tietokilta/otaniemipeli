@@ -256,6 +256,7 @@ impl PlaceDrinks {
         client: &Client,
         turn_id: i32,
         game_id: i32,
+        double: bool,
     ) -> Result<TurnDrinks, AppError> {
         let mut result = Vec::new();
         for pd in &self.drinks {
@@ -269,7 +270,10 @@ impl PlaceDrinks {
                 result.push(pd);
             }
         }
-        let drinks: Vec<TurnDrink> = result.iter().map(|pd| pd.to_turn_drink(turn_id)).collect();
+        let drinks: Vec<TurnDrink> = result
+            .iter()
+            .map(|pd| pd.to_turn_drink(turn_id, double))
+            .collect();
         Ok(TurnDrinks { drinks })
     }
 }
@@ -284,11 +288,11 @@ pub struct PlaceDrink {
     pub n_update: String,
 }
 impl PlaceDrink {
-    pub fn to_turn_drink(&self, turn_id: i32) -> TurnDrink {
+    pub fn to_turn_drink(&self, turn_id: i32, double: bool) -> TurnDrink {
         TurnDrink {
             drink: self.drink.clone(),
             turn_id,
-            n: self.n,
+            n: if double { self.n * 2 } else { self.n },
             penalty: false,
         }
     }

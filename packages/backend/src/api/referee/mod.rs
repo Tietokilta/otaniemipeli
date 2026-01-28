@@ -1,18 +1,21 @@
 pub mod utils;
 
-use crate::api::referee::utils::get_db_client;
+use crate::api::referee::utils::{
+    emit_app_error, emit_db_error, emit_msg, emit_team_data, emit_teams, end_turn_emit,
+    get_db_client, run_emit_fn,
+};
 use crate::database::boards::move_team;
 use crate::database::drinks::get_drinks_ingredients;
 use crate::database::games::{
     check_dice, end_game, get_games, get_team_data, post_game, start_game,
 };
-use crate::database::team::{create_team, get_teams, make_team_double, make_team_normal};
-use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
+use crate::database::team::{create_team, make_team_double, make_team_normal};
+use crate::database::turns::{add_drinks_to_turn, add_visited_place, start_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
 use crate::utils::types::{
-    EndTurn, FirstTurnPost, Games, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth,
-    Team, Teams, TurnDrink, UserType,
+    EndTurn, FirstTurnPost, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team,
+    UserType,
 };
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
@@ -25,18 +28,10 @@ pub async fn referee_on_connect<A: Adapter>(
     s.on(
         "verify-login",
         |s: SocketRef<A>, Data(auth): Data<SocketAuth>, State(state): State<AppState>| async move {
-            tracing::info!("Referee: verify-login called");
             let auth = check_auth(&auth.token, &s, &state, UserType::Referee).await;
-            if auth {
-                tracing::info!("Referee: Connection successfully verified");
-                if let Err(err) = s.emit("verification-reply", &true) {
-                    tracing::error!("Failed replying game data: {err}")
-                };
-            } else {
-                tracing::info!("Referee: Connection failed verification, disconnecting");
-                if let Err(err) = s.emit("verification-reply", &false) {
-                    tracing::error!("Failed replying game data: {err}")
-                };
+            tracing::info!("Referee: Connection verified: {}", auth);
+            emit_msg(&s, "verification-reply", &auth).await;
+            if !auth {
                 let _ = s.disconnect();
             }
         },
@@ -45,35 +40,21 @@ pub async fn referee_on_connect<A: Adapter>(
         "create-game",
         |s: SocketRef<A>, Data(game): Data<PostGame>, State(state): State<AppState>| async move {
             tracing::info!("Referee: create-game called");
-            let client = match state.db.get().await {
-                Ok(c) => c,
+            let client = match get_db_client(&state, &s).await {
+                Some(c) => c,
+                None => return,
+            };
+            let game = match post_game(&client, game).await {
+                Ok(game) => game,
                 Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db pool error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                    emit_db_error(&s, e).await;
                     return;
                 }
             };
-
-            match post_game(&client, game).await {
-                Ok(game) => {
-                    if let Err(send) = s.emit("response", &game) {
-                        eprintln!("send error: {send}");
-                    } else {
-                        let games = get_games(&client)
-                            .await
-                            .unwrap_or_else(|_| Games { games: Vec::new() });
-                        if let Err(err) = s.emit("reply-games", &games) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                }
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-            }
+           run_emit_fn(&client, &s, "reply-games", |c| {
+                Box::pin(async move { get_games(c).await })
+            })
+            .await;
         },
     );
     s.on(
@@ -86,14 +67,10 @@ pub async fn referee_on_connect<A: Adapter>(
             };
             match start_game(&client, first_turn).await {
                 Ok(game) => {
-                    if let Err(err) = s.emit("reply-game", &game) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                    emit_msg(&s, "reply-game", &game).await;
                 }
                 Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                  emit_db_error(&s, e).await;
                 }
             }
         },
@@ -106,12 +83,10 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            let games = get_games(&client)
-                .await
-                .unwrap_or_else(|_| Games { games: Vec::new() });
-            if let Err(err) = s.emit("reply-games", &games) {
-                tracing::error!("Failed replying game data: {err}")
-            };
+            run_emit_fn(&client, &s, "reply-games", |c| {
+                Box::pin(async move { get_games(c).await })
+            })
+            .await;
         },
     );
     s.on(
@@ -122,29 +97,14 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            tracing::info!("Here");
             let team: Team = match create_team(&client, team).await {
                 Ok(team) => team,
                 Err(e) => {
-                    tracing::info!("Here");
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                    emit_db_error(&s, e).await;
                     return;
                 }
             };
-            let teams: Teams = match get_teams(&client, team.game_id).await {
-                Ok(teams) => Teams { teams },
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                    return;
-                }
-            };
-            if let Err(err) = s.emit("reply-teams", &teams) {
-                tracing::error!("Failed replying game data: {err}")
-            };
+            emit_teams(&client, &s, team.game_id).await;
         },
     );
     s.on(
@@ -155,18 +115,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            let teams: Teams = match get_teams(&client, game_id).await {
-                Ok(teams) => Teams { teams },
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                    return;
-                }
-            };
-            if let Err(err) = s.emit("reply-teams", &teams) {
-                tracing::error!("Failed replying game data: {err}")
-            };
+            emit_teams(&client, &s, game_id).await;
         },
     );
     s.on(
@@ -177,18 +126,10 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            match get_drinks_ingredients(&client).await {
-                Ok(drinks) => {
-                    if let Err(err) = s.emit("reply-drinks", &drinks) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-            }
+            run_emit_fn(&client, &s, "reply-drinks", |c| {
+                Box::pin(async move { get_drinks_ingredients(c).await })
+            })
+            .await;
         },
     );
     s.on(
@@ -199,19 +140,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-
-            match get_team_data(&client, game_id).await {
-                Ok(game_data) => {
-                    if let Err(err) = s.emit("reply-game", &game_data) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-            }
+            emit_team_data(&client, &s, game_id).await;
         },
     );
     s.on(
@@ -220,201 +149,141 @@ pub async fn referee_on_connect<A: Adapter>(
          Data(turn_start_data): Data<PostStartTurn>,
          State(state): State<AppState>| async move {
             tracing::info!("Referee: start-turn called");
+
             let client = match get_db_client(&state, &s).await {
                 Some(c) => c,
                 None => return,
             };
-            let double = turn_start_data.dice1 == turn_start_data.dice2;
+
+            // Validate dice throw
             if let Err(e) = check_dice(turn_start_data.dice1, turn_start_data.dice2) {
-                if let Err(err) = s.emit("response-error", &format!("dice error: {e}")) {
-                    tracing::error!("Failed replying game data: {err}")
-                };
+                emit_app_error(&s, e).await;
                 return;
             }
-            let mut game_data = match get_team_data(&client, turn_start_data.game_id).await {
+
+            // If double double the drinks or effects when needed
+            let double = turn_start_data.dice1 == turn_start_data.dice2;
+
+            // Get game data
+            let game_data = match get_team_data(&client, turn_start_data.game_id).await {
                 Ok(gd) => gd,
                 Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                    emit_db_error(&s, e).await;
                     return;
                 }
             };
-            match start_turn(&client, turn_start_data).await {
-                Ok(turn) => {
-                    let team_double = match game_data
-                        .teams
-                        .iter()
-                        .find(|t| t.team.team_id == turn.team_id)
-                    {
-                        Some(team) => team.team.double,
-                        None => false,
-                    };
-                    let throw = (turn.dice1 as i8, turn.dice2 as i8);
 
-                    // find current place for that Team (avoid cloning whole game_data)
-                    let current_place = game_data
-                        .teams
-                        .iter()
-                        .find(|t| t.team.team_id == turn.team_id)
-                        .and_then(|t| t.location.clone()) // Option<BoardPlace>
-                        .unwrap();
-
-                    let pl = PlaceThrow {
-                        place: current_place.clone(),
-                        throw,
-                        team_id: turn.team_id,
-                    };
-
-                    let place_after = match move_team(&client, pl).await {
-                        Ok(p) => p,
-                        Err(e) => {
-                            if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                                tracing::error!("Failed replying game data: {err}")
-                            };
-                            return;
-                        }
-                    };
-                    if current_place.area == "normal" && place_after.area == "tampere" && double {
-                        match make_team_double(&client, turn.team_id).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                            }
-                        };
-                    } else if current_place.area == "tampere"
-                        && place_after.area == "normal"
-                        && team_double
-                    {
-                        match make_team_normal(&client, turn.team_id).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                            }
-                        };
-                    }
-                    let mut turn_drinks = match place_after
-                        .drinks
-                        .to_turn_drinks(&client, turn.turn_id, turn.game_id)
-                        .await
-                    {
-                        Ok(td) => td,
-                        Err(e) => {
-                            if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                                tracing::error!("Failed replying game data: {err}")
-                            };
-                            return;
-                        }
-                    };
-                    if double || team_double {
-                        turn_drinks.drinks = turn_drinks
-                            .drinks
-                            .iter()
-                            .map(|d| TurnDrink {
-                                drink: d.drink.clone(),
-                                turn_id: d.turn_id,
-                                n: d.n * 2,
-                                penalty: false,
-                            })
-                            .collect();
-                    }
-                    match add_drinks_to_turn(&client, turn_drinks.clone()).await {
-                        Ok(_) => {}
-                        Err(e) => {
-                            if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                                tracing::error!("Failed replying game data: {err}")
-                            };
-                            return;
-                        }
-                    }
-                    if let Some(team_state) = game_data
-                        .teams
-                        .iter_mut()
-                        .find(|t| t.team.team_id == turn.team_id)
-                    {
-                        team_state.location = Some(place_after.clone());
-                        for t in team_state.turns.iter_mut() {
-                            if t.turn_id == turn.turn_id {
-                                t.drinks = turn_drinks;
-                                break;
-                            }
-                        }
-                    }
-                    if place_after.end {
-                        match end_game(&client, turn.game_id).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                if let Err(err) =
-                                    s.emit("response-error", &format!("db error: {e}"))
-                                {
-                                    tracing::error!("Failed replying game data: {err}")
-                                };
-                                return;
-                            }
-                        };
-                    }
-                    match add_visited_place(
-                        &client,
-                        turn.game_id,
-                        place_after.place_number,
-                        turn.team_id,
-                        turn.turn_id,
-                    )
-                    .await
-                    {
-                        Ok(_) => {
-                            if turn.drinks.drinks.is_empty() && !place_after.end {
-                                match end_turn(&client, turn.team_id, turn.game_id).await {
-                                    Ok(turn) => match get_team_data(&client, turn.game_id).await {
-                                        Ok(game_data) => {
-                                            if let Err(err) = s.emit("reply-game", &game_data) {
-                                                tracing::error!("Failed replying game data: {err}")
-                                            };
-                                        }
-                                        Err(e) => {
-                                            tracing::error!("error getting game data: {e}");
-                                            if let Err(err) =
-                                                s.emit("response-error", &format!("db error: {e}"))
-                                            {
-                                                tracing::error!("Failed replying game data: {err}")
-                                            };
-                                        }
-                                    },
-                                    Err(e) => {
-                                        tracing::error!("error getting game data: {e}");
-                                        if let Err(err) =
-                                            s.emit("response-error", &format!("db error: {e}"))
-                                        {
-                                            tracing::error!("Failed replying game data: {err}")
-                                        };
-                                    }
-                                };
-                            }
-                        }
-                        Err(e) => {
-                            if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                                tracing::error!("Failed replying game data: {err}")
-                            };
-                            return;
-                        }
-                    }
-                    if let Err(err) = s.emit("reply-game", &game_data) {
-                        tracing::error!("Failed replying game data: {err}");
-                    }
-                }
+            // Begin the turn
+            let turn = match start_turn(&client, turn_start_data).await {
                 Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
+                    emit_db_error(&s, e).await;
+                    return;
                 }
+                Ok(turn) => turn,
+            };
+
+            // If team has area double e.g. in Tampere
+            let team_double = match game_data
+                .teams
+                .iter()
+                .find(|t| t.team.team_id == turn.team_id)
+            {
+                Some(team) => team.team.double,
+                None => false,
+            };
+            let throw = (turn.dice1 as i8, turn.dice2 as i8);
+
+            // find current place for that Team (avoid cloning whole game_data)
+            let current_place = game_data
+                .teams
+                .iter()
+                .find(|t| t.team.team_id == turn.team_id)
+                .and_then(|t| t.location.clone())
+                .unwrap();
+
+            let pl = PlaceThrow {
+                place: current_place.clone(),
+                throw,
+                team_id: turn.team_id,
+            };
+
+            let place_after = match move_team(&client, pl).await {
+                Ok(p) => p,
+                Err(e) => {
+                    emit_app_error(&s, e).await;
+                    return;
+                }
+            };
+
+            // If moving to tampere on doubles then make team double drinks and if moving out of tampere
+            // and team had double drinks then revert back to normal drinks
+            if current_place.area == "normal" && place_after.area == "tampere" && double {
+                match make_team_double(&client, turn.team_id).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        emit_db_error(&s, e).await;
+                    }
+                };
+            } else if current_place.area == "tampere" && place_after.area == "normal" && team_double
+            {
+                match make_team_normal(&client, turn.team_id).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        emit_db_error(&s, e).await;
+                    }
+                };
+            }
+
+            // Convert place drinks to turn drinks and apply double if needed
+            let turn_drinks = match place_after
+                .drinks
+                .to_turn_drinks(&client, turn.turn_id, turn.game_id, double || team_double)
+                .await
+            {
+                Ok(td) => td,
+                Err(e) => {
+                    emit_app_error(&s, e).await;
+                    return;
+                }
+            };
+            let dr_empty = turn_drinks.drinks.is_empty();
+            // Write turn drinks to database
+            if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
+                emit_db_error(&s, e).await;
+                return;
+            }
+
+            if let Err(e) = add_visited_place(
+                &client,
+                turn.game_id,
+                place_after.place_number,
+                turn.team_id,
+                turn.turn_id,
+            )
+            .await
+            {
+                emit_db_error(&s, e).await;
+                return;
+            }
+            if place_after.end {
+                match end_game(&client, turn.game_id).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        emit_db_error(&s, e).await;
+                        return;
+                    }
+                };
+            }
+            if dr_empty && !place_after.end {
+                end_turn_emit(
+                    &client,
+                    &s,
+                    EndTurn {
+                        team_id: turn.team_id,
+                        game_id: turn.game_id,
+                    },
+                )
+                .await;
             }
         },
     );
@@ -426,27 +295,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            match end_turn(&client, turn_data.team_id, turn_data.game_id).await {
-                Ok(turn) => match get_team_data(&client, turn.game_id).await {
-                    Ok(game_data) => {
-                        if let Err(err) = s.emit("reply-game", &game_data) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                    Err(e) => {
-                        tracing::error!("error getting game data: {e}");
-                        if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                },
-                Err(e) => {
-                    tracing::error!("error getting game data: {e}");
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
-            }
+            end_turn_emit(&client, &s, turn_data).await;
         },
     );
     s.on(
@@ -459,25 +308,11 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            match add_drinks_to_turn(&client, turn_drinks.turn_drinks).await {
-                Ok(_) => match get_team_data(&client, turn_drinks.game_id).await {
-                    Ok(game_data) => {
-                        if let Err(err) = s.emit("reply-game", &game_data) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                    Err(e) => {
-                        if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                            tracing::error!("Failed replying game data: {err}")
-                        };
-                    }
-                },
-                Err(e) => {
-                    if let Err(err) = s.emit("response-error", &format!("db error: {e}")) {
-                        tracing::error!("Failed replying game data: {err}")
-                    };
-                }
+            if let Err(e) = add_drinks_to_turn(&client, turn_drinks.turn_drinks).await {
+                emit_db_error(&s, e).await;
+                return;
             }
+            emit_team_data(&client, &s, turn_drinks.game_id).await;
         },
     );
 

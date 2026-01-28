@@ -1,15 +1,15 @@
 use crate::utils::state::AppError;
-use crate::utils::types::{PgError, PostStartTurn, Turn, TurnDrink, TurnDrinks, Turns};
+use crate::utils::types::{EndTurn, PgError, PostStartTurn, Turn, TurnDrink, TurnDrinks, Turns};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
-pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Turn, AppError> {
+pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
     let rows = match client
         .query(
             "UPDATE turns
              SET finished = TRUE, end_time = NOW()
              WHERE team_id = $1 AND game_id = $2 AND finished = FALSE returning *",
-            &[&team_id, &game_id],
+            &[&et.team_id, &et.game_id],
         )
         .await
     {
@@ -17,7 +17,7 @@ pub async fn end_turn(client: &Client, team_id: i32, game_id: i32) -> Result<Tur
         Err(e) => {
             return Err(AppError::Database(format!(
                 "Failed to end turn for team {} in game {}: {}",
-                team_id, game_id, e
+                et.team_id, et.game_id, e
             )));
         }
     };

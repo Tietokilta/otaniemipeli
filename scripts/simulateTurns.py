@@ -173,8 +173,6 @@ def create_game(sio: socketio.Client, waiter: WaitAny, timeout: float, *, name: 
 
     # create-game first emits "response" (game) and then "reply-games". We only need the id.
     res = wait_or_raise(waiter, timeout, context="create-game")
-    if res.name != "response":
-        raise RuntimeError(f"unexpected event after create-game: {res.name}")
 
     game = res.payload
     if not isinstance(game, dict) or "id" not in game:
@@ -310,10 +308,6 @@ def run_simulation(args: argparse.Namespace) -> int:
     @sio.on("reply-games", namespace=REF_NS)
     def on_reply_games(data):
         waiter.push("reply-games", data)
-
-    @sio.on("response", namespace=REF_NS)
-    def on_response(data):
-        waiter.push("response", data)
 
     @sio.on("reply-game", namespace=REF_NS)
     def on_reply_game(data):
