@@ -3,7 +3,7 @@
 
 Referee simulator:
 - logs in via HTTP to get token
-- connects to Socket.IO namespace "/referee"
+- connects to Socket.IO namespace "/websocket"
 - creates a new game
 - creates 4 teams with arbitrary names
 - starts the game
@@ -33,7 +33,7 @@ import requests as rq
 import socketio
 
 
-REF_NS = "/referee"
+REF_NS = "/websocket"
 # Global lock to prevent race conditions when multiple threads interact with the same game state.
 # This ensures that only one thread can modify a turn at a time.
 TURN_LOCK = Lock()
@@ -299,7 +299,7 @@ def run_simulation(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /referee")
+        print("connected to /websocket")
 
     @sio.event(namespace=REF_NS)
     def disconnect():
@@ -411,7 +411,7 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /referee to fetch games")
+        print("connected to /websocket to fetch games")
 
     @sio.on("reply-games", namespace=REF_NS)
     def on_reply_games(data):
@@ -473,7 +473,7 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /referee to fetch games")
+        print("connected to /websocket to fetch games")
 
     @sio.on("reply-games", namespace=REF_NS)
     def on_reply_games(data):
@@ -539,7 +539,7 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /referee")
+        print(f"[{args.game_id}] connected to /websocket")
 
     @sio.event(namespace=REF_NS)
     def disconnect():
@@ -617,7 +617,7 @@ def start_existing_game(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /referee to start game")
+        print(f"[{args.game_id}] connected to /websocket to start game")
 
     @sio.event(namespace=REF_NS)
     def disconnect():

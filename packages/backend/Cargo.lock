@@ -20,6 +20,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "socketioxide",
+ "socketioxide-core",
  "thiserror",
  "tokio",
  "tokio-postgres",

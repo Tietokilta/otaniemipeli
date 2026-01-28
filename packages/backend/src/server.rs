@@ -1,5 +1,4 @@
-use crate::api::router as api_router;
-use crate::api::{referee as referee_server, secretary as secretary_server};
+use crate::api::{router as api_router, websocket};
 use crate::database::utils::make_pool;
 use crate::login::router as login_router;
 use http::HeaderValue;
@@ -54,8 +53,8 @@ pub async fn start() -> anyhow::Result<()> {
 
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
     tracing::info!("Socket.IO layer built");
-    io.ns("/referee", referee_server::referee_on_connect);
-    io.ns("/secretary", secretary_server::secretary_on_connect);
+    io.ns("/websocket", websocket::referee::referee_on_connect);
+    io.ns("/secretary", websocket::secretary::secretary_on_connect);
 
     let app = Router::new()
         .route(

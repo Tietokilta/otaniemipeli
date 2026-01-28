@@ -6,10 +6,11 @@ use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{EndTurn, PgError, Teams};
 use deadpool_postgres::Client;
 use serde::Serialize;
-use socketioxide::adapter::Adapter;
-use socketioxide::extract::SocketRef;
+use socketioxide::adapter::{Adapter, Emitter};
+use socketioxide::extract::{Data, SocketRef, State};
 use std::future::Future;
 use std::pin::Pin;
+use socketioxide_core::adapter::CoreAdapter;
 
 pub(crate) async fn get_db_client(state: &AppState, s: &SocketRef<impl Adapter>) -> Option<Client> {
     match state.db.get().await {
@@ -82,4 +83,13 @@ pub async fn end_turn_emit(client: &Client, s: &SocketRef<impl Adapter>, et: End
         emit_app_error(&s, e).await;
     }
     emit_team_data(&client, &s, et.game_id).await
+}
+
+pub async fn get_drinks_handler<A: CoreAdapter<Emitter>>(s: SocketRef<A>, Data(game_id): Data<i32>, State(state): State<AppState>) {
+  tracing::info!("Referee: game_data called");
+  let client = match get_db_client(&state, &s).await {
+    Some(c) => c,
+    None => return,
+  };
+  emit_team_data(&client, &s, game_id).await;
 }
