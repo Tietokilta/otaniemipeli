@@ -161,20 +161,13 @@ BEGIN
         INSERT INTO user_types (uid, user_type)
         VALUES (NEW.uid, 'Referee'::USERTYPE),
                (NEW.uid, 'Ie'::USERTYPE),
-               (NEW.uid, 'Secretary'::USERTYPE),
-               (NEW.uid, 'Team'::USERTYPE)
+               (NEW.uid, 'Secretary'::USERTYPE)
         ON CONFLICT (uid, user_type) DO NOTHING;
 
     ELSIF NEW.user_type = 'Referee'::USERTYPE THEN
         INSERT INTO user_types (uid, user_type)
         VALUES (NEW.uid, 'Ie'::USERTYPE),
-               (NEW.uid, 'Secretary'::USERTYPE),
-               (NEW.uid, 'Team'::USERTYPE)
-        ON CONFLICT (uid, user_type) DO NOTHING;
-
-    ELSIF NEW.user_type = 'Secretary'::USERTYPE THEN
-        INSERT INTO user_types (uid, user_type)
-        VALUES (NEW.uid, 'Team'::USERTYPE)
+               (NEW.uid, 'Secretary'::USERTYPE)
         ON CONFLICT (uid, user_type) DO NOTHING;
 
     ELSIF NEW.user_type = 'Ie'::USERTYPE THEN

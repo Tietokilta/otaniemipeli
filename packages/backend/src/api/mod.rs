@@ -1,5 +1,5 @@
-pub mod websocket;
 pub mod v1;
+pub mod websocket;
 
 use crate::utils::state::{auth_middleware, AppState};
 use axum::{middleware, Router};

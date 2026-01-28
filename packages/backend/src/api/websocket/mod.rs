@@ -1,3 +1,3 @@
 pub mod referee;
-pub mod utils;
 pub mod secretary;
+pub mod utils;

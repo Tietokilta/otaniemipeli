@@ -18,7 +18,7 @@ export default function TeamList({
   const socket = useSocket();
   useEffect(() => {
     if (socket) {
-      socket.emit("get-teams", game.id);
+      socket.emit("game-data", game.id);
       socket.on("reply-teams", (data: Teams) => {
         setTeams(data);
       });

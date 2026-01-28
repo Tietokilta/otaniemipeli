@@ -1,16 +1,18 @@
-use std::fmt::format;
-use crate::database::games::get_team_data;
+use crate::database::drinks::get_drinks_ingredients;
+use crate::database::games::{get_games, get_team_data};
 use crate::database::team::get_teams;
 use crate::database::turns::end_turn;
+use crate::utils::socket::check_auth;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{EndTurn, PgError, Teams};
+use crate::utils::types::{EndTurn, PgError, SocketAuth, Teams, UserType};
 use deadpool_postgres::Client;
 use serde::Serialize;
 use socketioxide::adapter::{Adapter, Emitter};
 use socketioxide::extract::{Data, SocketRef, State};
+use socketioxide_core::adapter::CoreAdapter;
+use std::fmt::format;
 use std::future::Future;
 use std::pin::Pin;
-use socketioxide_core::adapter::CoreAdapter;
 
 pub(crate) async fn get_db_client(state: &AppState, s: &SocketRef<impl Adapter>) -> Option<Client> {
     match state.db.get().await {
@@ -84,12 +86,79 @@ pub async fn end_turn_emit(client: &Client, s: &SocketRef<impl Adapter>, et: End
     }
     emit_team_data(&client, &s, et.game_id).await
 }
+pub async fn get_drinks_handler<A: CoreAdapter<Emitter>>(
+    s: SocketRef<A>,
+    State(state): State<AppState>,
+) {
+    tracing::info!("Referee: get-drinks called");
+    let client = match get_db_client(&state, &s).await {
+        Some(c) => c,
+        None => return,
+    };
+    run_emit_fn(&client, &s, "reply-drinks", |c| {
+        Box::pin(async move { get_drinks_ingredients(c).await })
+    })
+    .await;
+}
+pub async fn game_data_handler<A: CoreAdapter<Emitter>>(
+    s: SocketRef<A>,
+    Data(game_id): Data<i32>,
+    State(state): State<AppState>,
+) {
+    tracing::info!("Referee: game_data called");
+    let client = match get_db_client(&state, &s).await {
+        Some(c) => c,
+        None => return,
+    };
+    emit_team_data(&client, &s, game_id).await;
+}
+pub async fn end_turn_handler<A: CoreAdapter<Emitter>>(
+    s: SocketRef<A>,
+    Data(turn_data): Data<EndTurn>,
+    State(state): State<AppState>,
+) {
+    tracing::info!("Referee: end-turn called");
+    let client = match get_db_client(&state, &s).await {
+        Some(c) => c,
+        None => return,
+    };
+    end_turn_emit(&client, &s, turn_data).await;
+}
 
-pub async fn get_drinks_handler<A: CoreAdapter<Emitter>>(s: SocketRef<A>, Data(game_id): Data<i32>, State(state): State<AppState>) {
-  tracing::info!("Referee: game_data called");
-  let client = match get_db_client(&state, &s).await {
-    Some(c) => c,
-    None => return,
-  };
-  emit_team_data(&client, &s, game_id).await;
+pub async fn get_games_handler<A: CoreAdapter<Emitter>>(
+    s: SocketRef<A>,
+    State(state): State<AppState>,
+) {
+    tracing::info!("Referee: get-games called");
+    let client = match get_db_client(&state, &s).await {
+        Some(c) => c,
+        None => return,
+    };
+    run_emit_fn(&client, &s, "reply-games", |c| {
+        Box::pin(async move { get_games(c).await })
+    })
+    .await;
+}
+pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
+    s: SocketRef<A>,
+    Data(auth): Data<SocketAuth>,
+    State(state): State<AppState>,
+) {
+    println!("{}", s.ns());
+    let u_type: UserType = match s.ns() {
+        "/admin" => UserType::Admin,
+        "/referee" => UserType::Referee,
+        "/secretary" => UserType::Secretary,
+        "/ie" => UserType::Ie,
+        _ => {
+            let _ = s.disconnect();
+            return;
+        }
+    };
+    let auth = check_auth(&auth.token, &s, &state, u_type).await;
+    tracing::info!("Referee: Connection verified: {}", auth);
+    emit_msg(&s, "verification-reply", &auth).await;
+    if !auth {
+        let _ = s.disconnect();
+    }
 }

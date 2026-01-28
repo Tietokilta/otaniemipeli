@@ -53,7 +53,7 @@ pub async fn start() -> anyhow::Result<()> {
 
     let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
     tracing::info!("Socket.IO layer built");
-    io.ns("/websocket", websocket::referee::referee_on_connect);
+    io.ns("/referee", websocket::referee::referee_on_connect);
     io.ns("/secretary", websocket::secretary::secretary_on_connect);
 
     let app = Router::new()
