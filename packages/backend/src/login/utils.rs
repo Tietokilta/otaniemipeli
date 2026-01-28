@@ -126,17 +126,15 @@ pub async fn create_user(
     headers: HeaderMap,
     Json(user_info): Json<UserCreateInfo>,
 ) -> Result<Json<UserSessionInfo>, AppError> {
-    info!("Creating user: {:?}", user_info);
     if user_info.password == "" || user_info.username == "" || user_info.email == "" {
         return Err(AppError::Internal);
     }
-    println!("Hehe");
     let client = state.db.get().await?;
     let auth_hash = get_auth(&headers).await;
     let user_exist = match users_exist(&client).await {
         Ok(bool) => bool,
         Err(_) => {
-            tracing::info!("Users exist check failed");
+            info!("Users exist check failed");
             return Err(AppError::Database(
                 "The server encountered an unexpected error!"
                     .parse()

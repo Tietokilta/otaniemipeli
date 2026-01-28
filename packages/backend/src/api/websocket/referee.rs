@@ -4,7 +4,6 @@ use crate::api::websocket::utils::{
     run_emit_fn, verify_login_handler,
 };
 use crate::database::boards::move_team;
-use crate::database::drinks::get_drinks_ingredients;
 use crate::database::games::{
     check_dice, end_game, get_games, get_team_data, post_game, start_game,
 };
@@ -33,12 +32,9 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(c) => c,
                 None => return,
             };
-            let game = match post_game(&client, game).await {
-                Ok(game) => game,
-                Err(e) => {
-                    emit_db_error(&s, e).await;
-                    return;
-                }
+            if let Err(e) = post_game(&client, game).await {
+                emit_db_error(&s, e).await;
+                return;
             };
             run_emit_fn(&client, &s, "reply-games", |c| {
                 Box::pin(async move { get_games(c).await })
@@ -249,10 +245,9 @@ pub async fn referee_on_connect<A: Adapter>(
     );
 
     let ok = check_auth(&auth.token, &s, &state, UserType::Referee).await;
+    tracing::info!("Referee: Connection verified: {}", ok);
     if !ok {
         let _ = s.disconnect();
         return;
     }
-
-    tracing::info!("Referee: Connection authorized");
 }

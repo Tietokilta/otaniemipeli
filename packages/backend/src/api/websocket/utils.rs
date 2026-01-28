@@ -10,7 +10,6 @@ use serde::Serialize;
 use socketioxide::adapter::{Adapter, Emitter};
 use socketioxide::extract::{Data, SocketRef, State};
 use socketioxide_core::adapter::CoreAdapter;
-use std::fmt::format;
 use std::future::Future;
 use std::pin::Pin;
 

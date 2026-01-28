@@ -1,14 +1,10 @@
 use crate::api::websocket::utils::{
-    emit_msg, emit_team_data, emit_teams, end_turn_emit, end_turn_handler, game_data_handler,
-    get_db_client, get_drinks_handler, get_games_handler, run_emit_fn,
+    end_turn_handler, game_data_handler, get_drinks_handler, get_games_handler,
     verify_login_handler,
 };
-use crate::database::drinks::get_drinks_ingredients;
-use crate::database::games::{get_games, get_team_data};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{EndTurn, Games, SocketAuth, UserType};
-use serde_json::Value;
+use crate::utils::types::{SocketAuth, UserType};
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
 
