@@ -131,6 +131,11 @@ def map_rust_type_to_ts(ty: str) -> str:
     if m:
         inner = map_rust_type_to_ts(m.group(1))
         return f"{inner}[]"
+    
+    # Id newtypes
+    m = re.match(r"^([A-Z][A-Za-z]*Id)$", t)
+    if m:
+        return "number"
 
     # Primitives
     if t in PRIMS:

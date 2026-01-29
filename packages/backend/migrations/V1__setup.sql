@@ -113,7 +113,6 @@ CREATE TABLE IF NOT EXISTS teams
     game_id         INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
     team_name       TEXT NOT NULL,
     team_hash       TEXT NOT NULL,
-    current_place_n INTEGER NOT NULL DEFAULT 0,
     doubled         BOOLEAN NOT NULL DEFAULT FALSE
 );
 

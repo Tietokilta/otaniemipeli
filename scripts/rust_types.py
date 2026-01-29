@@ -123,7 +123,6 @@ class Team:
     game_id: int
     team_name: str
     team_hash: str
-    current_place_id: int
     double: bool
     @classmethod
     def from_dict(cls, data): return _from_dict(cls, data)

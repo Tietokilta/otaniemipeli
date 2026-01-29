@@ -106,6 +106,10 @@ def map_rust_type_to_py(ty: str) -> str:
     if m:
         inner = map_rust_type_to_py(m.group(1))
         return f"list[{inner}]"
+    
+    m = re.match(r"^([A-Z][A-Za-z]*Id)$", t)
+    if m:
+        return "int"
 
     if t in PRIMS:
         return PRIMS[t]

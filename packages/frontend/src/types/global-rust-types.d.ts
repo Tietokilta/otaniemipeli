@@ -56,7 +56,6 @@ declare global {
     game_id: number;
     team_name: string;
     team_hash: string;
-    current_place_id: number;
     double: boolean;
   }
 
@@ -265,6 +264,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};
