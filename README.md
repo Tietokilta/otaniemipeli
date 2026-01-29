@@ -46,6 +46,25 @@ For Production build docker image which contains front and backends run
 docker-compose -f docker-compose-prod.yml up --build
 ```
 
+## Running without docker compose
+
+If you run postgres on your host machine already
+
+Migrate:
+
+```bash
+cd packages/backend
+docker run \
+   --rm \
+   --env-file ./.env \
+   --network host \
+   -v ./migrations:/flyway/sql \
+   flyway/flyway \
+   -connectRetries=60 \
+   -baselineOnMigrate=true \
+   migrate
+```
+
 ## Usage
 
 Then go to the frontend url and create the initial admin user.

@@ -122,7 +122,6 @@ pub struct TurnDrink {
     pub drink: Drink,
     pub turn_id: i32,
     pub n: i32,
-    pub penalty: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TurnDrinks {
@@ -152,13 +151,28 @@ pub struct GameTeam {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Turn {
     pub turn_id: i32,
-    pub start_time: DateTime<Utc>,
     pub team_id: i32,
     pub game_id: i32,
-    pub dice1: i32,
-    pub dice2: i32,
-    pub location: i32,
+    /// when dice were thrown OR "give penalty" clicked (including game start penalty)
+    pub start_time: DateTime<Utc>,
+    /// when dice throw and square results were confirmed by referee, or penalty confirmed
+    pub confirmed_at: Option<DateTime<Utc>>,
+    /// when IE started making the drink (= confirmed_at if no drinks awarded)
+    pub mixing_at: Option<DateTime<Utc>>,
+    /// when IE finished the drink (= confirmed_at if no drinks awarded)
+    pub mixed_at: Option<DateTime<Utc>>,
+    /// when the drink was delivered to the players (= confirmed_at if no drinks awarded)
+    pub delivered_at: Option<DateTime<Utc>>,
+    /// when hands were raised by the players
     pub end_time: Option<DateTime<Utc>>,
+    /// dice number 1 (if thrown)
+    pub dice1: i32,
+    /// dice number 2 (if thrown)
+    pub dice2: i32,
+    /// where the player ended up (if dice thrown)
+    pub location: Option<i32>,
+    /// whether this is a penalty turn (no dice thrown)
+    pub penalty: bool,
     pub drinks: TurnDrinks,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -187,7 +201,7 @@ pub struct PlaceThrow {
 pub struct Game {
     pub id: i32,
     pub name: String,
-    pub board: i32,
+    pub board_id: i32,
     pub started: bool,
     pub finished: bool,
     pub start_time: DateTime<Utc>,
@@ -292,7 +306,6 @@ impl PlaceDrink {
             drink: self.drink.clone(),
             turn_id,
             n: if double { self.n * 2 } else { self.n },
-            penalty: false,
         }
     }
 }

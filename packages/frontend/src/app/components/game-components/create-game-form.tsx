@@ -57,6 +57,7 @@ export default function CreateGameForm({ className }: { className?: string }) {
               placeholder="Name"
               onChange={(e) => setName(e.target.value)}
               type="text"
+              autoFocus
             />
             <DropdownMenu
               buttonText="Valitse lauta"

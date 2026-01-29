@@ -113,11 +113,11 @@ pub async fn referee_on_connect<A: Adapter>(
 
             // Begin the turn
             let turn = match start_turn(&client, turn_start_data).await {
+                Ok(turn) => turn,
                 Err(e) => {
                     emit_db_error(&s, e).await;
                     return;
                 }
-                Ok(turn) => turn,
             };
 
             // If team has area double e.g. in Tampere
@@ -204,12 +204,9 @@ pub async fn referee_on_connect<A: Adapter>(
                 return;
             }
             if place_after.end {
-                match end_game(&client, turn.game_id).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        emit_db_error(&s, e).await;
-                        return;
-                    }
+                if let Err(e) = end_game(&client, turn.game_id).await {
+                    emit_db_error(&s, e).await;
+                    return;
                 };
             }
             if dr_empty && !place_after.end {

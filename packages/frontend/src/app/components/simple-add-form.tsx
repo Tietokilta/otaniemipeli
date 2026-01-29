@@ -48,6 +48,7 @@ export default function SimpleAddForm({
               required
               placeholder={inputPlaceholder}
               className="mb-3 w-full rounded border px-3 py-2"
+              autoFocus
             />
 
             <div className="flex justify-end gap-3">
