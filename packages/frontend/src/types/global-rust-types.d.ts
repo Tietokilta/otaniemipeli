@@ -68,7 +68,6 @@ declare global {
     drink: Drink;
     turn_id: number;
     n: number;
-    penalty: boolean;
   }
 
   interface TurnDrinks {
@@ -98,13 +97,18 @@ declare global {
 
   interface Turn {
     turn_id: number;
-    start_time: string;
     team_id: number;
     game_id: number;
+    start_time: string;
+    confirmed_at: string | null;
+    mixing_at: string | null;
+    mixed_at: string | null;
+    delivered_at: string | null;
+    end_time: string | null;
     dice1: number;
     dice2: number;
-    location: number;
-    end_time: string | null;
+    location: number | null;
+    penalty: boolean;
     drinks: TurnDrinks;
   }
 
@@ -133,7 +137,7 @@ declare global {
   interface Game {
     id: number;
     name: string;
-    board: number;
+    board_id: number;
     started: boolean;
     finished: boolean;
     start_time: string;
@@ -261,7 +265,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};

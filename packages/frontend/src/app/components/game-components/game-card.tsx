@@ -30,7 +30,7 @@ export default function GameCard({
       style={{ cursor: "pointer" }}
     >
       <h2 className="text-xl font-semibold mb-2">{game.name}</h2>
-      <p className="text-quaternary-500">Lauta: {game.board}</p>
+      <p className="text-quaternary-500">Lauta: {game.board_id}</p>
       <p className="text-quaternary-500">
         Aloitusaika: {new Date(game.start_time).toLocaleString()}
       </p>

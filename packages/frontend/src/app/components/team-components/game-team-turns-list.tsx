@@ -33,7 +33,7 @@ export default function GameTeamTurnsList({
           if (!bLast) return -1;
 
           const aFinished = aLast.end_time != null;
-          const bFinished = aLast.end_time != null;
+          const bFinished = bLast.end_time != null;
 
           // finished first
           if (aFinished !== bFinished) {
@@ -42,11 +42,11 @@ export default function GameTeamTurnsList({
 
           // same group → sort by correct time DESC
           const aTime = aFinished
-            ? new Date(aLast.end_time).getTime()
+            ? new Date(aLast.end_time!).getTime()
             : new Date(aLast.start_time).getTime();
 
           const bTime = bFinished
-            ? new Date(bLast.end_time).getTime()
+            ? new Date(bLast.end_time!).getTime()
             : new Date(bLast.start_time).getTime();
 
           return aTime - bTime;

@@ -110,7 +110,6 @@ export default function GameStartDialogue({
         drink: td.drink,
         turn_id: -1,
         n: td.n || 1,
-        penalty: td.penalty || false,
       })),
     };
     socket.emit("start-game", firstTurn);

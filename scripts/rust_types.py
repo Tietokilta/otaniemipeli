@@ -141,7 +141,6 @@ class TurnDrink:
     drink: 'Drink'
     turn_id: int
     n: int
-    penalty: bool
     @classmethod
     def from_dict(cls, data): return _from_dict(cls, data)
 
@@ -189,13 +188,18 @@ class GameTeam:
 @dataclass
 class Turn:
     turn_id: int
-    start_time: str
     team_id: int
     game_id: int
-    dice1: int
-    dice2: int
-    location: int
+    start_time: str
+    confirmed_at: Optional[str] = None
+    mixing_at: Optional[str] = None
+    mixed_at: Optional[str] = None
+    delivered_at: Optional[str] = None
     end_time: Optional[str] = None
+    dice1: int # Non-optional field after optional fields, may require manual adjustment
+    dice2: int # Non-optional field after optional fields, may require manual adjustment
+    location: Optional[int] = None
+    penalty: bool # Non-optional field after optional fields, may require manual adjustment
     drinks: 'TurnDrinks' # Non-optional field after optional fields, may require manual adjustment
     @classmethod
     def from_dict(cls, data): return _from_dict(cls, data)
@@ -239,7 +243,7 @@ class PlaceThrow:
 class Game:
     id: int
     name: str
-    board: int
+    board_id: int
     started: bool
     finished: bool
     start_time: str

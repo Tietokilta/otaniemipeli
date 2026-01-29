@@ -34,7 +34,7 @@ function formatDhms(totalMs: number): string {
 export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
   const byId = new Map<number, TurnDrink>();
 
-  for (const { drink, turn_id, n, penalty } of rows) {
+  for (const { drink, turn_id, n } of rows) {
     const existing = byId.get(drink.id);
     if (existing) {
       existing.n += n; // add up
@@ -43,7 +43,6 @@ export function sumByDrinkId(rows: TurnDrink[]): TurnDrink[] {
         drink: { id: drink.id, name: drink.name },
         turn_id,
         n,
-        penalty,
       });
     }
   }
@@ -149,10 +148,7 @@ export default function TeamTurnCard({
         {(combinedTurns ? combinedTurns : lastTurn).drinks.drinks
           .sort((da, db) => db.n - da.n)
           .map((drink) => (
-            <TurnDrinkCard
-              key={`${drink.drink.id}-${drink.penalty}`}
-              drink={drink}
-            />
+            <TurnDrinkCard key={`${drink.drink.id}`} drink={drink} />
           ))}
       </VerticalList>
     </div>

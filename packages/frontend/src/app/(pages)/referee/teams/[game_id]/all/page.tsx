@@ -32,7 +32,7 @@ export default function Page() {
   useEffect(() => {
     // get board places
     if (gameData) {
-      getBoardPlaces("" + gameData?.game.board).then((b) => {
+      getBoardPlaces("" + gameData?.game.board_id).then((b) => {
         setBoard(b);
       });
     }
