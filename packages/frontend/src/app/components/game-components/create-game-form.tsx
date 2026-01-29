@@ -39,13 +39,11 @@ export default function CreateGameForm({ className }: { className?: string }) {
   return (
     <div className={`${className} box`}>
       {!active ? (
-        <div className="button w-full" onClick={() => setActive(true)}>
+        <button className="button w-full" onClick={() => setActive(true)}>
           <h1>Aloita uusi peli</h1>
-        </div>
+        </button>
       ) : (
-        <div>
-          <h1>Aloita uusi peli</h1>
-        </div>
+        <h1>Aloita uusi peli</h1>
       )}
       {active && (
         <div className="flex flex-col gap-3 w-full h-full">
@@ -68,7 +66,11 @@ export default function CreateGameForm({ className }: { className?: string }) {
             <p className="h-6 w-full font-bold center text-lg">
               {selectedBoard && selectedBoard.name}
             </p>
-            <button type="button" className="button w-full text-lg" onClick={handleSend}>
+            <button
+              type="button"
+              className="button w-full text-lg"
+              onClick={handleSend}
+            >
               Create Game
             </button>
           </form>

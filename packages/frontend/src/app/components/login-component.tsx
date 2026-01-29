@@ -69,7 +69,7 @@ export default function LoginComponent({
           }
         />
       </div>
-      <div
+      <button
         className="button select-none w-full"
         tabIndex={3}
         onClick={() => handleLogin()}
@@ -79,12 +79,10 @@ export default function LoginComponent({
           }
         }}
       >
-        <p>Kirjaudu Sisään</p>
-      </div>
-      <a className="button w-4/5" href="/follow" tabIndex={4}>
-        <>
-          <p className="text-sm">Jatka kirjautumatta</p>
-        </>
+        Kirjaudu Sisään
+      </button>
+      <a className="button w-4/5 text-sm" href="/follow" tabIndex={4}>
+        Jatka kirjautumatta
       </a>
     </form>
   );
