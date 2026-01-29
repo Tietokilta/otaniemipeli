@@ -94,6 +94,8 @@ pub async fn add_visited_place(
     team_id: i32,
     turn_id: i32,
 ) -> Result<u64, PgError> {
+    println!("Adding visited place");
+    println!("gid, pn, tid, tuid: {}, {}, {}, {}", game_id, place_number, team_id, turn_id);
     client
         .execute(
             "INSERT INTO game_places (game_id, place_number, team_id, turn_id) VALUES ($1, $2, $3, $4)",
