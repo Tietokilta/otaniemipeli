@@ -32,7 +32,7 @@ class bcolors:
 
 import re
 from typing import List, Tuple, Optional
-import syss
+import sys
 
 RE_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 RE_LINE_COMMENT = re.compile(r"//.*?$", re.MULTILINE)
