@@ -13,14 +13,6 @@ pub async fn secretary_on_connect<A: Adapter>(
     s: SocketRef<A>,
     State(state): State<AppState>,
 ) {
-    let token = auth.token.clone();
-    match check_auth(&token, &s, &state, UserType::Secretary).await {
-        true => {}
-        false => {
-            let _ = s.disconnect();
-            return;
-        }
-    }
     s.on("verify-login", verify_login_handler);
     s.on("get-games", get_games_handler);
     s.on("get-drinks", get_drinks_handler);
@@ -31,6 +23,5 @@ pub async fn secretary_on_connect<A: Adapter>(
         let _ = s.disconnect();
         return;
     }
-
     tracing::info!("Secretary: Connection authorized");
 }

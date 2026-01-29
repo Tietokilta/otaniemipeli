@@ -280,17 +280,35 @@ def _from_dict(cls, data):
     return "\n".join(out)
 
 def main():
+    check_mode = "--check" in sys.argv
+
     with open(r"./packages/backend/src/utils/types.rs", "r", encoding="utf-8") as f:
         src = f.read()
 
     py_code = rust_to_py_dataclasses(src)
-    with open("./scripts/rust_types.py", "w+", encoding="utf-8") as f:
-        f.write(py_code)
+    py_path = "./scripts/rust_types.py"
+
+    if check_mode:
+        try:
+            with open(py_path, "r", encoding="utf-8") as f:
+                existing_py = f.read()
+            if py_code != existing_py:
+                print(bcolors.FAIL + "Python types are out of date. Please run the generator." + bcolors.ENDC)
+                exit(1)
+            else:
+                print(bcolors.OKGREEN + "Python types are up to date." + bcolors.ENDC)
+        except FileNotFoundError:
+            print(bcolors.FAIL + f"File not found: {py_path}. Cannot check for updates." + bcolors.ENDC)
+            exit(1)
+    else:
+        with open(py_path, "w+", encoding="utf-8") as f:
+            f.write(py_code)
+        print(bcolors.OKGREEN + "••• Python dataclasses generated successfully. •••" + bcolors.ENDC)
+
 
 if __name__ == "__main__":
     try:
         main()
-        print(bcolors.OKGREEN + "••• Python dataclasses generated successfully. •••" + bcolors.ENDC)
     except Exception as e:
         print(bcolors.FAIL + f"Error generating Python dataclasses: {e}" + bcolors.ENDC)
         exit(1)

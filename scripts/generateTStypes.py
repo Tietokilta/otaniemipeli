@@ -32,6 +32,7 @@ class bcolors:
 
 import re
 from typing import List, Tuple, Optional
+import syss
 
 RE_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 RE_LINE_COMMENT = re.compile(r"//.*?$", re.MULTILINE)
@@ -249,19 +250,35 @@ def rust_to_ts_global(src: str) -> str:
 
 
 def main():
+    check_mode = "--check" in sys.argv
+
     with open(r"./packages/backend/src/utils/types.rs", "r", encoding="utf-8") as f:
         src = f.read()
 
     ts = rust_to_ts_global(src)
-    with open("./packages/frontend/src/types/global-rust-types.d.ts", "w+", encoding="utf-8") as f:
-        f.write(ts)
+    ts_path = "./packages/frontend/src/types/global-rust-types.d.ts"
+
+    if check_mode:
+        try:
+            with open(ts_path, "r", encoding="utf-8") as f:
+                existing_ts = f.read()
+            if ts != existing_ts:
+                print(bcolors.FAIL + "TypeScript types are out of date. Please run the generator." + bcolors.ENDC)
+                exit(1)
+            else:
+                print(bcolors.OKGREEN + "TypeScript types are up to date." + bcolors.ENDC)
+        except FileNotFoundError:
+            print(bcolors.FAIL + f"File not found: {ts_path}. Cannot check for updates." + bcolors.ENDC)
+            exit(1)
+    else:
+        with open(ts_path, "w+", encoding="utf-8") as f:
+            f.write(ts)
+        print(bcolors.OKGREEN + "••• TypeScript types generated successfully. •••" + bcolors.ENDC)
 
 
 if __name__ == "__main__":
     try:
         main()
-        print(bcolors.OKGREEN + "••• TypeScript types generated successfully. •••" + bcolors.ENDC)
-
     except Exception as e:
-        print(bcolors.FAIL + f"Error generating TypeScript types: {e}" + bcolors.ENDC)
+        print(bcolors.FAIL + f"An error occurred: {e}" + bcolors.ENDC)
         exit(1)
