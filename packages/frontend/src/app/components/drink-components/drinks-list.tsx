@@ -20,35 +20,29 @@ export default function DrinkList({
     if (!drinksList) {
       const data = await getDrinks();
       setDrinks(data.drink_ingredients);
+    } else {
+      // Fetch drink ingredients for place drinks
+      const newDrinks: DrinkIngredients[] = [];
+      let eth = 0;
+      for (const drink of drinksList) {
+        try {
+          const data: DrinkIngredients = await getDrinkIngredients(
+            drink.drink.id,
+          );
+          newDrinks.push(data);
+          eth += drink.n * (data.abv / 100) * data.quantity;
+        } catch (error) {
+          console.error("Error fetching drink ingredients:", error);
+        }
+      }
+      setDrinks(newDrinks);
+      setEthanol(eth);
     }
-  }, [setDrinks, drinksList]);
+  }, [drinksList]);
 
   useEffect(() => {
     void fetchDrinks();
   }, [fetchDrinks]);
-
-  useEffect(() => {
-    const fetchPlaceDrinks = async () => {
-      const newDrinks: DrinkIngredients[] = [];
-      let eth = 0;
-      if (drinksList) {
-        for (const drink of drinksList) {
-          try {
-            const data: DrinkIngredients = await getDrinkIngredients(
-              drink.drink.id,
-            );
-            newDrinks.push(data);
-            eth += drink.n * (data.abv / 100) * data.quantity;
-          } catch (error) {
-            console.error("Error fetching drink ingredients:", error);
-          }
-        }
-        setDrinks(newDrinks);
-        setEthanol(eth);
-      }
-    };
-    void fetchPlaceDrinks();
-  }, [drinksList]);
 
   return (
     <ItemList

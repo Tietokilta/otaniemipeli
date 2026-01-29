@@ -14,7 +14,7 @@ export default function BoardList({
   const fetchBoards = useCallback(async () => {
     const data = await getBoards();
     setBoards(data.boards);
-  }, [setBoards]);
+  }, []);
 
   useEffect(() => {
     void fetchBoards();

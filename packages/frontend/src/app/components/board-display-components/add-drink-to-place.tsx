@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { addDrinksToPlace, getDrinks } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
@@ -136,22 +136,35 @@ export function DrinkSelectionCard({
   const [rule, setRule] = useState<string>(placeDrink.n_update || "1");
   const [showEverything, setShowEverything] = useState<boolean>(false);
 
+  // Track initial render to avoid unnecessary update on mount
+  const isFirstRender = useRef(true);
+  // Store stable references for placeDrink properties
+  const placeDrinkRef = useRef(placeDrink);
+  placeDrinkRef.current = placeDrink;
+
   useEffect(() => {
+    // Skip the initial render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const pd = placeDrinkRef.current;
     updateDrinks((dr) => {
       return {
         drinks: [
           ...dr.drinks.filter(
-            (dr) =>
+            (d) =>
               !(
-                dr.place_number === placeDrink.place_number &&
-                dr.board_id === placeDrink.board_id &&
-                dr.drink.id === placeDrink.drink.id
+                d.place_number === pd.place_number &&
+                d.board_id === pd.board_id &&
+                d.drink.id === pd.drink.id
               ),
           ),
           {
-            place_number: placeDrink.place_number,
-            board_id: placeDrink.board_id,
-            drink: placeDrink.drink,
+            place_number: pd.place_number,
+            board_id: pd.board_id,
+            drink: pd.drink,
             refill: refill,
             optional: optional,
             n: n,
@@ -160,17 +173,7 @@ export function DrinkSelectionCard({
         ],
       };
     });
-  }, [
-    refill,
-    optional,
-    n,
-    rule,
-    placeDrink.place_number,
-    placeDrink.board_id,
-    placeDrink.drink.id,
-    placeDrink.drink,
-    updateDrinks,
-  ]);
+  }, [refill, optional, n, rule, updateDrinks]);
 
   return (
     <div

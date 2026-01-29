@@ -52,23 +52,24 @@ export default function GameStartDialogue({
   useEffect(() => {
     if (!picked) return;
 
+    // Check if already selected
     setSelectedDrinks((prev) => {
       const already = prev.drinks.some((td) => td.drink.id === picked.id);
-      const nextSelected = already
-        ? prev
-        : {
-            drinks: [
-              ...prev.drinks,
-              { drink: picked, turn_id: -1, n: 1, penalty: false },
-            ],
-          };
+      if (already) return prev;
 
-      setAvailableDrinks((drs) => drs.filter((d) => d.id !== picked.id));
-
-      return nextSelected;
+      return {
+        drinks: [
+          ...prev.drinks,
+          { drink: picked, turn_id: -1, n: 1, penalty: false },
+        ],
+      };
     });
+
+    // Remove from available drinks
+    setAvailableDrinks((drs) => drs.filter((d) => d.id !== picked.id));
+
     setPicked(undefined);
-  }, [picked, setSelectedDrinks, setAvailableDrinks]);
+  }, [picked]);
 
   const handleDelete = (id: number) => {
     setSelectedDrinks((prev) => {
@@ -85,12 +86,24 @@ export default function GameStartDialogue({
     });
   };
 
+  // Listen for game reply
+  useEffect(() => {
+    if (!socket) return;
+
+    const onReplyGame = (g: Game) => {
+      setGameAction(g);
+    };
+
+    socket.on("reply-game", onReplyGame);
+
+    return () => {
+      socket.off("reply-game", onReplyGame);
+    };
+  }, [socket, setGameAction]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!socket) return;
-    socket.on("reply-game", (g: Game) => {
-      setGameAction(g);
-    });
     const firstTurn: FirstTurnPost = {
       game_id: game.id,
       drinks: selectedDrinks.drinks.map((td) => ({
@@ -190,17 +203,30 @@ function DrinkSelectionCard({
   updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
 }): JSX.Element {
   const [n, setN] = useState<number>(turnDrink.n || 1);
+
+  // Track initial render to avoid unnecessary update on mount
+  const isFirstRender = useRef(true);
+  // Store stable reference for drink id
+  const drinkIdRef = useRef(turnDrink.drink.id);
+  drinkIdRef.current = turnDrink.drink.id;
+
   useEffect(() => {
+    // Skip the initial render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     updateDrinks((list) => {
       return {
         drinks: list.drinks.map((td) =>
-          td.drink.id === turnDrink.drink.id
+          td.drink.id === drinkIdRef.current
             ? { ...td, n: Math.max(1, n) }
             : td,
         ),
       };
     });
-  }, [n, turnDrink.drink.id, updateDrinks]);
+  }, [n, updateDrinks]);
 
   return (
     <div className="flex flex-col gap-2 w-full box p-2 cursor-pointer">

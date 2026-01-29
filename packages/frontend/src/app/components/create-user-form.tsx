@@ -91,20 +91,24 @@ export default function CreateUserForm({
     handleSend();
   };
 
+  // Check for existing session on mount
   useEffect(() => {
+    if (!setLoginAction) return;
+
     const token = localStorage.getItem("auth_token");
-    if (token && setLoginAction) {
-      verifyUserTypes(token).then((session) => {
-        if (session) {
-          setLoginAction(true);
-          router.refresh();
-        } else {
-          setLoginAction(false);
-          router.refresh();
-        }
-      });
-    }
-  }, [router, setLoginAction]);
+    if (!token) return;
+
+    verifyUserTypes(token).then((session) => {
+      if (session) {
+        setLoginAction(true);
+        router.refresh();
+      } else {
+        setLoginAction(false);
+        router.refresh();
+      }
+    });
+  }, [setLoginAction, router]);
+
   return (
     <div className={`${className} flex flex-col`}>
       <h1>Luo {firstUser && "ensimmäinen"} käyttäjä</h1>

@@ -22,6 +22,7 @@ export default function Home() {
       .catch((err) => setText("Failed to fetch base:" + err));
   }, []);
 
+  // Check if users exist - only on mount
   useEffect(() => {
     users_exist()
       .then((data: boolean) => {
@@ -30,12 +31,16 @@ export default function Home() {
       .catch((error) => {
         console.error("Error checking if users exist:", error);
       });
+  }, []);
+
+  // Check for existing auth token on mount and when loggedIn changes
+  useEffect(() => {
     const userString = localStorage.getItem("auth_token") || "";
     if (userString) {
       setLogin(true);
       setFirstUserExists(true);
     }
-  }, [loggedIn, firstUserExists]);
+  }, [loggedIn]);
 
   return (
     <div className="flex flex-col items-center gap-3.5 max-h-[90dvh] sm:px-10 sm:py-4 font-[family-name:var(--font-geist-sans)]">

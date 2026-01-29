@@ -196,6 +196,11 @@ const AddTeamPenaltyForm = ({
   });
   const socket = useSocket();
 
+  // Track the previous selected drink to prevent duplicate processing
+  const prevSelectedDrinkRef = useRef<DrinkIngredientsWithID | undefined>(
+    undefined,
+  );
+
   useEffect(() => {
     getDrinks().then((drinks) => {
       setDrinks({
@@ -209,30 +214,41 @@ const AddTeamPenaltyForm = ({
   }, []);
 
   useEffect(() => {
-    if (selectedDrink) {
-      setPenaltyDrinks((prev) => {
-        if (!prev.drinks.find((drink) => drink.drink.id === selectedDrink.id)) {
-          const currentTurn = teamsCurrentTurn(team);
-          return {
-            drinks: [
-              ...prev.drinks,
-              {
-                drink: selectedDrink.drink,
-                turn_id: currentTurn?.turn_id ?? -1,
-                n: 1,
-                penalty: true,
-              },
-            ],
-          };
-        } else {
-          return {
-            drinks: prev.drinks.filter(
-              (drink) => drink.drink.id !== selectedDrink.id,
-            ),
-          };
-        }
-      });
-    }
+    // Skip if no drink selected or if it's the same drink as before
+    if (!selectedDrink) return;
+    if (prevSelectedDrinkRef.current?.id === selectedDrink.id) return;
+
+    prevSelectedDrinkRef.current = selectedDrink;
+
+    const currentTurn = teamsCurrentTurn(team);
+    setPenaltyDrinks((prev) => {
+      const existingDrink = prev.drinks.find(
+        (drink) => drink.drink.id === selectedDrink.id,
+      );
+      if (!existingDrink) {
+        return {
+          drinks: [
+            ...prev.drinks,
+            {
+              drink: selectedDrink.drink,
+              turn_id: currentTurn?.turn_id ?? -1,
+              n: 1,
+              penalty: true,
+            },
+          ],
+        };
+      } else {
+        return {
+          drinks: prev.drinks.filter(
+            (drink) => drink.drink.id !== selectedDrink.id,
+          ),
+        };
+      }
+    });
+
+    // Reset selectedDrink after processing to allow re-selection
+    setSelectedDrink(undefined);
+    prevSelectedDrinkRef.current = undefined;
   }, [selectedDrink, team]);
 
   const deleteDrink = (id: number) => {
@@ -311,21 +327,34 @@ export function DrinkSelectionCard({
   const [n, setN] = useState<number>(turnDrink.n || 1);
   const [showEverything, setShowEverything] = useState<boolean>(false);
 
+  // Track initial render to avoid unnecessary update on mount
+  const isFirstRender = useRef(true);
+  // Store stable reference for turnDrink
+  const turnDrinkRef = useRef(turnDrink);
+  turnDrinkRef.current = turnDrink;
+
   useEffect(() => {
+    // Skip the initial render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const td = turnDrinkRef.current;
     updateDrinks((dr) => {
       return {
         drinks: dr.drinks.map((existingDrink) =>
-          existingDrink.drink.id === turnDrink.drink.id
+          existingDrink.drink.id === td.drink.id
             ? {
                 ...existingDrink,
-                ...turnDrink,
+                ...td,
                 n: n,
               }
             : existingDrink,
         ),
       };
     });
-  }, [n, turnDrink, updateDrinks]);
+  }, [n, updateDrinks]);
 
   return (
     <div

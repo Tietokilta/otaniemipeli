@@ -69,7 +69,7 @@ export default function TeamTurnCard({
   const [location, setLocation] = React.useState<BoardPlace | undefined>();
 
   useEffect(() => {
-    if (board) {
+    if (board && teamTurns.length > 0) {
       const loc = board.places.find((p) => {
         return p.place_number === teamTurns[0].location;
       });

@@ -25,7 +25,12 @@ export default function LineLayer({
       setSize({ w: r.width, h: r.height });
     };
     handle();
-    new ResizeObserver(handle).observe(el);
+    const observer = new ResizeObserver(handle);
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   /*── build unique edges list (no double draw) ──*/

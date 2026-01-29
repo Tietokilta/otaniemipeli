@@ -14,39 +14,25 @@ export default function GameList({
   const [games, setGames] = useState<Games>({ games: [] });
   const socket = useSocket();
 
-  if (socket) {
-    socket.on("reply-games", (data: Games) => {
-      setGames(data);
-    });
-  }
   useEffect(() => {
-    if (!socket) return;
-
-    console.log("Setting up game data interval");
-    socket.on("reply-games", (data: Games) => {
-      setGames(data);
-    });
-    const interval = setInterval(() => {
-      console.log("getGameData");
-      socket.emit("get-games");
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      socket.off("reply-games");
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on("reply-games", (data: Games) => {
-        setGames(data);
-      });
-    } else {
+    if (!socket) {
+      // Fallback to REST API when socket is not available
       getGames().then((data) => {
         setGames(data);
       });
+      return;
     }
+
+    const onReplyGames = (data: Games) => {
+      setGames(data);
+    };
+
+    socket.on("reply-games", onReplyGames);
+    socket.emit("get-games");
+
+    return () => {
+      socket.off("reply-games", onReplyGames);
+    };
   }, [socket]);
 
   return (

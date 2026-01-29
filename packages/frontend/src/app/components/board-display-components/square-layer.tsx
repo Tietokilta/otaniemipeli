@@ -1,5 +1,5 @@
 import { getPlaceColor } from "@/utils/colors";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { updateCoordinates } from "@/utils/fetchers";
 
 export default function SquareLayer({
@@ -17,6 +17,12 @@ export default function SquareLayer({
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [places, setPlaces] = React.useState<BoardPlaces>(placesIn);
+
+  // Sync internal state when placesIn prop changes
+  useEffect(() => {
+    setPlaces(placesIn);
+  }, [placesIn]);
+
   const keyDownHandler = (e: React.KeyboardEvent, place: BoardPlace) => {
     const l = 0.1;
     const m = 50;

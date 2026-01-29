@@ -17,12 +17,18 @@ export default function TeamList({
   const [teams, setTeams] = useState<Teams>({ teams: [] });
   const socket = useSocket();
   useEffect(() => {
-    if (socket) {
-      socket.emit("get-teams", game.id);
-      socket.on("reply-teams", (data: Teams) => {
-        setTeams(data);
-      });
-    }
+    if (!socket) return;
+
+    const onReplyTeams = (data: Teams) => {
+      setTeams(data);
+    };
+
+    socket.on("reply-teams", onReplyTeams);
+    socket.emit("get-teams", game.id);
+
+    return () => {
+      socket.off("reply-teams", onReplyTeams);
+    };
   }, [socket, game.id]);
   return (
     <ItemList
