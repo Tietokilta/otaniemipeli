@@ -155,7 +155,7 @@ pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
         }
     };
     let auth = check_auth(&auth.token, &s, &state, u_type).await;
-    tracing::info!("Referee: Connection verified: {}", auth);
+    tracing::info!("{}: Connection verified: {}", s.ns(), auth);
     emit_msg(&s, "verification-reply", &auth).await;
     if !auth {
         let _ = s.disconnect();
