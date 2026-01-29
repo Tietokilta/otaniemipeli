@@ -195,8 +195,8 @@ class Turn:
     dice1: int
     dice2: int
     location: int
-    end_time: str
-    drinks: 'TurnDrinks'
+    end_time: Optional[str] = None
+    drinks: 'TurnDrinks' # Non-optional field after optional fields, may require manual adjustment
     @classmethod
     def from_dict(cls, data): return _from_dict(cls, data)
 

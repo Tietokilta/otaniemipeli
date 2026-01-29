@@ -80,13 +80,14 @@ def map_rust_type_to_py(ty: str) -> str:
         py_parts = [map_rust_type_to_py(p) for p in parts]
         return f"tuple[{', '.join(py_parts)}]"
 
-    if re.search(r"\b(?:chrono::)?DateTime\s*<\s*[^>]+>", t):
-        return "str"
-
+    # Option<T> - must come before DateTime to handle Option<DateTime<...>>
     m = re.match(r"^Option\s*<\s*(.+)\s*>$", t)
     if m:
         inner = map_rust_type_to_py(m.group(1))
         return f"Optional[{inner}]"
+
+    if re.search(r"\b(?:chrono::)?DateTime\s*<\s*[^>]+>", t):
+        return "str"
 
     m = re.match(r"^Vec\s*<\s*(.+)\s*>$", t)
     if m:

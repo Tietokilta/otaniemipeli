@@ -104,7 +104,7 @@ declare global {
     dice1: number;
     dice2: number;
     location: number;
-    end_time: string;
+    end_time: string | null;
     drinks: TurnDrinks;
   }
 
@@ -261,6 +261,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

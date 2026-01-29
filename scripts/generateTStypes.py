@@ -100,15 +100,15 @@ def map_rust_type_to_ts(ty: str) -> str:
         ts_parts = [map_rust_type_to_ts(p) for p in parts]
         return f"[{', '.join(ts_parts)}]"
 
-    # chrono DateTime
-    if re.search(r"\b(?:chrono::)?DateTime\s*<\s*[^>]+>", t):
-        return "string"
-
-    # Option<T>
+    # Option<T> - must come before DateTime to handle Option<DateTime<...>>
     m = re.match(r"^Option\s*<\s*(.+)\s*>$", t)
     if m:
         inner = map_rust_type_to_ts(m.group(1))
         return f"{inner} | null"
+
+    # chrono DateTime
+    if re.search(r"\b(?:chrono::)?DateTime\s*<\s*[^>]+>", t):
+        return "string"
 
     # Vec<T>
     m = re.match(r"^Vec\s*<\s*(.+)\s*>$", t)
