@@ -166,9 +166,9 @@ pub struct Turn {
     /// when hands were raised by the players
     pub end_time: Option<DateTime<Utc>>,
     /// dice number 1 (if thrown)
-    pub dice1: i32,
+    pub dice1: Option<i32>,
     /// dice number 2 (if thrown)
-    pub dice2: i32,
+    pub dice2: Option<i32>,
     /// where the player ended up (if dice thrown) - this is place_number, not PlaceId
     pub location: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)

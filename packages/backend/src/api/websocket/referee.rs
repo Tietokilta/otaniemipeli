@@ -101,6 +101,7 @@ pub async fn referee_on_connect<A: Adapter>(
 
             // If double double the drinks or effects when needed
             let double = turn_start_data.dice1 == turn_start_data.dice2;
+            let throw = (turn_start_data.dice1 as i8, turn_start_data.dice2 as i8);
 
             // Get game data
             let game_data = match get_team_data(&client, turn_start_data.game_id).await {
@@ -129,7 +130,6 @@ pub async fn referee_on_connect<A: Adapter>(
                 Some(team) => team.team.double,
                 None => false,
             };
-            let throw = (turn.dice1 as i8, turn.dice2 as i8);
 
             // find current place for that Team (avoid cloning whole game_data)
             let current_place = match game_data
