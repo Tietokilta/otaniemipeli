@@ -65,7 +65,7 @@ export const EditTeamTurnDialogue = ({
                       game_id: team.team.game_id,
                     };
                     socket.emit("end-turn", params);
-                    socket.emit("gameData", team.team.game_id);
+                    socket.emit("game-data", team.team.game_id);
                     setChoice(null);
                   }}
                 >

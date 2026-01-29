@@ -223,6 +223,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 )
                 .await;
             }
+            emit_team_data(&client, &s, turn.game_id).await;
         },
     );
     s.on("end-turn", end_turn_handler);
