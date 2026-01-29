@@ -5,7 +5,7 @@ Referee simulator:
 - logs in via HTTP to get token
 - connects to Socket.IO namespace "/referee"
 - creates a new game
-- creates 4 teams with arbitrary names
+- creates teams with arbitrary names
 - starts the game
 - simulates turns by calling "start-turn" then "end-turn"
 
@@ -24,7 +24,6 @@ import random
 import sys
 import threading
 import time
-from dataclasses import dataclass
 from datetime import datetime
 from threading import Event, Lock
 from typing import Any, Optional, Tuple
@@ -32,19 +31,38 @@ from typing import Any, Optional, Tuple
 import requests as rq
 import socketio
 
+# Import rust_types for typed dataclasses
+from rust_types import (
+    GameData,
+    GameTeam,
+    Games,
+    Game,
+    Team,
+    Teams,
+    Turn,
+    TurnDrink,
+    TurnDrinks,
+    FirstTurnPost,
+    PostStartTurn,
+    EndTurn as EndTurnPayload,
+    PostGame,
+    Drink,
+    SocketAuth,
+)
+
 
 REF_NS = "/referee"
 # Global lock to prevent race conditions when multiple threads interact with the same game state.
-# This ensures that only one thread can modify a turn at a time.
 TURN_LOCK = Lock()
 # Semaphore to limit concurrent connections to the server
 CONNECTION_SEMAPHORE: Optional[threading.Semaphore] = None
 
 
-@dataclass
 class WaitResult:
-    name: str
-    payload: Any
+    """Result from waiting for a socket event."""
+    def __init__(self, name: str, payload: Any):
+        self.name = name
+        self.payload = payload
 
 
 class WaitAny:
@@ -57,8 +75,6 @@ class WaitAny:
 
     def push(self, name: str, payload: Any) -> None:
         with self._lock:
-            # In a multi-threaded scenario, a waiter might be pushed to before
-            # the previous result was consumed. We only store the last one.
             self._last = WaitResult(name, payload)
             self._ev.set()
 
@@ -73,6 +89,7 @@ class WaitAny:
 
 
 def login_token(base_url: str, auth_json_path: str) -> str:
+    """Login via HTTP and return the session token."""
     with open(auth_json_path, "r", encoding="utf-8") as f:
         auth_data = json.load(f)
 
@@ -93,7 +110,8 @@ def login_token(base_url: str, auth_json_path: str) -> str:
     return token
 
 
-def wait_or_raise(waiter: WaitAny, timeout: float, *, context: str, retries: int = 0) -> WaitResult:
+def wait_or_raise(waiter: WaitAny, timeout: float, *, context: str) -> WaitResult:
+    """Wait for a socket event or raise on timeout/error."""
     res = waiter.wait(timeout)
     if res is None:
         raise TimeoutError(f"timeout waiting for server response ({context})")
@@ -122,102 +140,169 @@ def retry_operation(
     raise last_error
 
 
-def get_all_teams(reply_game_payload: Any) -> list[dict]:
-    if not isinstance(reply_game_payload, dict):
+def parse_game_data(payload: Any) -> GameData:
+    """Parse a reply-game payload into a typed GameData object."""
+    if not isinstance(payload, dict):
         raise RuntimeError("reply-game payload not a dict")
-    teams = reply_game_payload.get("teams")
-    if not teams:
-        raise RuntimeError("No teams in reply-game payload")
-    return teams
+    return GameData.from_dict(payload)
 
 
-def get_team_id(team_entry: dict) -> int:
-    """Extract team_id from either Team or GameTeam shape."""
-    team_id = team_entry.get("team_id")
-    if team_id is None:
-        team_id = team_entry.get("team", {}).get("team_id")
-    if team_id is None:
-        team_id = team_entry.get("team", {}).get("id")
-    if team_id is None:
-        raise RuntimeError("cant find team_id in team object")
-    return int(team_id)
+def parse_games(payload: Any) -> Games:
+    """Parse a reply-games payload into a typed Games object."""
+    if not isinstance(payload, dict):
+        raise RuntimeError("reply-games payload not a dict")
+    return Games.from_dict(payload)
 
 
-def has_open_turn(team_entry: dict) -> bool:
-    turns = team_entry.get("turns") or []
-    return any((not t.get("finished", True)) for t in turns)
+def parse_teams(payload: Any) -> Teams:
+    """Parse a reply-teams payload into a typed Teams object."""
+    if not isinstance(payload, dict):
+        raise RuntimeError("reply-teams payload not a dict")
+    return Teams.from_dict(payload)
 
 
-def roll_die(weighted_faces):
+def get_team_id(game_team: GameTeam) -> int:
+    """Extract team_id from a GameTeam."""
+    return game_team.team.team_id
+
+
+def has_open_turn(game_team: GameTeam) -> bool:
+    """Check if the team has an unfinished turn."""
+    for turn in game_team.turns:
+        if turn.end_time is None:
+            return True
+    return False
+
+
+def roll_die(weighted_faces: list[dict]) -> int:
+    """Roll a weighted die."""
     faces = []
     weights = []
     for item in weighted_faces:
         face, weight = next(iter(item.items()))
         faces.append(face)
         weights.append(weight)
-
     return random.choices(faces, weights=weights, k=1)[0]
 
-def start_turn(
+
+def setup_socket_handlers(sio: socketio.Client, waiter: WaitAny, verbose: bool = False) -> Tuple[Event, Event]:
+    """Setup all socket event handlers. Returns (connected_event, verified_event)."""
+    connected_event = Event()
+    verified_event = Event()
+
+    @sio.event(namespace=REF_NS)
+    def connect():
+        if verbose:
+            print("connected to /referee")
+        connected_event.set()
+
+    @sio.event(namespace=REF_NS)
+    def disconnect():
+        if verbose:
+            print("disconnected from /referee")
+
+    @sio.on("verification-reply", namespace=REF_NS)
+    def on_verification_reply(data):
+        if verbose:
+            print(f"  verification-reply: {data}")
+        if data:
+            verified_event.set()
+        waiter.push("verification-reply", data)
+
+    @sio.on("reply-games", namespace=REF_NS)
+    def on_reply_games(data):
+        waiter.push("reply-games", data)
+
+    @sio.on("reply-game", namespace=REF_NS)
+    def on_reply_game(data):
+        waiter.push("reply-game", data)
+
+    @sio.on("reply-teams", namespace=REF_NS)
+    def on_reply_teams(data):
+        waiter.push("reply-teams", data)
+
+    @sio.on("reply-drinks", namespace=REF_NS)
+    def on_reply_drinks(data):
+        waiter.push("reply-drinks", data)
+
+    @sio.on("response-error", namespace=REF_NS)
+    def on_response_error(data):
+        print(f"  response-error: {data}")
+        waiter.push("response-error", data)
+
+    return connected_event, verified_event
+
+
+def do_start_turn(
     sio: socketio.Client,
     waiter: WaitAny,
     game_id: int,
     team_id: int,
     timeout: float,
     dice: Optional[Tuple[int, int]] = None,
-) -> dict:
+) -> GameData:
+    """Start a turn for a team and return the updated game data."""
     if dice is None:
         dice_weights = {
             "dice_1": [{1: 0.1788}, {2: 0.1589}, {3: 0.1325}, {4: 0.1457}, {5: 0.1258}, {6: 0.2583}],
             "dice_2": [{1: 0.1126}, {2: 0.2450}, {3: 0.1656}, {4: 0.2119}, {5: 0.1391}, {6: 0.1258}],
         }
-        dice = (roll_die(dice_weights["dice_1"]), roll_die(dice_weights["dice_1"]))
+        dice = (roll_die(dice_weights["dice_1"]), roll_die(dice_weights["dice_2"]))
 
     d1, d2 = dice
-    start_payload = {"game_id": int(game_id), "team_id": int(team_id), "dice1": d1, "dice2": d2}
+    start_payload = PostStartTurn(
+        game_id=game_id,
+        team_id=team_id,
+        dice1=d1,
+        dice2=d2,
+    )
 
     print(f"  start-turn team_id={team_id} dice=({d1},{d2})")
-    sio.emit("start-turn", start_payload, namespace=REF_NS)
+    sio.emit("start-turn", start_payload.__dict__, namespace=REF_NS)
 
     res = wait_or_raise(waiter, timeout, context="start-turn")
     if res.name != "reply-game":
         raise RuntimeError(f"unexpected event after start-turn: {res.name}")
     print("  reply-game (after start-turn)")
-    return res.payload
+    return parse_game_data(res.payload)
 
 
-def end_turn(
+def do_end_turn(
     sio: socketio.Client,
     waiter: WaitAny,
     game_id: int,
     team_id: int,
     timeout: float,
-) -> dict:
-    end_payload = {"game_id": int(game_id), "team_id": int(team_id)}
+) -> GameData:
+    """End a turn for a team and return the updated game data."""
+    end_payload = EndTurnPayload(game_id=game_id, team_id=team_id)
     print(f"  end-turn team_id={team_id}")
-    sio.emit("end-turn", end_payload, namespace=REF_NS)
+    sio.emit("end-turn", end_payload.__dict__, namespace=REF_NS)
 
     res = wait_or_raise(waiter, timeout, context="end-turn")
     if res.name != "reply-game":
         raise RuntimeError(f"unexpected event after end-turn: {res.name}")
     print("  reply-game (after end-turn)")
-    return res.payload
+    return parse_game_data(res.payload)
 
 
-def create_game(sio: socketio.Client, waiter: WaitAny, timeout: float, *, name: str, board: int) -> int:
-    sio.emit("create-game", {"name": name, "board": int(board)}, namespace=REF_NS)
+def do_create_game(sio: socketio.Client, waiter: WaitAny, timeout: float, *, name: str, board: int) -> int:
+    """Create a new game and return its ID."""
+    game_payload = PostGame(name=name, board=board)
+    sio.emit("create-game", game_payload.__dict__, namespace=REF_NS)
 
-    # create-game first emits "response" (game) and then "reply-games". We only need the id.
     res = wait_or_raise(waiter, timeout, context="create-game")
+    games = parse_games(res.payload)
+    if not games.games:
+        raise RuntimeError("create-game response has no games")
 
-    game = res.payload["games"][0]
-    print(game)
-    if not isinstance(game, dict) or "id" not in game:
-        raise RuntimeError(f"create-game response missing game id: {game!r}")
-    return int(game["id"])
+    # The newly created game should be the first one (most recent)
+    game = games.games[0]
+    print(f"  Created game: {game}")
+    return game.id
 
 
-def create_team(
+def do_create_team(
     sio: socketio.Client,
     waiter: WaitAny,
     timeout: float,
@@ -225,78 +310,88 @@ def create_team(
     game_id: int,
     team_name: str,
 ) -> None:
-    # Team struct requires these fields, but backend create_team() will assign team_id/hash/current_place.
-    payload = {
-        "team_id": 0,
-        "game_id": int(game_id),
-        "team_name": team_name,
-        "team_hash": "",
-        "current_place_id": 0,
-        "double": False,
-    }
-    sio.emit("create-team", payload, namespace=REF_NS)
+    """Create a team in the given game."""
+    team_payload = Team(
+        team_id=0,  # Backend will assign
+        game_id=game_id,
+        team_name=team_name,
+        team_hash="",  # Backend will assign
+        double=False,
+    )
+    sio.emit("create-team", team_payload.__dict__, namespace=REF_NS)
 
-    # The backend may send other events like 'reply-games' before 'reply-teams'.
-    # We need to wait until we get the event we are looking for.
+    # Wait for reply-teams, ignoring other events
     while True:
         res = wait_or_raise(waiter, timeout, context=f"create-team ({team_name})")
         if res.name == "reply-teams":
+            teams = parse_teams(res.payload)
+            print(f"  Created team, now have {len(teams.teams)} teams")
             break
         else:
             print(f"  ...ignoring event {res.name} while waiting for reply-teams")
 
 
-def start_game(
+def do_start_game(
     sio: socketio.Client,
     waiter: WaitAny,
     timeout: float,
     *,
     game_id: int,
-) -> None:
-    # Backend expects FirstTurnPost { game_id, drinks }. Many setups accept empty.
-    sio.emit("start-game", {"game_id": int(game_id), "drinks": [{"drink": {"id": 1, "name": "Kalja"}, "turn_id": -1, "n": 1}]}, namespace=REF_NS)
+) -> GameData:
+    """Start the game."""
+    first_turn = FirstTurnPost(
+        game_id=game_id,
+        drinks=[
+            TurnDrink(
+                drink=Drink(id=1, name="Kalja"),
+                turn_id=-1,
+                n=1,
+            )
+        ],
+    )
+    # Convert to dict, handling nested dataclasses
+    payload = {
+        "game_id": first_turn.game_id,
+        "drinks": [
+            {"drink": {"id": d.drink.id, "name": d.drink.name}, "turn_id": d.turn_id, "n": d.n}
+            for d in first_turn.drinks
+        ]
+    }
+    sio.emit("start-game", payload, namespace=REF_NS)
     res = wait_or_raise(waiter, timeout, context="start-game")
     if res.name != "reply-game":
         raise RuntimeError(f"unexpected event after start-game: {res.name}")
+    return parse_game_data(res.payload)
 
 
-def fetch_game_data(sio: socketio.Client, waiter: WaitAny, timeout: float, *, game_id: int) -> dict:
-    sio.emit("game-data", int(game_id), namespace=REF_NS)
-    res = wait_or_raise(waiter, timeout, context="game_data")
+def fetch_game_data(sio: socketio.Client, waiter: WaitAny, timeout: float, *, game_id: int) -> GameData:
+    """Fetch the current game data."""
+    sio.emit("game-data", game_id, namespace=REF_NS)
+    res = wait_or_raise(waiter, timeout, context="game-data")
     if res.name != "reply-game":
-        raise RuntimeError(f"unexpected event after game_data: {res.name}")
-    if not isinstance(res.payload, dict):
-        raise RuntimeError("reply-game payload not a dict")
-    return res.payload
+        raise RuntimeError(f"unexpected event after game-data: {res.name}")
+    return parse_game_data(res.payload)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--base-url", default="http://localhost:2568", help="ex: http://localhost:2568")
-    ap.add_argument("--auth-json", default="./scripts/auth.json", help="path to auth.json with username/password")
-    ap.add_argument("--turns", type=int, default=500)
-    ap.add_argument("--timeout", type=float, default=10.0)
-    ap.add_argument("--delay", type=float, default=0.15)
-    ap.add_argument("--seed", type=int, default=None)
-    ap.add_argument("--verbose", action="store_true")
-    ap.add_argument("--fixed-dice", default=None, help='optional fixed dice like "3,5" (no spaces)')
-    ap.add_argument("--sleep", action="store_true", help="sleep random 1-10s between turns")
-    ap.add_argument("--board", type=int, default=1, help="board id for the newly created game")
-    ap.add_argument("--teams", type=int, default=8, help="how many teams to create")
-    ap.add_argument("--game-name", default=None, help="optional explicit game name")
-    ap.add_argument("--threads", type=int, default=1, help="number of simulations to run in parallel")
-    ap.add_argument("--max-concurrent", type=int, default=20, help="max concurrent active simulations (limits server load)")
-    ap.add_argument("--retries", type=int, default=3, help="number of retries for transient failures")
-    ap.add_argument(
-        "--finish",
-        action="store_true",
-        help="if set, find all unfinished games and play them to the end",
-    )
-    ap.add_argument(
-        "--start-all",
-        action="store_true",
-        help="if set, find all unstarted games and start them",
-    )
+    ap = argparse.ArgumentParser(description="Simulate game turns via referee websocket")
+    ap.add_argument("--base-url", default="http://localhost:2568", help="Server base URL")
+    ap.add_argument("--auth-json", default="./scripts/auth.json", help="Path to auth.json")
+    ap.add_argument("--turns", type=int, default=500, help="Max turns to simulate")
+    ap.add_argument("--timeout", type=float, default=10.0, help="Socket timeout in seconds")
+    ap.add_argument("--delay", type=float, default=0.15, help="Delay between operations")
+    ap.add_argument("--seed", type=int, default=None, help="Random seed")
+    ap.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    ap.add_argument("--fixed-dice", default=None, help='Fixed dice like "3,5"')
+    ap.add_argument("--sleep", action="store_true", help="Random sleep between turns")
+    ap.add_argument("--board", type=int, default=1, help="Board ID for new game")
+    ap.add_argument("--teams", type=int, default=8, help="Number of teams to create")
+    ap.add_argument("--game-name", default=None, help="Explicit game name")
+    ap.add_argument("--threads", type=int, default=1, help="Parallel simulation threads")
+    ap.add_argument("--max-concurrent", type=int, default=20, help="Max concurrent connections")
+    ap.add_argument("--retries", type=int, default=3, help="Retry count for failures")
+    ap.add_argument("--finish", action="store_true", help="Play all unfinished games to end")
+    ap.add_argument("--start-all", action="store_true", help="Start all unstarted games")
     args = ap.parse_args()
 
     if args.start_all:
@@ -306,7 +401,6 @@ def main() -> int:
         return play_all_unfinished_games(args)
 
     if args.threads > 1:
-        # Initialize the semaphore to limit concurrent connections
         global CONNECTION_SEMAPHORE
         CONNECTION_SEMAPHORE = threading.Semaphore(args.max_concurrent)
 
@@ -316,7 +410,6 @@ def main() -> int:
             thread = threading.Thread(target=run_simulation, args=(args,))
             threads.append(thread)
             thread.start()
-            # Stagger start times more aggressively based on load
             time.sleep(0.5 + random.uniform(0, 0.5))
 
         for thread in threads:
@@ -328,7 +421,7 @@ def main() -> int:
 
 
 def run_simulation(args: argparse.Namespace) -> int:
-    # Acquire semaphore if running in multi-threaded mode
+    """Run a single simulation, acquiring semaphore if in multi-threaded mode."""
     if CONNECTION_SEMAPHORE is not None:
         CONNECTION_SEMAPHORE.acquire()
 
@@ -340,8 +433,8 @@ def run_simulation(args: argparse.Namespace) -> int:
 
 
 def _run_simulation_inner(args: argparse.Namespace) -> int:
+    """Inner simulation logic."""
     if args.seed is not None:
-        # Make each thread have a different seed
         random.seed(args.seed + threading.get_ident())
 
     token = retry_operation(
@@ -357,29 +450,7 @@ def _run_simulation_inner(args: argparse.Namespace) -> int:
     )
     waiter = WaitAny()
 
-    @sio.event(namespace=REF_NS)
-    def connect():
-        print("connected to /referee")
-
-    @sio.event(namespace=REF_NS)
-    def disconnect():
-        print("disconnected")
-
-    @sio.on("reply-games", namespace=REF_NS)
-    def on_reply_games(data):
-        waiter.push("reply-games", data)
-
-    @sio.on("reply-game", namespace=REF_NS)
-    def on_reply_game(data):
-        waiter.push("reply-game", data)
-
-    @sio.on("reply-teams", namespace=REF_NS)
-    def on_reply_teams(data):
-        waiter.push("reply-teams", data)
-
-    @sio.on("response-error", namespace=REF_NS)
-    def on_response_error(data):
-        waiter.push("response-error", data)
+    connected_event, verified_event = setup_socket_handlers(sio, waiter, args.verbose)
 
     sio.connect(
         args.base_url,
@@ -388,13 +459,25 @@ def _run_simulation_inner(args: argparse.Namespace) -> int:
         auth={"token": token},
     )
 
+    # Wait for connection
+    if not connected_event.wait(args.timeout):
+        print("Failed to connect to /referee", file=sys.stderr)
+        return 1
+
+    # Explicitly verify login
+    sio.emit("verify-login", {"token": token}, namespace=REF_NS)
+    if not verified_event.wait(args.timeout):
+        print("Failed to verify login", file=sys.stderr)
+        sio.disconnect()
+        return 1
+
     time.sleep(args.delay)
 
     game_name = args.game_name or f"sim-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{threading.get_ident()}"
     print(f"Creating game name={game_name!r} board={args.board}")
 
     game_id = retry_operation(
-        lambda: create_game(sio, waiter, args.timeout, name=game_name, board=args.board),
+        lambda: do_create_game(sio, waiter, args.timeout, name=game_name, board=args.board),
         max_retries=args.retries,
         context="create-game"
     )
@@ -404,14 +487,14 @@ def _run_simulation_inner(args: argparse.Namespace) -> int:
         team_name = f"Team {i+1}"
         print(f"Creating team {team_name!r}")
         retry_operation(
-            lambda tn=team_name: create_team(sio, waiter, args.timeout, game_id=game_id, team_name=tn),
+            lambda tn=team_name: do_create_team(sio, waiter, args.timeout, game_id=game_id, team_name=tn),
             max_retries=args.retries,
             context=f"create-team ({team_name})"
         )
 
     print("Starting game")
     retry_operation(
-        lambda: start_game(sio, waiter, args.timeout, game_id=game_id),
+        lambda: do_start_game(sio, waiter, args.timeout, game_id=game_id),
         max_retries=args.retries,
         context="start-game"
     )
@@ -430,36 +513,35 @@ def _run_simulation_inner(args: argparse.Namespace) -> int:
 
         try:
             game_data = fetch_game_data(sio, waiter, args.timeout, game_id=game_id)
-            finished = bool(game_data.get("game", {}).get("finished"))
-            if finished:
+            if game_data.game.finished:
                 print("Game finished")
                 break
 
-            teams = get_all_teams(game_data)
-            team_entry = random.choice(teams)
-            team_id = get_team_id(team_entry)
+            if not game_data.teams:
+                print("No teams in game data", file=sys.stderr)
+                break
+
+            game_team: GameTeam = random.choice(game_data.teams)
+            team_id = get_team_id(game_team)
 
             if args.sleep:
                 time.sleep(random.randrange(1, 10) / 4)
 
-            # Acquire a lock to prevent other threads from starting/ending a turn
-            # for any team in this game at the same time. This avoids race conditions
-            # where two threads might try to end the same turn.
             with TURN_LOCK:
-                # Re-fetch game data inside the lock to get the most up-to-date state
-                # before making a decision.
+                # Re-fetch inside lock for consistency
                 current_game_data = fetch_game_data(sio, waiter, args.timeout, game_id=game_id)
-                current_teams = get_all_teams(current_game_data)
 
-                # Find the same team we chose earlier in the latest game data
-                team_entry = next((t for t in current_teams if get_team_id(t) == team_id), None)
+                # Find the same team
+                current_team = next(
+                    (t for t in current_game_data.teams if get_team_id(t) == team_id),
+                    None
+                )
 
-                if team_entry:
-                    # If a team already has an open turn, end it; otherwise start a new one.
-                    if has_open_turn(team_entry):
-                        end_turn(sio, waiter, game_id, team_id, args.timeout)
+                if current_team:
+                    if has_open_turn(current_team):
+                        do_end_turn(sio, waiter, game_id, team_id, args.timeout)
                     else:
-                        start_turn(sio, waiter, game_id, team_id, args.timeout, dice=fixed_dice)
+                        do_start_turn(sio, waiter, game_id, team_id, args.timeout, dice=fixed_dice)
 
         except Exception as e:
             print(f"stop on error: {e}", file=sys.stderr)
@@ -482,17 +564,7 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
     )
     waiter = WaitAny()
 
-    @sio.event(namespace=REF_NS)
-    def connect():
-        print("connected to /referee to fetch games")
-
-    @sio.on("reply-games", namespace=REF_NS)
-    def on_reply_games(data):
-        waiter.push("reply-games", data)
-
-    @sio.on("response-error", namespace=REF_NS)
-    def on_response_error(data):
-        waiter.push("response-error", data)
+    connected_event, verified_event = setup_socket_handlers(sio, waiter, args.verbose)
 
     sio.connect(
         args.base_url,
@@ -500,6 +572,18 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
         transports=["websocket", "polling"],
         auth={"token": token},
     )
+
+    if not connected_event.wait(args.timeout):
+        print("Failed to connect", file=sys.stderr)
+        return 1
+
+    # Explicitly verify login
+    sio.emit("verify-login", {"token": token}, namespace=REF_NS)
+    if not verified_event.wait(args.timeout):
+        print("Failed to verify login", file=sys.stderr)
+        sio.disconnect()
+        return 1
+
     time.sleep(args.delay)
 
     print("Fetching all games...")
@@ -507,8 +591,8 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
     res = wait_or_raise(waiter, args.timeout, context="get-games")
     sio.disconnect()
 
-    games = res.payload.get("games", [])
-    unfinished_games = [g for g in games if g.get("started") and not g.get("finished")]
+    games = parse_games(res.payload)
+    unfinished_games = [g for g in games.games if g.started and not g.finished]
 
     if not unfinished_games:
         print("No unfinished games found.")
@@ -518,9 +602,8 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
 
     threads = []
     for game in unfinished_games:
-        game_id = game["id"]
+        game_id = game.id
         print(f"Starting simulation for game_id={game_id}")
-        # Create a copy of args and set the game_id for this thread
         thread_args = argparse.Namespace(**vars(args))
         thread_args.game_id = game_id
         thread = threading.Thread(target=simulate_existing_game, args=(thread_args,))
@@ -544,17 +627,7 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
     )
     waiter = WaitAny()
 
-    @sio.event(namespace=REF_NS)
-    def connect():
-        print("connected to /referee to fetch games")
-
-    @sio.on("reply-games", namespace=REF_NS)
-    def on_reply_games(data):
-        waiter.push("reply-games", data)
-
-    @sio.on("response-error", namespace=REF_NS)
-    def on_response_error(data):
-        waiter.push("response-error", data)
+    connected_event, verified_event = setup_socket_handlers(sio, waiter, args.verbose)
 
     sio.connect(
         args.base_url,
@@ -562,6 +635,18 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
         transports=["websocket", "polling"],
         auth={"token": token},
     )
+
+    if not connected_event.wait(args.timeout):
+        print("Failed to connect", file=sys.stderr)
+        return 1
+
+    # Explicitly verify login
+    sio.emit("verify-login", {"token": token}, namespace=REF_NS)
+    if not verified_event.wait(args.timeout):
+        print("Failed to verify login", file=sys.stderr)
+        sio.disconnect()
+        return 1
+
     time.sleep(args.delay)
 
     print("Fetching all games...")
@@ -569,8 +654,8 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
     res = wait_or_raise(waiter, args.timeout, context="get-games")
     sio.disconnect()
 
-    games = res.payload.get("games", [])
-    unstarted_games = [g for g in games if not g.get("started")]
+    games = parse_games(res.payload)
+    unstarted_games = [g for g in games.games if not g.started]
 
     if not unstarted_games:
         print("No unstarted games found.")
@@ -580,9 +665,8 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
 
     threads = []
     for game in unstarted_games:
-        game_id = game["id"]
+        game_id = game.id
         print(f"Starting game_id={game_id}")
-        # Create a copy of args and set the game_id for this thread
         thread_args = argparse.Namespace(**vars(args))
         thread_args.game_id = game_id
         thread = threading.Thread(target=start_existing_game, args=(thread_args,))
@@ -610,13 +694,25 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
     )
     waiter = WaitAny()
 
+    game_id = args.game_id
+
+    connected_event = Event()
+    verified_event = Event()
+
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /referee")
+        print(f"[{game_id}] connected to /referee")
+        connected_event.set()
 
     @sio.event(namespace=REF_NS)
     def disconnect():
-        print(f"[{args.game_id}] disconnected")
+        print(f"[{game_id}] disconnected")
+
+    @sio.on("verification-reply", namespace=REF_NS)
+    def on_verification_reply(data):
+        if data:
+            verified_event.set()
+        waiter.push("verification-reply", data)
 
     @sio.on("reply-game", namespace=REF_NS)
     def on_reply_game(data):
@@ -632,9 +728,20 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
         transports=["websocket", "polling"],
         auth={"token": token},
     )
+
+    if not connected_event.wait(args.timeout):
+        print(f"[{game_id}] Failed to connect", file=sys.stderr)
+        return 1
+
+    # Explicitly verify login
+    sio.emit("verify-login", {"token": token}, namespace=REF_NS)
+    if not verified_event.wait(args.timeout):
+        print(f"[{game_id}] Failed to verify login", file=sys.stderr)
+        sio.disconnect()
+        return 1
+
     time.sleep(args.delay)
 
-    game_id = args.game_id
     turn_count = 0
     while True:
         turn_count += 1
@@ -642,27 +749,32 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
 
         try:
             game_data = fetch_game_data(sio, waiter, args.timeout, game_id=game_id)
-            if bool(game_data.get("game", {}).get("finished")):
+            if game_data.game.finished:
                 print(f"[{game_id}] Game finished.")
                 break
 
-            teams = get_all_teams(game_data)
-            team_entry = random.choice(teams)
-            team_id = get_team_id(team_entry)
+            if not game_data.teams:
+                print(f"[{game_id}] No teams", file=sys.stderr)
+                break
+
+            game_team: GameTeam = random.choice(game_data.teams)
+            team_id = get_team_id(game_team)
 
             if args.sleep:
                 time.sleep(random.randrange(1, 10) / 4)
 
             with TURN_LOCK:
                 current_game_data = fetch_game_data(sio, waiter, args.timeout, game_id=game_id)
-                current_teams = get_all_teams(current_game_data)
-                team_entry = next((t for t in current_teams if get_team_id(t) == team_id), None)
+                current_team = next(
+                    (t for t in current_game_data.teams if get_team_id(t) == team_id),
+                    None
+                )
 
-                if team_entry:
-                    if has_open_turn(team_entry):
-                        end_turn(sio, waiter, game_id, team_id, args.timeout)
+                if current_team:
+                    if has_open_turn(current_team):
+                        do_end_turn(sio, waiter, game_id, team_id, args.timeout)
                     else:
-                        start_turn(sio, waiter, game_id, team_id, args.timeout)
+                        do_start_turn(sio, waiter, game_id, team_id, args.timeout)
 
         except Exception as e:
             print(f"[{game_id}] stop on error: {e}", file=sys.stderr)
@@ -688,13 +800,25 @@ def start_existing_game(args: argparse.Namespace) -> int:
     )
     waiter = WaitAny()
 
+    game_id = args.game_id
+
+    connected_event = Event()
+    verified_event = Event()
+
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /referee to start game")
+        print(f"[{game_id}] connected to /referee to start game")
+        connected_event.set()
 
     @sio.event(namespace=REF_NS)
     def disconnect():
-        print(f"[{args.game_id}] disconnected")
+        print(f"[{game_id}] disconnected")
+
+    @sio.on("verification-reply", namespace=REF_NS)
+    def on_verification_reply(data):
+        if data:
+            verified_event.set()
+        waiter.push("verification-reply", data)
 
     @sio.on("reply-game", namespace=REF_NS)
     def on_reply_game(data):
@@ -714,16 +838,27 @@ def start_existing_game(args: argparse.Namespace) -> int:
         transports=["websocket", "polling"],
         auth={"token": token},
     )
+
+    if not connected_event.wait(args.timeout):
+        print(f"[{game_id}] Failed to connect", file=sys.stderr)
+        return 1
+
+    # Explicitly verify login
+    sio.emit("verify-login", {"token": token}, namespace=REF_NS)
+    if not verified_event.wait(args.timeout):
+        print(f"[{game_id}] Failed to verify login", file=sys.stderr)
+        sio.disconnect()
+        return 1
+
     time.sleep(args.delay)
 
-    game_id = args.game_id
     try:
         for i in range(args.teams):
             team_name = f"Team {i+1}"
             print(f"[{game_id}] Creating team {team_name!r}")
-            create_team(sio, waiter, args.timeout, game_id=game_id, team_name=team_name)
+            do_create_team(sio, waiter, args.timeout, game_id=game_id, team_name=team_name)
 
-        start_game(sio, waiter, args.timeout, game_id=game_id)
+        do_start_game(sio, waiter, args.timeout, game_id=game_id)
         print(f"[{game_id}] Game started successfully.")
     except Exception as e:
         print(f"[{game_id}] stop on error: {e}", file=sys.stderr)

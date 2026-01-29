@@ -185,52 +185,95 @@ def rust_to_py_dataclasses(src: str) -> str:
     out.append("# AUTO-GENERATED FROM RUST. Edit Rust models instead.\n"
                "# Found in ./packages/backend/src/utils/types.rs\n")
     out.append("from dataclasses import dataclass, field")
-    out.append("from typing import Optional, Any, Literal")
+    out.append("from typing import Optional, Any, Literal, Union")
     out.append("import sys\n")
     out.append("""
+def _resolve_type(field_type, cls_globals):
+    \"\"\"Resolve a type that might be a string forward reference.\"\"\"
+    if isinstance(field_type, str):
+        return cls_globals.get(field_type, field_type)
+    return field_type
+
+
 def _from_dict(cls, data):
+    \"\"\"Recursively convert a dict to a dataclass instance.\"\"\"
+    if data is None:
+        return None
     if not isinstance(data, dict):
         return data
-    
+    if not hasattr(cls, '__dataclass_fields__'):
+        return data
+
     init_data = {}
     cls_globals = sys.modules[cls.__module__].__dict__
 
     for field_name, field_type in cls.__annotations__.items():
-        if field_name in data:
-            field_value = data[field_name]
-            
-            # Handle generic types like list, dict, Optional
-            origin = getattr(field_type, '__origin__', None)
-            if origin:
-                if origin is list and isinstance(field_value, list):
-                    # Get the type of list elements
-                    element_type = field_type.__args__[0]
-                    if isinstance(element_type, str):
-                        element_type = cls_globals[element_type]
+        if field_name not in data:
+            continue
+
+        field_value = data[field_name]
+
+        # Handle None values early
+        if field_value is None:
+            init_data[field_name] = None
+            continue
+
+        # Resolve forward references
+        resolved_type = _resolve_type(field_type, cls_globals)
+
+        # Handle generic types like list, dict, Optional, Union
+        origin = getattr(resolved_type, '__origin__', None)
+
+        if origin is not None:
+            args = getattr(resolved_type, '__args__', ())
+
+            # Handle list[T]
+            if origin is list and isinstance(field_value, list):
+                if args:
+                    element_type = _resolve_type(args[0], cls_globals)
                     init_data[field_name] = [_from_dict(element_type, item) for item in field_value]
-                elif origin is dict and isinstance(field_value, dict):
-                    key_type, value_type = field_type.__args__
-                    if isinstance(key_type, str):
-                        key_type = cls_globals[key_type]
-                    if isinstance(value_type, str):
-                        value_type = cls_globals[value_type]
+                else:
+                    init_data[field_name] = field_value
+
+            # Handle dict[K, V]
+            elif origin is dict and isinstance(field_value, dict):
+                if len(args) >= 2:
+                    key_type = _resolve_type(args[0], cls_globals)
+                    value_type = _resolve_type(args[1], cls_globals)
                     init_data[field_name] = {
                         _from_dict(key_type, k): _from_dict(value_type, v)
                         for k, v in field_value.items()
                     }
-                elif origin is Optional:
-                    # Get the inner type from Optional[T]
-                    inner_type = field_type.__args__[0]
-                    if isinstance(inner_type, str):
-                        inner_type = cls_globals[inner_type]
+                else:
+                    init_data[field_name] = field_value
+
+            # Handle Optional[T] (Union[T, None])
+            elif origin is Union:
+                # Find the non-None type in the Union
+                non_none_types = [t for t in args if t is not type(None)]
+                if non_none_types:
+                    inner_type = _resolve_type(non_none_types[0], cls_globals)
                     init_data[field_name] = _from_dict(inner_type, field_value)
                 else:
                     init_data[field_name] = field_value
-            # Handle dataclasses
-            elif hasattr(field_type, '__dataclass_fields__'):
-                init_data[field_name] = _from_dict(field_type, field_value)
+
+            # Handle tuple
+            elif origin is tuple and isinstance(field_value, (list, tuple)):
+                if args:
+                    init_data[field_name] = tuple(
+                        _from_dict(_resolve_type(args[i] if i < len(args) else args[-1], cls_globals), v)
+                        for i, v in enumerate(field_value)
+                    )
+                else:
+                    init_data[field_name] = tuple(field_value)
             else:
                 init_data[field_name] = field_value
+
+        # Handle dataclasses
+        elif hasattr(resolved_type, '__dataclass_fields__'):
+            init_data[field_name] = _from_dict(resolved_type, field_value)
+        else:
+            init_data[field_name] = field_value
 
     return cls(**init_data)
 """)
@@ -253,32 +296,33 @@ def _from_dict(cls, data):
             out.append(f"    @classmethod\n    def from_dict(cls, data): return _from_dict(cls, data)\n")
             continue
 
-        has_defaults = False
-        field_lines = []
+        # First, determine which fields have defaults and which don't
+        fields_no_default = []
+        fields_with_default = []
+
         for fname, fty in fields:
             py_ty = map_rust_type_to_py(fty)
 
             # Post-process for forward refs in lists/options
-            # e.g. list["Game"] -> list['Game']
             for struct_name in all_struct_names:
                 py_ty = re.sub(fr'\b{struct_name}\b', f"'{struct_name}'", py_ty)
 
-            # Handle optional fields with default None
+            # Determine if field should have a default
             if py_ty.startswith("Optional["):
-                field_lines.append(f"    {fname}: {py_ty} = None")
-                has_defaults = True
-            elif "list" in py_ty or "dict" in py_ty:
-                field_lines.append(f"    {fname}: {py_ty} = field(default_factory={py_ty.split('[')[0]})")
-                has_defaults = True
+                fields_with_default.append((fname, py_ty, "= None"))
+            elif py_ty.startswith("list"):
+                fields_with_default.append((fname, py_ty, "= field(default_factory=list)"))
+            elif py_ty.startswith("dict"):
+                fields_with_default.append((fname, py_ty, "= field(default_factory=dict)"))
             else:
-                # If we have fields with defaults, all subsequent fields must have defaults.
-                # This is a simplification. We'll add a comment for non-optional fields.
-                if has_defaults:
-                     field_lines.append(f"    {fname}: {py_ty} # Non-optional field after optional fields, may require manual adjustment")
-                else:
-                     field_lines.append(f"    {fname}: {py_ty}")
+                fields_no_default.append((fname, py_ty, None))
 
-        out.extend(field_lines)
+        # Generate field lines: non-defaults first, then defaults
+        for fname, py_ty, default in fields_no_default:
+            out.append(f"    {fname}: {py_ty}")
+        for fname, py_ty, default in fields_with_default:
+            out.append(f"    {fname}: {py_ty} {default}")
+
         out.append(f"    @classmethod\n    def from_dict(cls, data): return _from_dict(cls, data)")
         out.append("\n")
 
