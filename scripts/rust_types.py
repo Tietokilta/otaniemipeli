@@ -233,8 +233,6 @@ class Turn:
     team_id: int
     game_id: int
     start_time: str
-    dice1: int
-    dice2: int
     penalty: bool
     drinks: 'TurnDrinks'
     confirmed_at: Optional[str] = None
@@ -242,6 +240,8 @@ class Turn:
     mixed_at: Optional[str] = None
     delivered_at: Optional[str] = None
     end_time: Optional[str] = None
+    dice1: Optional[int] = None
+    dice2: Optional[int] = None
     location: Optional[int] = None
     @classmethod
     def from_dict(cls, data): return _from_dict(cls, data)

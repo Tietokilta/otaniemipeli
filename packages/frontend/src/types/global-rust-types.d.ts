@@ -104,8 +104,8 @@ declare global {
     mixed_at: string | null;
     delivered_at: string | null;
     end_time: string | null;
-    dice1: number;
-    dice2: number;
+    dice1: number | null;
+    dice2: number | null;
     location: number | null;
     penalty: boolean;
     drinks: TurnDrinks;
@@ -260,6 +260,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};
