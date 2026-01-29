@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS teams
     game_id   INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
     team_name      TEXT,
     team_hash TEXT,
-    current_place_n INTEGER DEFAULT 0
+    current_place_n INTEGER DEFAULT 0,
+    doubled BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE TABLE IF NOT EXISTS turns
 (
@@ -146,10 +147,6 @@ CREATE TABLE IF NOT EXISTS user_types
     PRIMARY KEY (uid, user_type)
 );
 
--- drop old stuff if exists
-DROP TRIGGER IF EXISTS trg_grant_secretary ON user_types;
-DROP FUNCTION IF EXISTS grant_secretary_row();
-
 -- row-level trigger: only runs when a row is inserted
 CREATE OR REPLACE FUNCTION grant_secretary_row()
     RETURNS TRIGGER
@@ -180,8 +177,41 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_grant_secretary
+CREATE OR REPLACE TRIGGER trg_grant_secretary
     AFTER INSERT
     ON user_types
     FOR EACH ROW
 EXECUTE FUNCTION grant_secretary_row();
+
+CREATE TABLE IF NOT EXISTS expired_sessions
+(
+    session_id  INTEGER PRIMARY KEY,
+    uid         INTEGER REFERENCES users (uid),
+    created_at  TIMESTAMPTZ NOT NULL,
+    last_active TIMESTAMPTZ NOT NULL,
+    expires     TIMESTAMPTZ NOT NULL,
+    ended       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION log_expired_or_deleted_session()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    INSERT INTO expired_sessions (session_id, uid, created_at, last_active, expires, ended)
+    VALUES (OLD.session_id, OLD.uid, OLD.created_at, OLD.last_active, OLD.expires, now())
+    ON CONFLICT (session_id) DO NOTHING;
+    RETURN OLD;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER trg_sessions_to_expired
+    AFTER DELETE
+    ON sessions
+    FOR EACH ROW
+EXECUTE FUNCTION log_expired_or_deleted_session();
+
+CREATE INDEX idx_turns_game_id ON turns (game_id);
+CREATE INDEX idx_board_places_board_id ON board_places (board_id);
+CREATE INDEX idx_turns_team_id ON turns (team_id);
