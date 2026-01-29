@@ -106,9 +106,7 @@ pub fn build_turn(row: Row) -> Turn {
 /// Updates a turn with the final location
 pub async fn add_visited_place(
     client: &Client,
-    game_id: i32,
     place_number: i32,
-    team_id: i32,
     turn_id: i32,
 ) -> Result<u64, PgError> {
     client

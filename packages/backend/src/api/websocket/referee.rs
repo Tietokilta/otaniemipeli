@@ -191,14 +191,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 return;
             }
 
-            if let Err(e) = add_visited_place(
-                &client,
-                turn.game_id,
-                place_after.place_number,
-                turn.team_id,
-                turn.turn_id,
-            )
-            .await
+            if let Err(e) = add_visited_place(&client, place_after.place_number, turn.turn_id).await
             {
                 emit_db_error(&s, e).await;
                 return;

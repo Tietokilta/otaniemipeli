@@ -95,14 +95,7 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
             Ok(place) => place,
             Err(e) => return Err(e),
         };
-        add_visited_place(
-            client,
-            game.id,
-            place_number,
-            team.team.team_id,
-            team.turns.first().unwrap().turn_id,
-        )
-        .await?;
+        add_visited_place(client, place_number, team.turns.first().unwrap().turn_id).await?;
     }
 
     Ok(build_game_from_row(&row))
