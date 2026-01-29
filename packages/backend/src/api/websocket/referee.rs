@@ -231,7 +231,7 @@ pub async fn referee_on_connect<A: Adapter>(
         |s: SocketRef<A>,
          Data(turn_drinks): Data<PostTurnDrinks>,
          State(state): State<AppState>| async move {
-            println!("Referee: add-penalties called");
+            tracing::info!("Referee: add-penalties called");
             let client = match get_db_client(&state, &s).await {
                 Some(c) => c,
                 None => return,
