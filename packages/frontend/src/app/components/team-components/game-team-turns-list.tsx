@@ -32,8 +32,8 @@ export default function GameTeamTurnsList({
           if (!aLast) return 1;
           if (!bLast) return -1;
 
-          const aFinished = aLast.finished;
-          const bFinished = bLast.finished;
+          const aFinished = aLast.end_time != null;
+          const bFinished = aLast.end_time != null;
 
           // finished first
           if (aFinished !== bFinished) {

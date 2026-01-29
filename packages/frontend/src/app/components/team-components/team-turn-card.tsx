@@ -17,7 +17,7 @@ interface TurnCombined {
 const getTimeInBetween = (turns: Turn[]): number[] => {
   return turns.map((turn: Turn) => {
     const start = new Date(turn.start_time);
-    const end = turn.finished ? new Date(turn.end_time) : new Date();
+    const end = turn.end_time ? new Date(turn.end_time) : new Date();
     return end.getTime() - start.getTime();
   });
 };
@@ -127,7 +127,7 @@ export default function TeamTurnCard({
           <p>Yhteensä {combinedTurns.n} vuoroa</p>
           <p>Kokonaisaika: {combinedTurns.combined_time}</p>
         </>
-      ) : lastTurn.finished ? (
+      ) : lastTurn.end_time ? (
         <TurnElapsed iso={lastTurn.start_time} end={lastTurn.end_time} />
       ) : (
         <TurnElapsed iso={lastTurn.start_time} />

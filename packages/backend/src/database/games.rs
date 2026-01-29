@@ -55,8 +55,8 @@ pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, PgError>
 pub async fn make_first_turns(client: &Client, first_turn: &FirstTurnPost) -> Result<(), PgError> {
     let query_str = "\
     WITH ins_turns AS (
-      INSERT INTO turns (team_id, game_id, dice1, dice2, finished)
-      SELECT team_id, $1::int, 0, 0, false
+      INSERT INTO turns (team_id, game_id, dice1, dice2)
+      SELECT team_id, $1::int, 0, 0
       FROM teams
       WHERE game_id = $1
       RETURNING turn_id
@@ -263,7 +263,6 @@ pub async fn get_team_turns_with_board(
               t.game_id,
               t.dice1,
               t.dice2,
-              t.finished,
               t.end_time,
               t.location
             FROM turns t
@@ -299,7 +298,6 @@ pub async fn get_team_turns_with_board(
                     game_id: row.get(3),
                     dice1: row.get(4),
                     dice2: row.get(5),
-                    finished: row.get(6),
                     end_time,
                     location: row.get(8),
                     drinks: get_turn_drinks(client, turn_id).await.unwrap_or_else(|e| {

@@ -2,7 +2,7 @@
 # Found in ./packages/backend/src/utils/types.rs
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal
+from typing import Optional, Any, Literal
 import sys
 
 
@@ -195,7 +195,6 @@ class Turn:
     dice1: int
     dice2: int
     location: int
-    finished: bool
     end_time: str
     drinks: 'TurnDrinks'
     @classmethod

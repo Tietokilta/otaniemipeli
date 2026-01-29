@@ -49,7 +49,7 @@ export const EditTeamTurnDialogue = ({
             {
               // if last turn of the team is finished show start turn if not show end turn option
               team.turns.length === 0 ||
-              team.turns[team.turns.length - 1].finished ? (
+              team.turns[team.turns.length - 1].end_time ? (
                 <button className="button" onClick={() => setChoice("turn")}>
                   Uusi vuoro
                 </button>

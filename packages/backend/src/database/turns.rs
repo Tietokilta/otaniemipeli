@@ -7,8 +7,8 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
     let rows = match client
         .query(
             "UPDATE turns
-             SET finished = TRUE, end_time = NOW()
-             WHERE team_id = $1 AND game_id = $2 AND finished = FALSE returning *",
+             SET end_time = NOW()
+             WHERE team_id = $1 AND game_id = $2 returning *",
             &[&et.team_id, &et.game_id],
         )
         .await
@@ -34,7 +34,7 @@ pub async fn end_game_turns(client: &Client, game_id: i32) -> Result<Vec<Turn>, 
     let rows = client
         .query(
             "UPDATE turns
-             SET finished = TRUE, end_time = NOW()
+             SET end_time = NOW()
              WHERE game_id = $1 AND finished = FALSE
              RETURNING *",
             &[&game_id],
@@ -79,7 +79,6 @@ fn build_turn(row: Row) -> Turn {
         turn_id: row.get(0),
         start_time: row.get(1),
         end_time: row.get(2),
-        finished: row.get(3),
         team_id: row.get(4),
         game_id: row.get(5),
         dice1: row.get(6),

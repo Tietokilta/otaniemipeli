@@ -104,7 +104,6 @@ declare global {
     dice1: number;
     dice2: number;
     location: number;
-    finished: boolean;
     end_time: string;
     drinks: TurnDrinks;
   }
