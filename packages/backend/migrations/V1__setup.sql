@@ -31,11 +31,14 @@ CREATE TABLE IF NOT EXISTS sessions
     expires      TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '4 hours'),
     session_hash TEXT UNIQUE NOT NULL
 );
+
+-- "recipes"
 CREATE TABLE IF NOT EXISTS drinks
 (
     drink_id SERIAL PRIMARY KEY,
     name     TEXT
 );
+
 CREATE TABLE IF NOT EXISTS places
 (
     place_id   SERIAL PRIMARY KEY,
@@ -43,6 +46,7 @@ CREATE TABLE IF NOT EXISTS places
     rule       TEXT DEFAULT '',
     place_type PLACETYPE NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS ingredients
 (
     ingredient_id SERIAL PRIMARY KEY,
@@ -59,6 +63,7 @@ CREATE TABLE IF NOT EXISTS drink_ingredients
     quantity      FLOAT,
     PRIMARY KEY (drink_id, ingredient_id)
 );
+
 CREATE TABLE IF NOT EXISTS board_places
 (
     board_id     INTEGER NOT NULL REFERENCES boards (board_id) ON DELETE CASCADE,
@@ -71,6 +76,7 @@ CREATE TABLE IF NOT EXISTS board_places
     y            FLOAT   default 0.0,
     PRIMARY KEY (board_id, place_number)
 );
+
 CREATE TABLE IF NOT EXISTS teams
 (
     team_id   SERIAL PRIMARY KEY,
@@ -80,36 +86,54 @@ CREATE TABLE IF NOT EXISTS teams
     current_place_n INTEGER DEFAULT 0,
     doubled BOOLEAN NOT NULL DEFAULT FALSE
 );
+
 CREATE TABLE IF NOT EXISTS turns
 (
-    turn_id    SERIAL PRIMARY KEY,
-    start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    end_time   TIMESTAMPTZ,
-    team_id    INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
-    game_id    INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    dice1      INTEGER,
-    dice2      INTEGER,
-    location   INTEGER DEFAULT 0
+    turn_id      SERIAL PRIMARY KEY,
+    team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
+    game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
+    -- when dice were thrown OR "give penalty" clicked (including game start penalty)
+    start_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- when dice throw and square results were confirmed by referee, or penalty confirmed
+    confirmed_at TIMESTAMPTZ,
+    -- when IE started making the drink (= confirmed_at if no drinks awarded)
+    mixing_at    TIMESTAMPTZ,
+    -- when IE finished the drink (= confirmed_at if no drinks awarded)
+    mixed_at     TIMESTAMPTZ,
+    -- when the drink was delivered to the players (= confirmed_at if no drinks awarded)
+    delivered_at TIMESTAMPTZ,
+    -- when hands were raised by the players
+    end_time     TIMESTAMPTZ,
+    -- dice numbers (if thrown)
+    dice1        INTEGER,
+    dice2        INTEGER,
+    -- where the player ended up (if dice thrown)
+    place_number INTEGER,
+    -- whether this is a penalty turn (no dice thrown)
+    penalty      BOOLEAN NOT NULL,
 );
+
+-- when people visited a square
 CREATE TABLE IF NOT EXISTS game_places
 (
-    game_id      INTEGER REFERENCES games (game_id) ON DELETE CASCADE,
-    place_number INTEGER,
-    team_id      INTEGER REFERENCES teams (team_id) ON DELETE CASCADE,
-    turn_id      INTEGER REFERENCES turns (turn_id) ON DELETE SET NULL,
+    game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
+    place_number INTEGER NOT NULL,
+    team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
+    turn_id      INTEGER NOT NULL REFERENCES turns (turn_id) ON DELETE SET NULL,
     visited_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (game_id, place_number, team_id, turn_id)
 );
+
+-- what drinks are included in a turn
 CREATE TABLE IF NOT EXISTS turn_drinks
 (
-    drink_id INTEGER REFERENCES drinks (drink_id) ON DELETE CASCADE,
-    turn_id  INTEGER REFERENCES turns (turn_id) ON DELETE CASCADE,
-    n        INTEGER DEFAULT 1,
-    penalty  BOOLEAN DEFAULT FALSE,
-    given_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    delivered BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (drink_id, turn_id, penalty)
+    drink_id INTEGER NOT NULL REFERENCES drinks (drink_id) ON DELETE CASCADE,
+    turn_id  INTEGER NOT NULL REFERENCES turns (turn_id) ON DELETE CASCADE,
+    n        INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (drink_id, turn_id)
 );
+
+-- what drinks you get by landing at a place
 CREATE TABLE IF NOT EXISTS place_drinks
 (
     drink_id     INTEGER NOT NULL REFERENCES drinks (drink_id) ON DELETE CASCADE,
@@ -124,6 +148,8 @@ CREATE TABLE IF NOT EXISTS place_drinks
         REFERENCES board_places (board_id, place_number)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- where you can get to from a place
 CREATE TABLE IF NOT EXISTS place_connections
 (
     board_id  INTEGER REFERENCES boards (board_id) ON DELETE CASCADE,
@@ -140,6 +166,7 @@ CREATE TABLE IF NOT EXISTS place_connections
         REFERENCES board_places (board_id, place_number)
         ON DELETE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS user_types
 (
     uid       INTEGER REFERENCES users (uid) ON DELETE CASCADE,
