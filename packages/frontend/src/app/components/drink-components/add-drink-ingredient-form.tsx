@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getIngredients } from "@/utils/fetchers";
+import { addDrinkIngredient, getIngredients } from "@/utils/fetchers";
 import { DrinkCardNoIngredients } from "@/app/components/drink-components/drink-card";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
@@ -113,14 +113,7 @@ export default function AddDrinkIngredientForm({
       return;
     }
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/drinks/ingredients`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${localStorage.getItem("auth_token")}`,
-      },
-      body: JSON.stringify(toPost),
-    });
+    await addDrinkIngredient(toPost);
 
     onUpdateAction?.();
     setOpen(false);

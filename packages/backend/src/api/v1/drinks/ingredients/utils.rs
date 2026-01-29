@@ -26,8 +26,7 @@ pub async fn drinks_ingredients_get(
             eprintln!("{}", e);
             Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             ))
         }
     }
@@ -41,7 +40,7 @@ pub async fn drink_ingredients_post(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "Database operations encountered an error!".parse().unwrap(),
+                "Database operations encountered an error!".to_string(),
             ))
         }
         _ => Ok(Json(drink_ingredients)),
@@ -80,9 +79,7 @@ pub async fn drink_ingredients_get(
         Err(e) => {
             eprintln!("{}", e);
             return Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                "The server encountered an unexpected error!".to_string(),
             ));
         }
     };
@@ -97,8 +94,7 @@ pub async fn drink_ingredients_get(
         None => {
             return Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             ))
         }
     }
@@ -124,9 +120,7 @@ pub async fn drink_ingredients_get(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }

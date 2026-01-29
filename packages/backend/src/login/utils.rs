@@ -24,11 +24,11 @@ pub async fn start_session(
     match post_login_db(login, &client).await {
         Ok((user, session_hash)) => {
             if user.uid == UserId(-404) && session_hash != "" {
-                Err(AppError::Unauthorized("Unauthorized".parse().unwrap()))
+                Err(AppError::Unauthorized("Unauthorized".to_string()))
             } else {
                 match check_session(session_hash.as_str(), &client).await {
                     Ok(session) => Ok(Json(UserSessionInfo { user, session })),
-                    Err(_) => Err(AppError::Unauthorized("Unauthorized".parse().unwrap())),
+                    Err(_) => Err(AppError::Unauthorized("Unauthorized".to_string())),
                 }
             }
         }
@@ -36,8 +36,7 @@ pub async fn start_session(
             eprintln!("{}", e);
             Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             ))
         }
     }
@@ -50,7 +49,7 @@ pub async fn verify_session(
     let auth_hash = get_auth(&headers).await;
     if auth_hash == "" {
         return Err(AppError::Unauthorized(
-            "There is no authorization header".parse().unwrap(),
+            "There is no authorization header".to_string(),
         ));
     }
 
@@ -60,8 +59,7 @@ pub async fn verify_session(
             eprintln!("{}", e);
             Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             ))
         }
     }
@@ -71,7 +69,7 @@ pub async fn end_session(state: State<AppState>, headers: HeaderMap) -> Result<J
     let auth_hash = get_auth(&headers).await;
     if auth_hash == "" {
         return Err(AppError::Unauthorized(
-            "There is no authorization header".parse().unwrap(),
+            "There is no authorization header".to_string(),
         ));
     };
 
@@ -79,8 +77,7 @@ pub async fn end_session(state: State<AppState>, headers: HeaderMap) -> Result<J
         Ok(_) => Ok(Json(())),
         Err(_) => Err(AppError::Database(
             "The server encountered an unexpected error!"
-                .parse()
-                .unwrap(),
+                .to_string(),
         )),
     }
 }
@@ -92,7 +89,7 @@ pub async fn end_all_sessions(
     let auth_hash = get_auth(&headers).await;
     if auth_hash == "" {
         return Err(AppError::Unauthorized(
-            "There is no authorization header".parse().unwrap(),
+            "There is no authorization header".to_string(),
         ));
     };
     match check_session(auth_hash.as_str(), &client).await {
@@ -100,14 +97,12 @@ pub async fn end_all_sessions(
             Ok(_) => Ok(Json(())),
             Err(_) => Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             )),
         },
         Err(_) => Err(AppError::Database(
             "The server encountered an unexpected error!"
-                .parse()
-                .unwrap(),
+                .to_string(),
         )),
     }
 }
@@ -117,8 +112,7 @@ pub async fn exist_users(state: State<AppState>) -> Result<Json<bool>, AppError>
         Ok(bool) => Ok(Json(bool)),
         Err(_) => Err(AppError::Database(
             "The server encountered an unexpected error!"
-                .parse()
-                .unwrap(),
+                .to_string(),
         )),
     }
 }
@@ -138,8 +132,7 @@ pub async fn create_user(
             info!("Users exist check failed");
             return Err(AppError::Database(
                 "The server encountered an unexpected error!"
-                    .parse()
-                    .unwrap(),
+                    .to_string(),
             ));
         }
     };
@@ -172,8 +165,7 @@ pub async fn create_user(
                 tracing::info!("User create failed!");
                 Err(AppError::Database(
                     "The server encountered an unexpected error!"
-                        .parse()
-                        .unwrap(),
+                        .to_string(),
                 ))
             }
         }
@@ -193,8 +185,7 @@ pub async fn create_user(
                 tracing::info!("check_session failed");
                 return Err(AppError::Database(
                     "The server encountered an unexpected error!"
-                        .parse()
-                        .unwrap(),
+                        .to_string(),
                 ));
             }
         };
@@ -220,15 +211,14 @@ pub async fn create_user(
                 tracing::info!("User create db_failed");
                 Err(AppError::Database(
                     "The server encountered an unexpected error!"
-                        .parse()
-                        .unwrap(),
+                        .to_string(),
                 ))
             }
         };
     } else {
         tracing::info!("Final branch");
         return Err(AppError::Unauthorized(
-            "You are not authorized to perform this!".parse().unwrap(),
+            "You are not authorized to perform this!".to_string(),
         ));
     }
 }

@@ -1,4 +1,5 @@
 use crate::database::boards::{add_place, get_board_places, get_places, update_coordinates};
+use crate::utils::errors::wrap_db_error;
 use crate::utils::ids::BoardId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{BoardPlace, BoardPlaces, Place, Places};
@@ -11,43 +12,33 @@ pub async fn board_places_get(
     state: State<AppState>,
 ) -> Result<AxumJson<BoardPlaces>, AppError> {
     let client: Client = state.db.get().await?;
-    match get_board_places(&client, board_id).await {
-        Ok(places) => Ok(AxumJson(places)),
-        Err(_) => Err(AppError::Database("Error getting places!".to_string())),
-    }
+    wrap_db_error(
+        get_board_places(&client, board_id).await,
+        "Error getting board places!",
+    )
 }
+
 pub async fn places_post(
     state: State<AppState>,
     AxumJson(place): AxumJson<Place>,
-) -> Result<AxumJson<Place>, AppError> {
+) -> Result<AxumJson<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    match add_place(&client, place.clone()).await {
-        Err(e) => {
-            eprintln!("{}", e);
-            Err(AppError::Database(
-                "Database operations encountered an error!".parse().unwrap(),
-            ))
-        }
-        _ => Ok(AxumJson(place)),
-    }
+    wrap_db_error(add_place(&client, place).await, "Error posting place!")
 }
+
 pub async fn places_get(state: State<AppState>) -> Result<AxumJson<Places>, AppError> {
     let client: Client = state.db.get().await?;
-    match get_places(&client).await {
-        Ok(places) => Ok(AxumJson(places)),
-        Err(_) => Err(AppError::Database("Error getting places!".to_string())),
-    }
+    wrap_db_error(get_places(&client).await, "Error getting places!")
 }
+
 pub async fn coordinate_patch(
     Path(board_id): Path<BoardId>,
     state: State<AppState>,
     AxumJson(place): AxumJson<BoardPlace>,
 ) -> Result<AxumJson<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    match update_coordinates(&client, board_id, &place).await {
-        Ok(x) => Ok(AxumJson(x)),
-        Err(_) => Err(AppError::Database(
-            "Database operations encountered an error!".to_string(),
-        )),
-    }
+    wrap_db_error(
+        update_coordinates(&client, board_id, &place).await,
+        "Error updating coordinates!",
+    )
 }

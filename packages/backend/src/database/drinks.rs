@@ -34,18 +34,18 @@ pub async fn get_ingredient(client: &Client, id: IngredientId) -> Result<Ingredi
     let query_str = "\
     SELECT ingredient_id, name, abv, carbonated FROM ingredients WHERE ingredient_id = $1";
 
-    match client.query(query_str, &[&id]).await {
-        Ok(r) if r.is_empty() => Ok(Ingredient {
+    match client.query_opt(query_str, &[&id]).await {
+        Ok(None) => Ok(Ingredient {
             id: IngredientId(-1),
-            name: "NONE".parse().unwrap(),
+            name: "NONE".to_string(),
             abv: -1.0,
             carbonated: false,
         }),
-        Ok(r) => Ok(Ingredient {
-            id: r.first().unwrap().get(0),
-            name: r.first().unwrap().get(1),
-            abv: r.first().unwrap().get(2),
-            carbonated: r.first().unwrap().get(3),
+        Ok(Some(r)) => Ok(Ingredient {
+            id: r.get("ingredient_id"),
+            name: r.get("name"),
+            abv: r.get("abv"),
+            carbonated: r.get("carbonated"),
         }),
         Err(e) => Err(e),
     }

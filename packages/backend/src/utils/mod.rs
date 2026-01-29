@@ -1,4 +1,5 @@
 use crate::utils::types::{DrinkIngredients, DrinksIngredients};
+pub mod errors;
 pub mod ids;
 pub mod socket;
 pub mod state;
