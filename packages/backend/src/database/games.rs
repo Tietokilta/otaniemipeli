@@ -287,8 +287,6 @@ pub async fn get_team_turns_with_board(
         let turn_id: i32 = row.get(0);
 
         if !turns_by_id.contains_key(&turn_id) {
-            let end_time = row.try_get::<usize, DateTime<Utc>>(7).ok();
-
             turns_by_id.insert(
                 turn_id,
                 Turn {
@@ -298,8 +296,8 @@ pub async fn get_team_turns_with_board(
                     game_id: row.get(3),
                     dice1: row.get(4),
                     dice2: row.get(5),
-                    end_time,
-                    location: row.get(8),
+                    end_time: row.get(6),
+                    location: row.get(7),
                     drinks: get_turn_drinks(client, turn_id).await.unwrap_or_else(|e| {
                         tracing::error!("Error getting turn drinks for turn_id {}: {}", turn_id, e);
                         TurnDrinks { drinks: Vec::new() }

@@ -79,11 +79,11 @@ fn build_turn(row: Row) -> Turn {
         turn_id: row.get(0),
         start_time: row.get(1),
         end_time: row.get(2),
-        team_id: row.get(4),
-        game_id: row.get(5),
-        dice1: row.get(6),
-        dice2: row.get(7),
-        location: row.get(8),
+        team_id: row.get(3),
+        game_id: row.get(4),
+        dice1: row.get(5),
+        dice2: row.get(6),
+        location: row.get(7),
         drinks: TurnDrinks { drinks: vec![] },
     }
 }
