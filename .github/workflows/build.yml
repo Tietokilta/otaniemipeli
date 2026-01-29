@@ -29,16 +29,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm -C packages/frontend lint
+        run: pnpm lint
 
       - name: Typecheck
-        run: pnpm -C packages/frontend types:check
+        run: pnpm types:frontend:check
 
       - name: Format check
         run: pnpm format:check
 
       - name: Build frontend
-        run: pnpm -C packages/frontend build
+        run: pnpm build:frontend
 
   backend:
     name: Backend build (Rust)
