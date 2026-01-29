@@ -3,7 +3,7 @@
 
 Referee simulator:
 - logs in via HTTP to get token
-- connects to Socket.IO namespace "/websocket"
+- connects to Socket.IO namespace "/referee"
 - creates a new game
 - creates 4 teams with arbitrary names
 - starts the game
@@ -33,10 +33,12 @@ import requests as rq
 import socketio
 
 
-REF_NS = "/websocket"
+REF_NS = "/referee"
 # Global lock to prevent race conditions when multiple threads interact with the same game state.
 # This ensures that only one thread can modify a turn at a time.
 TURN_LOCK = Lock()
+# Semaphore to limit concurrent connections to the server
+CONNECTION_SEMAPHORE: Optional[threading.Semaphore] = None
 
 
 @dataclass
@@ -91,13 +93,33 @@ def login_token(base_url: str, auth_json_path: str) -> str:
     return token
 
 
-def wait_or_raise(waiter: WaitAny, timeout: float, *, context: str) -> WaitResult:
+def wait_or_raise(waiter: WaitAny, timeout: float, *, context: str, retries: int = 0) -> WaitResult:
     res = waiter.wait(timeout)
     if res is None:
         raise TimeoutError(f"timeout waiting for server response ({context})")
     if res.name == "response-error":
         raise RuntimeError(f"server response-error ({context}): {res.payload!r}")
     return res
+
+
+def retry_operation(
+    func,
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    context: str = "operation",
+):
+    """Retry an operation with exponential backoff."""
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except (TimeoutError, RuntimeError) as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                print(f"  Retry {attempt + 1}/{max_retries} for {context} after {delay:.1f}s: {e}")
+                time.sleep(delay)
+    raise last_error
 
 
 def get_all_teams(reply_game_payload: Any) -> list[dict]:
@@ -174,7 +196,8 @@ def create_game(sio: socketio.Client, waiter: WaitAny, timeout: float, *, name: 
     # create-game first emits "response" (game) and then "reply-games". We only need the id.
     res = wait_or_raise(waiter, timeout, context="create-game")
 
-    game = res.payload
+    game = res.payload["games"][0]
+    print(game)
     if not isinstance(game, dict) or "id" not in game:
         raise RuntimeError(f"create-game response missing game id: {game!r}")
     return int(game["id"])
@@ -248,6 +271,8 @@ def main() -> int:
     ap.add_argument("--teams", type=int, default=8, help="how many teams to create")
     ap.add_argument("--game-name", default=None, help="optional explicit game name")
     ap.add_argument("--threads", type=int, default=1, help="number of simulations to run in parallel")
+    ap.add_argument("--max-concurrent", type=int, default=20, help="max concurrent active simulations (limits server load)")
+    ap.add_argument("--retries", type=int, default=3, help="number of retries for transient failures")
     ap.add_argument(
         "--finish",
         action="store_true",
@@ -267,13 +292,18 @@ def main() -> int:
         return play_all_unfinished_games(args)
 
     if args.threads > 1:
+        # Initialize the semaphore to limit concurrent connections
+        global CONNECTION_SEMAPHORE
+        CONNECTION_SEMAPHORE = threading.Semaphore(args.max_concurrent)
+
         threads = []
         for i in range(args.threads):
             print(f"Starting simulation thread {i+1}/{args.threads}")
             thread = threading.Thread(target=run_simulation, args=(args,))
             threads.append(thread)
             thread.start()
-            time.sleep(0.5)  # Stagger start times slightly
+            # Stagger start times more aggressively based on load
+            time.sleep(0.5 + random.uniform(0, 0.5))
 
         for thread in threads:
             thread.join()
@@ -284,11 +314,27 @@ def main() -> int:
 
 
 def run_simulation(args: argparse.Namespace) -> int:
+    # Acquire semaphore if running in multi-threaded mode
+    if CONNECTION_SEMAPHORE is not None:
+        CONNECTION_SEMAPHORE.acquire()
+
+    try:
+        return _run_simulation_inner(args)
+    finally:
+        if CONNECTION_SEMAPHORE is not None:
+            CONNECTION_SEMAPHORE.release()
+
+
+def _run_simulation_inner(args: argparse.Namespace) -> int:
     if args.seed is not None:
         # Make each thread have a different seed
         random.seed(args.seed + threading.get_ident())
 
-    token = login_token(args.base_url, args.auth_json)
+    token = retry_operation(
+        lambda: login_token(args.base_url, args.auth_json),
+        max_retries=args.retries,
+        context="login"
+    )
 
     sio = socketio.Client(
         logger=args.verbose,
@@ -299,7 +345,7 @@ def run_simulation(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /websocket")
+        print("connected to /referee")
 
     @sio.event(namespace=REF_NS)
     def disconnect():
@@ -332,16 +378,29 @@ def run_simulation(args: argparse.Namespace) -> int:
 
     game_name = args.game_name or f"sim-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{threading.get_ident()}"
     print(f"Creating game name={game_name!r} board={args.board}")
-    game_id = create_game(sio, waiter, args.timeout, name=game_name, board=args.board)
+
+    game_id = retry_operation(
+        lambda: create_game(sio, waiter, args.timeout, name=game_name, board=args.board),
+        max_retries=args.retries,
+        context="create-game"
+    )
     print(f"Created game_id={game_id}")
 
     for i in range(args.teams):
         team_name = f"Team {i+1}"
         print(f"Creating team {team_name!r}")
-        create_team(sio, waiter, args.timeout, game_id=game_id, team_name=team_name)
+        retry_operation(
+            lambda tn=team_name: create_team(sio, waiter, args.timeout, game_id=game_id, team_name=tn),
+            max_retries=args.retries,
+            context=f"create-team ({team_name})"
+        )
 
     print("Starting game")
-    start_game(sio, waiter, args.timeout, game_id=game_id)
+    retry_operation(
+        lambda: start_game(sio, waiter, args.timeout, game_id=game_id),
+        max_retries=args.retries,
+        context="start-game"
+    )
 
     fixed_dice: Optional[Tuple[int, int]] = None
     if args.fixed_dice:
@@ -411,7 +470,7 @@ def play_all_unfinished_games(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /websocket to fetch games")
+        print("connected to /referee to fetch games")
 
     @sio.on("reply-games", namespace=REF_NS)
     def on_reply_games(data):
@@ -473,7 +532,7 @@ def start_all_unstarted_games(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print("connected to /websocket to fetch games")
+        print("connected to /referee to fetch games")
 
     @sio.on("reply-games", namespace=REF_NS)
     def on_reply_games(data):
@@ -539,7 +598,7 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /websocket")
+        print(f"[{args.game_id}] connected to /referee")
 
     @sio.event(namespace=REF_NS)
     def disconnect():
@@ -617,7 +676,7 @@ def start_existing_game(args: argparse.Namespace) -> int:
 
     @sio.event(namespace=REF_NS)
     def connect():
-        print(f"[{args.game_id}] connected to /websocket to start game")
+        print(f"[{args.game_id}] connected to /referee to start game")
 
     @sio.event(namespace=REF_NS)
     def disconnect():
@@ -643,8 +702,8 @@ def start_existing_game(args: argparse.Namespace) -> int:
     )
     time.sleep(args.delay)
 
+    game_id = args.game_id
     try:
-        game_id = args.game_id
         for i in range(args.teams):
             team_name = f"Team {i+1}"
             print(f"[{game_id}] Creating team {team_name!r}")
