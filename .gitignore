@@ -5,3 +5,4 @@ __pycache__/
 node_modules
 dist/
 /scripts/auth.json
+.vscode/settings.json
