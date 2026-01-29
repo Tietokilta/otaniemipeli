@@ -1,3 +1,4 @@
+use crate::utils::ids::{GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::{EndTurn, PgError, PostStartTurn, Turn, TurnDrinks, Turns};
 use deadpool_postgres::Client;
@@ -35,7 +36,7 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
 }
 
 /// Marks all active turns in a game as ended
-pub async fn end_game_turns(client: &Client, game_id: i32) -> Result<Vec<Turn>, PgError> {
+pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn>, PgError> {
     let rows = client
         .query(
             "UPDATE turns
@@ -69,7 +70,7 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Pg
 }
 
 /// Retrieves all turns taken by a team
-pub async fn get_turns_for_team(client: &Client, team_id: i32) -> Result<Turns, PgError> {
+pub async fn get_turns_for_team(client: &Client, team_id: TeamId) -> Result<Turns, PgError> {
     let rows = client
         .query(
             "SELECT * FROM turns WHERE team_id = $1 ORDER BY start_time ASC",
@@ -107,7 +108,7 @@ pub fn build_turn(row: Row) -> Turn {
 pub async fn add_visited_place(
     client: &Client,
     place_number: i32,
-    turn_id: i32,
+    turn_id: TurnId,
 ) -> Result<u64, PgError> {
     client
         .execute(

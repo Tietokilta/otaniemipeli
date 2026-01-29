@@ -1,4 +1,5 @@
 use crate::database::boards::{add_place, get_board_places, get_places, update_coordinates};
+use crate::utils::ids::BoardId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{BoardPlace, BoardPlaces, Place, Places};
 use axum::extract::{Path, State};
@@ -6,7 +7,7 @@ use axum::Json as AxumJson;
 use deadpool_postgres::Client;
 
 pub async fn board_places_get(
-    Path(board_id): Path<i32>,
+    Path(board_id): Path<BoardId>,
     state: State<AppState>,
 ) -> Result<AxumJson<BoardPlaces>, AppError> {
     let client: Client = state.db.get().await?;
@@ -38,7 +39,7 @@ pub async fn places_get(state: State<AppState>) -> Result<AxumJson<Places>, AppE
     }
 }
 pub async fn coordinate_patch(
-    Path(board_id): Path<i32>,
+    Path(board_id): Path<BoardId>,
     state: State<AppState>,
     AxumJson(place): AxumJson<BoardPlace>,
 ) -> Result<AxumJson<u64>, AppError> {

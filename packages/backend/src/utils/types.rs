@@ -1,4 +1,5 @@
 use crate::database::games::place_visited;
+use crate::utils::ids::{BoardId, DrinkId, GameId, IngredientId, PlaceId, TeamId, TurnId, UserId};
 use crate::utils::state::AppError;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Client;
@@ -67,7 +68,7 @@ pub struct LoginInfo {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct UserInfo {
-    pub uid: i32,
+    pub uid: UserId,
     pub username: String,
     pub email: String,
     pub user_types: UsersTypes,
@@ -81,7 +82,7 @@ pub struct UserCreateInfo {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct SessionInfo {
-    pub uid: i32,
+    pub uid: UserId,
     pub session_hash: String,
     pub user_types: UsersTypes,
 }
@@ -106,11 +107,10 @@ impl UsersTypes {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Team {
-    pub team_id: i32,
-    pub game_id: i32,
+    pub team_id: TeamId,
+    pub game_id: GameId,
     pub team_name: String,
     pub team_hash: String,
-    pub current_place_id: i32,
     pub double: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -120,7 +120,7 @@ pub struct Teams {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TurnDrink {
     pub drink: Drink,
-    pub turn_id: i32,
+    pub turn_id: TurnId,
     pub n: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -130,11 +130,11 @@ pub struct TurnDrinks {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PostTurnDrinks {
     pub turn_drinks: TurnDrinks,
-    pub game_id: i32,
+    pub game_id: GameId,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FirstTurnPost {
-    pub game_id: i32,
+    pub game_id: GameId,
     pub drinks: Vec<TurnDrink>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -150,9 +150,9 @@ pub struct GameTeam {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Turn {
-    pub turn_id: i32,
-    pub team_id: i32,
-    pub game_id: i32,
+    pub turn_id: TurnId,
+    pub team_id: TeamId,
+    pub game_id: GameId,
     /// when dice were thrown OR "give penalty" clicked (including game start penalty)
     pub start_time: DateTime<Utc>,
     /// when dice throw and square results were confirmed by referee, or penalty confirmed
@@ -169,7 +169,7 @@ pub struct Turn {
     pub dice1: i32,
     /// dice number 2 (if thrown)
     pub dice2: i32,
-    /// where the player ended up (if dice thrown)
+    /// where the player ended up (if dice thrown) - this is place_number, not PlaceId
     pub location: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)
     pub penalty: bool,
@@ -181,27 +181,27 @@ pub struct Turns {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PostStartTurn {
-    pub team_id: i32,
-    pub game_id: i32,
+    pub team_id: TeamId,
+    pub game_id: GameId,
     pub dice1: i32,
     pub dice2: i32,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct EndTurn {
-    pub team_id: i32,
-    pub game_id: i32,
+    pub team_id: TeamId,
+    pub game_id: GameId,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlaceThrow {
     pub place: BoardPlace,
     pub throw: (i8, i8),
-    pub team_id: i32,
+    pub team_id: TeamId,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Game {
-    pub id: i32,
+    pub id: GameId,
     pub name: String,
-    pub board_id: i32,
+    pub board_id: BoardId,
     pub started: bool,
     pub finished: bool,
     pub start_time: DateTime<Utc>,
@@ -209,7 +209,7 @@ pub struct Game {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PostGame {
     pub name: String,
-    pub board: i32,
+    pub board: BoardId,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -218,7 +218,7 @@ pub struct Games {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Board {
-    pub id: i32,
+    pub id: BoardId,
     pub name: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -237,7 +237,7 @@ impl BoardPlaces {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Place {
-    pub place_id: i32,
+    pub place_id: PlaceId,
     pub place_name: String,
     pub rule: String,
     pub place_type: PlaceType,
@@ -248,9 +248,9 @@ pub struct Places {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct BoardPlace {
-    pub board_id: i32,
+    pub board_id: BoardId,
     pub place: Place,
-    pub place_number: i32,
+    pub place_number: i32, // This is the position on the board, not a PlaceId
     pub start: bool,
     pub area: String,
     pub end: bool,
@@ -267,8 +267,8 @@ impl PlaceDrinks {
     pub async fn to_turn_drinks(
         &self,
         client: &Client,
-        turn_id: i32,
-        game_id: i32,
+        turn_id: TurnId,
+        game_id: GameId,
         double: bool,
     ) -> Result<TurnDrinks, AppError> {
         let mut result = Vec::new();
@@ -292,8 +292,8 @@ impl PlaceDrinks {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlaceDrink {
-    pub place_number: i32,
-    pub board_id: i32,
+    pub place_number: i32, // Position on board, not PlaceId
+    pub board_id: BoardId,
     pub drink: Drink,
     pub refill: bool,
     pub optional: bool,
@@ -301,7 +301,7 @@ pub struct PlaceDrink {
     pub n_update: String,
 }
 impl PlaceDrink {
-    pub fn to_turn_drink(&self, turn_id: i32, double: bool) -> TurnDrink {
+    pub fn to_turn_drink(&self, turn_id: TurnId, double: bool) -> TurnDrink {
         TurnDrink {
             drink: self.drink.clone(),
             turn_id,
@@ -311,9 +311,9 @@ impl PlaceDrink {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Connection {
-    pub board_id: i32,
-    pub origin: i32,
-    pub target: i32,
+    pub board_id: BoardId,
+    pub origin: i32, // place_number, not PlaceId
+    pub target: i32, // place_number, not PlaceId
     pub on_land: bool,
     pub backwards: bool,
     pub dashed: bool,
@@ -324,7 +324,7 @@ pub struct Connections {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Ingredient {
-    pub id: i32,
+    pub id: IngredientId,
     pub name: String,
     pub abv: f64,
     pub carbonated: bool,
@@ -335,7 +335,7 @@ pub struct Ingredients {
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Drink {
-    pub id: i32,
+    pub id: DrinkId,
     pub name: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -370,5 +370,5 @@ pub struct Drinks {
 
 #[derive(Deserialize, Debug)]
 pub struct IngredientIdQuery {
-    pub ingredient_id: i32,
+    pub ingredient_id: IngredientId,
 }

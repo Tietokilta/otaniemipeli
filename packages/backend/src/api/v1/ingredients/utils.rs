@@ -1,4 +1,5 @@
 use crate::database::drinks::*;
+use crate::utils::ids::IngredientId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{Ingredient, Ingredients};
 use axum::extract::{Path, State};
@@ -35,7 +36,7 @@ pub async fn ingredients_post(
     }
 }
 pub async fn ingredient_delete(
-    Path(id): Path<i32>,
+    Path(id): Path<IngredientId>,
     state: State<AppState>,
 ) -> Result<Json<Ingredient>, AppError> {
     let client: Client = state.db.get().await?;

@@ -1,6 +1,7 @@
 use crate::database::boards::{get_board_place, get_first_place};
 use crate::database::team::get_teams;
 use crate::database::turns::{add_visited_place, build_turn, end_game_turns};
+use crate::utils::ids::{BoardId, GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::*;
 use chrono::{DateTime, Utc};
@@ -16,7 +17,7 @@ pub async fn get_games(client: &Client) -> Result<Games, PgError> {
 }
 
 /// Retrieves a game by its ID
-pub async fn get_game_by_id(client: &Client, game_id: i32) -> Result<Game, PgError> {
+pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, PgError> {
     let row_opt = client
         .query_opt("SELECT * FROM games WHERE games.game_id = $1", &[&game_id])
         .await?;
@@ -61,7 +62,7 @@ pub async fn make_first_turns(client: &Client, first_turn: &FirstTurnPost) -> Re
     let (drink_ids, counts): (Vec<i32>, Vec<i32>) = first_turn
         .drinks
         .iter()
-        .map(|td| (td.drink.id, td.n))
+        .map(|td| (td.drink.id.0, td.n))
         .unzip();
 
     client
@@ -101,7 +102,7 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
     Ok(build_game_from_row(&row))
 }
 
-pub async fn end_game(client: &Client, game_id: i32) -> Result<Game, PgError> {
+pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError> {
     let row = client
         .query_one(
             "UPDATE games
@@ -128,9 +129,9 @@ fn build_game_from_row(row: &Row) -> Game {
 
 fn default_game() -> Game {
     Game {
-        id: -100,
+        id: GameId(-100),
         name: "unknown".to_string(),
-        board_id: -404,
+        board_id: BoardId(-404),
         started: false,
         finished: false,
         start_time: DateTime::parse_from_rfc3339("1986-02-13T14:00:00Z")
@@ -139,7 +140,7 @@ fn default_game() -> Game {
     }
 }
 
-pub async fn get_team_data(client: &Client, game_id: i32) -> Result<GameData, PgError> {
+pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData, PgError> {
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
 
@@ -165,7 +166,7 @@ pub async fn get_team_data(client: &Client, game_id: i32) -> Result<GameData, Pg
 
 pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
     let rows = client.query("SELECT game_id FROM games", &[]).await?;
-    let game_ids: Vec<i32> = rows.iter().map(|row| row.get(0)).collect();
+    let game_ids: Vec<GameId> = rows.iter().map(|row| row.get(0)).collect();
 
     let game_datas = join_all(
         game_ids
@@ -187,9 +188,9 @@ pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
 /// Retrieves the current place of a team on the game board
 pub async fn get_team_board_place(
     client: &Client,
-    game_id: i32,
-    board_id: i32,
-    team_id: i32,
+    game_id: GameId,
+    board_id: BoardId,
+    team_id: TeamId,
 ) -> Result<BoardPlace, AppError> {
     let row = client
         .query_opt(
@@ -222,8 +223,8 @@ pub async fn get_team_board_place(
 /// Retrieves all turns taken by a team in a specific game, including associated drinks
 pub async fn get_team_turns_with_drinks(
     client: &Client,
-    team_id: i32,
-    game_id: i32,
+    team_id: TeamId,
+    game_id: GameId,
 ) -> Result<Vec<Turn>, AppError> {
     let rows = client
         .query(
@@ -260,7 +261,7 @@ pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
 }
 
 /// Retrieves drinks associated with a turn
-pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks, PgError> {
+pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDrinks, PgError> {
     let rows = client
         .query(
             "SELECT td.drink_id, d.name, td.n
@@ -291,7 +292,7 @@ pub async fn get_turn_drinks(client: &Client, turn_id: i32) -> Result<TurnDrinks
 /// Checks if a place has already been visited in a game
 pub async fn place_visited(
     client: &Client,
-    game_id: i32,
+    game_id: GameId,
     place_number: i32,
 ) -> Result<bool, AppError> {
     let query_str = "\

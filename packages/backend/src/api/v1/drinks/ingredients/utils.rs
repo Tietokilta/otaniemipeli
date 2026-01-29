@@ -1,4 +1,5 @@
 use crate::database::drinks::*;
+use crate::utils::ids::{DrinkId, IngredientId};
 use crate::utils::round;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
@@ -47,11 +48,11 @@ pub async fn drink_ingredients_post(
     }
 }
 pub async fn drink_ingredient_delete(
-    Path(drink_id): Path<i32>,
+    Path(drink_id): Path<DrinkId>,
     state: State<AppState>,
     query: Query<IngredientIdQuery>,
 ) -> Result<Json<Ingredient>, AppError> {
-    let ingredient_id: i32 = query.ingredient_id;
+    let ingredient_id: IngredientId = query.ingredient_id;
     let client: Client = state.db.get().await?;
     match delete_ingredient_from_drink(&client, drink_id, ingredient_id).await {
         Ok(_) => Ok(Json(match get_ingredient(&client, ingredient_id).await {
@@ -70,7 +71,7 @@ pub async fn drink_ingredient_delete(
     }
 }
 pub async fn drink_ingredients_get(
-    Path(drink_id): Path<i32>,
+    Path(drink_id): Path<DrinkId>,
     state: State<AppState>,
 ) -> Result<Response, AppError> {
     let client: Client = state.db.get().await?;

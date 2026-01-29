@@ -1,3 +1,4 @@
+use crate::utils::ids::{DrinkId, IngredientId};
 use crate::utils::types::DrinkIngredientsPost;
 use crate::utils::{
     round,
@@ -29,13 +30,13 @@ pub async fn get_ingredients(client: &Client) -> Result<Ingredients, PgError> {
     }
     Ok(Ingredients { ingredients })
 }
-pub async fn get_ingredient(client: &Client, id: i32) -> Result<Ingredient, PgError> {
+pub async fn get_ingredient(client: &Client, id: IngredientId) -> Result<Ingredient, PgError> {
     let query_str = "\
     SELECT ingredient_id, name, abv, carbonated FROM ingredients WHERE ingredient_id = $1";
 
     match client.query(query_str, &[&id]).await {
         Ok(r) if r.is_empty() => Ok(Ingredient {
-            id: -1,
+            id: IngredientId(-1),
             name: "NONE".parse().unwrap(),
             abv: -1.0,
             carbonated: false,
@@ -60,13 +61,13 @@ pub async fn post_ingredient(client: &Client, ingredient: Ingredient) -> Result<
         )
         .await
 }
-pub async fn delete_ingredient(client: &Client, ingredient_id: i32) -> Result<u64, PgError> {
+pub async fn delete_ingredient(client: &Client, ingredient_id: IngredientId) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM ingredients WHERE ingredient_id = $1";
 
     client.execute(query_str, &[&ingredient_id]).await
 }
-pub async fn delete_drink(client: &Client, drink_id: i32) -> Result<u64, PgError> {
+pub async fn delete_drink(client: &Client, drink_id: DrinkId) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM drinks WHERE drink_id = $1";
     client.execute(query_str, &[&drink_id]).await
@@ -100,8 +101,8 @@ pub async fn get_drinks(client: &Client) -> Result<Drinks, PgError> {
 }
 pub async fn add_ingredient(
     client: &Client,
-    drink_id: i32,
-    ingredient_id: i32,
+    drink_id: DrinkId,
+    ingredient_id: IngredientId,
     quantity: f64,
 ) -> Result<u64, PgError> {
     let query_str = "\
@@ -115,7 +116,7 @@ pub async fn add_ingredients(
     client: &Client,
     drink_ingredient: DrinkIngredientsPost,
 ) -> Result<u64, PgError> {
-    let drink_id: i32 = drink_ingredient.drink.id;
+    let drink_id: DrinkId = drink_ingredient.drink.id;
     let mut rows = 0;
     for ingredient in &drink_ingredient.ingredients {
         match add_ingredient(
@@ -210,8 +211,8 @@ pub async fn get_drinks_ingredients(client: &Client) -> Result<DrinksIngredients
 }
 pub async fn delete_ingredient_from_drink(
     client: &Client,
-    drink_id: i32,
-    ingredient_id: i32,
+    drink_id: DrinkId,
+    ingredient_id: IngredientId,
 ) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM drink_ingredients WHERE drink_id = $1 AND ingredient_id = $2";

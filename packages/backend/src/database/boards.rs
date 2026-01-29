@@ -1,3 +1,4 @@
+use crate::utils::ids::BoardId;
 use crate::utils::state::AppError;
 use crate::utils::types::*;
 use deadpool_postgres::Client;
@@ -45,13 +46,13 @@ pub async fn get_places(client: &Client) -> Result<Places, PgError> {
     }
     Ok(places)
 }
-pub async fn get_board(client: &Client, board_id: i32) -> Result<Board, PgError> {
+pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, PgError> {
     let query_str = "\
     SELECT board_id, name FROM boards WHERE board_id = $1";
     let query = client.query(query_str, &[&board_id]).await?;
     if query.len() == 0 {
         return Ok(Board {
-            id: -1,
+            id: BoardId(-1),
             name: "No Boards!".to_string(),
         });
     }
@@ -66,7 +67,7 @@ pub async fn post_board(client: &Client, board: Board) -> Result<u64, PgError> {
     client.execute(query_str, &[&board.name]).await
 }
 
-pub async fn get_board_places(client: &Client, board_id: i32) -> Result<BoardPlaces, PgError> {
+pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<BoardPlaces, PgError> {
     let board: Board = get_board(client, board_id).await?;
     let mut board_places: BoardPlaces = BoardPlaces {
         board,
@@ -130,7 +131,7 @@ pub async fn get_board_places(client: &Client, board_id: i32) -> Result<BoardPla
 }
 pub async fn get_board_place(
     client: &Client,
-    board_id: i32,
+    board_id: BoardId,
     place_number: i32,
 ) -> Result<BoardPlace, PgError> {
     let query_str = "\
@@ -185,7 +186,7 @@ pub async fn get_board_place(
 pub async fn get_place_drinks(
     client: &Client,
     place_number: i32,
-    board_id: i32,
+    board_id: BoardId,
 ) -> Result<PlaceDrinks, PgError> {
     let mut drinks: PlaceDrinks = PlaceDrinks { drinks: Vec::new() };
     let query_str = "\
@@ -252,7 +253,7 @@ pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
 }
 pub async fn get_board_place_connections(
     client: &Client,
-    board_id: i32,
+    board_id: BoardId,
     place_number: i32,
 ) -> Result<Vec<Connection>, PgError> {
     let mut connections: Vec<Connection> = Vec::new();
@@ -301,7 +302,7 @@ pub async fn add_place(client: &Client, place: Place) -> Result<u64, PgError> {
 }
 pub async fn add_board_place(
     client: &Client,
-    board_id: i32,
+    board_id: BoardId,
     place: BoardPlace,
 ) -> Result<u64, PgError> {
     let query_str = "\
@@ -325,7 +326,7 @@ pub async fn add_board_place(
 }
 pub async fn update_coordinates(
     client: &Client,
-    board_id: i32,
+    board_id: BoardId,
     place: &BoardPlace,
 ) -> Result<u64, PgError> {
     let query_str = "\
@@ -449,7 +450,7 @@ fn get_next_place<'a>(
     }
 }
 
-pub async fn get_first_place(client: &Client, board_id: i32) -> Result<i32, PgError> {
+pub async fn get_first_place(client: &Client, board_id: BoardId) -> Result<i32, PgError> {
     let query_str = "\
     SELECT place_number FROM board_places WHERE board_id = $1 AND start = TRUE";
     match client.query_one(query_str, &[&board_id]).await {

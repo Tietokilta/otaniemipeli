@@ -1,3 +1,4 @@
+use crate::utils::ids::UserId;
 use crate::utils::types::{
     LoginInfo, PgError, SessionInfo, UserCreateInfo, UserInfo, UserType, UsersTypes,
 };
@@ -42,7 +43,7 @@ pub async fn post_login_db(
     WHERE u.username = $1";
 
     let mut user: UserInfo = UserInfo {
-        uid: -404,
+        uid: UserId(-404),
         username: "NOT FOUND".to_string(),
         email: "NOT.FOUND@tietokilta.fi".to_string(),
         user_types: UsersTypes::new(),
@@ -86,7 +87,7 @@ pub async fn post_login_db(
     Ok((user, session_hash))
 }
 
-pub async fn create_session(uid: i32, client: &Client) -> Result<String, PgError> {
+pub async fn create_session(uid: UserId, client: &Client) -> Result<String, PgError> {
     let query_str = "\
     INSERT INTO sessions (uid, session_hash) \
     SELECT u.uid, $2 \
@@ -136,7 +137,7 @@ pub async fn check_session(session_hash: &str, client: &Client) -> Result<Sessio
         Err(e) => return Err(e),
     };
     let mut session: SessionInfo = SessionInfo {
-        uid: -404,
+        uid: UserId(-404),
         session_hash: "".to_string(),
         user_types: UsersTypes::new(),
     };
@@ -165,7 +166,7 @@ pub async fn delete_session(session_hash: &str, client: &Client) -> Result<u64, 
     DELETE FROM sessions WHERE session_hash = $1";
     client.execute(query_str, &[&session_hash]).await
 }
-pub async fn delete_all_sessions(uid: i32, client: &Client) -> Result<u64, PgError> {
+pub async fn delete_all_sessions(uid: UserId, client: &Client) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM sessions WHERE uid = $1";
     client.execute(query_str, &[&uid]).await
@@ -241,7 +242,7 @@ pub async fn user_create(
     Ok((
         user,
         SessionInfo {
-            uid: -1,
+            uid: UserId(-1),
             session_hash: "".to_string(),
             user_types: UsersTypes::new(),
         },

@@ -1,4 +1,5 @@
 use crate::database::boards::{add_board_place, get_board, get_boards, post_board};
+use crate::utils::ids::BoardId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{Board, BoardPlace, Boards};
 use axum::extract::{Path, State};
@@ -13,7 +14,7 @@ pub async fn boards_get(state: State<AppState>) -> Result<Json<Boards>, AppError
     }
 }
 pub async fn boards_get_id(
-    Path(board_id): Path<i32>,
+    Path(board_id): Path<BoardId>,
     state: State<AppState>,
 ) -> Result<Json<Board>, AppError> {
     let client: Client = state.db.get().await?;
@@ -33,7 +34,7 @@ pub async fn boards_post(
     }
 }
 pub async fn board_place_post(
-    Path(board_id): Path<i32>,
+    Path(board_id): Path<BoardId>,
     state: State<AppState>,
     Json(place): Json<BoardPlace>,
 ) -> Result<Json<u64>, AppError> {

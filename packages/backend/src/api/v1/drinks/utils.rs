@@ -1,4 +1,5 @@
 use crate::database::drinks::{delete_drink, get_drinks_ingredients, post_drink};
+use crate::utils::ids::DrinkId;
 use crate::utils::remove_ingredients;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{Drink, DrinksIngredients, ResultIntJson};
@@ -39,12 +40,12 @@ pub async fn drinks_post(
 }
 
 pub async fn drink_delete(
-    Path(drink_id): Path<i32>,
+    Path(drink_id): Path<DrinkId>,
     state: State<AppState>,
 ) -> Result<Json<ResultIntJson>, AppError> {
     let client: Client = state.db.get().await?;
     match delete_drink(&client, drink_id).await {
-        Ok(_) => Ok(Json(ResultIntJson { int: drink_id })),
+        Ok(_) => Ok(Json(ResultIntJson { int: drink_id.0 })),
         Err(_) => Err(AppError::Database(format!(
             "Drink {drink_id} not in database!"
         ))),

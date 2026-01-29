@@ -1,4 +1,5 @@
 use crate::database::login::*;
+use crate::utils::ids::UserId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
     LoginInfo, SessionInfo, UserCreateInfo, UserInfo, UserSessionInfo, UsersTypes,
@@ -22,7 +23,7 @@ pub async fn start_session(
     let client = state.db.get().await?;
     match post_login_db(login, &client).await {
         Ok((user, session_hash)) => {
-            if user.uid == -404 && session_hash != "" {
+            if user.uid == UserId(-404) && session_hash != "" {
                 Err(AppError::Unauthorized("Unauthorized".parse().unwrap()))
             } else {
                 match check_session(session_hash.as_str(), &client).await {
@@ -207,7 +208,7 @@ pub async fn create_user(
                 Ok(Json(UserSessionInfo {
                     user,
                     session: SessionInfo {
-                        uid: -1,
+                        uid: UserId(-1),
                         session_hash: "".to_string(),
                         user_types: UsersTypes {
                             user_types: Vec::new(),

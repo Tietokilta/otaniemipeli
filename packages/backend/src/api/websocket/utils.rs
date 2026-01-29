@@ -2,6 +2,7 @@ use crate::database::drinks::get_drinks_ingredients;
 use crate::database::games::{get_games, get_team_data};
 use crate::database::team::get_teams;
 use crate::database::turns::end_turn;
+use crate::utils::ids::GameId;
 use crate::utils::socket::check_auth;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{EndTurn, PgError, SocketAuth, Teams, UserType};
@@ -57,7 +58,7 @@ where
         }
     }
 }
-pub async fn emit_team_data(client: &Client, s: &SocketRef<impl Adapter>, game_id: i32) -> () {
+pub async fn emit_team_data(client: &Client, s: &SocketRef<impl Adapter>, game_id: GameId) -> () {
     match get_team_data(client, game_id).await {
         Ok(data) => {
             emit_msg(s, "reply-game", &data).await;
@@ -68,7 +69,7 @@ pub async fn emit_team_data(client: &Client, s: &SocketRef<impl Adapter>, game_i
     }
 }
 
-pub async fn emit_teams(client: &Client, s: &SocketRef<impl Adapter>, game_id: i32) {
+pub async fn emit_teams(client: &Client, s: &SocketRef<impl Adapter>, game_id: GameId) {
     match get_teams(client, game_id).await {
         Ok(teams) => {
             emit_msg(s, "reply-teams", &Teams { teams }).await;
@@ -101,7 +102,7 @@ pub async fn get_drinks_handler<A: CoreAdapter<Emitter>>(
 }
 pub async fn game_data_handler<A: CoreAdapter<Emitter>>(
     s: SocketRef<A>,
-    Data(game_id): Data<i32>,
+    Data(game_id): Data<GameId>,
     State(state): State<AppState>,
 ) {
     tracing::info!("Referee: game_data called");

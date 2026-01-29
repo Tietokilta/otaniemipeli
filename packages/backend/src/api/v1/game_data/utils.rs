@@ -1,4 +1,5 @@
 use crate::database::games::{get_team_data, get_team_datas};
+use crate::utils::ids::GameId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::GameData;
 use axum::extract::State;
@@ -7,7 +8,7 @@ use deadpool_postgres::Client;
 
 pub async fn games_get(
     state: State<AppState>,
-    Json(game_id): Json<i32>,
+    Json(game_id): Json<GameId>,
 ) -> Result<Json<GameData>, AppError> {
     let client: Client = state.db.get().await?;
     match get_team_data(&client, game_id).await {
