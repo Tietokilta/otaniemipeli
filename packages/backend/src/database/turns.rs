@@ -1,6 +1,6 @@
-use crate::utils::ids::{GameId, TeamId, TurnId};
+use crate::utils::ids::{GameId, TurnId};
 use crate::utils::state::AppError;
-use crate::utils::types::{EndTurn, PgError, PostStartTurn, Turn, TurnDrinks, Turns};
+use crate::utils::types::{EndTurn, PgError, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
@@ -67,21 +67,6 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Pg
         .map_err(PgError::from)?;
 
     Ok(build_turn(row))
-}
-
-/// Retrieves all turns taken by a team
-pub async fn get_turns_for_team(client: &Client, team_id: TeamId) -> Result<Turns, PgError> {
-    let rows = client
-        .query(
-            "SELECT * FROM turns WHERE team_id = $1 ORDER BY start_time ASC",
-            &[&team_id],
-        )
-        .await
-        .map_err(PgError::from)?;
-
-    let turns: Vec<Turn> = rows.into_iter().map(|row| build_turn(row)).collect();
-
-    Ok(Turns { turns })
 }
 
 /// Builds a Turn struct from a database row

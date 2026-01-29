@@ -181,41 +181,6 @@ pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
     Ok(game_datas)
 }
 
-/// Retrieves the current place of a team on the game board
-pub async fn get_team_board_place(
-    client: &Client,
-    game_id: GameId,
-    board_id: BoardId,
-    team_id: TeamId,
-) -> Result<BoardPlace, AppError> {
-    let row = client
-        .query_opt(
-            "SELECT turns.place_number
-             FROM turns
-             WHERE turns.team_id = $1 AND turns.place_number IS NOT NULL AND turns.game_id = $2
-             ORDER BY turns.turn_id DESC
-             LIMIT 1",
-            &[&team_id, &game_id],
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Error getting places: {}", e);
-            AppError::Database(e.to_string())
-        })?;
-
-    let Some(row) = row else {
-        tracing::error!("No places found for team_id:{}", team_id);
-        return Err(AppError::NotFound(format!(
-            "No places found for team_id:{}",
-            team_id
-        )));
-    };
-
-    get_board_place(client, board_id, row.get("place_number"))
-        .await
-        .map_err(|e| AppError::Database(e.to_string()))
-}
-
 /// Retrieves all turns taken by a team in a specific game, including associated drinks
 pub async fn get_team_turns_with_drinks(
     client: &Client,

@@ -176,10 +176,6 @@ pub struct Turn {
     pub drinks: TurnDrinks,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Turns {
-    pub turns: Vec<Turn>,
-}
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PostStartTurn {
     pub team_id: TeamId,
     pub game_id: GameId,
