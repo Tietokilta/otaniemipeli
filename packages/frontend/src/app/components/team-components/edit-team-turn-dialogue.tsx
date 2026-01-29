@@ -117,7 +117,7 @@ const AddTeamTurnForm = ({
 
     // adjust event name to your backend
     socket.emit("start-turn", postTurn);
-    socket.emit("gameData", team.team.game_id);
+    socket.emit("game-data", team.team.game_id);
     setOpen(false);
     controller(null);
   };
