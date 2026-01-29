@@ -172,7 +172,7 @@ pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
     let game_datas: Vec<GameData> = join_all(
         game_ids
             .into_iter()
-            .map(|game_id| async move { get_team_data(client, game_id).await }),
+            .map(|game_id| get_team_data(client, game_id)),
     )
     .await
     .into_iter()
