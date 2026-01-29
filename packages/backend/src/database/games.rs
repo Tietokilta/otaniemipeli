@@ -38,17 +38,21 @@ pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, PgError>
     Ok(build_game_from_row(&row))
 }
 
-pub async fn make_first_turns(client: &Client, first_turn: &FirstTurnPost) -> Result<(), PgError> {
+pub async fn make_first_turns(
+    client: &Client,
+    first_turn: &FirstTurnPost,
+    place_number: i32,
+) -> Result<(), PgError> {
     let query_str = "\
     WITH ins_turns AS (
-      INSERT INTO turns (team_id, game_id, dice1, dice2)
-      SELECT team_id, $1::int, 0, 0
+      INSERT INTO turns (team_id, game_id, place_number)
+      SELECT team_id, $1::int, $2::int
       FROM teams
       WHERE game_id = $1
-      RETURNING turn_id
+      RETURNING team_id, turn_id
     ),
     drinks(drink_id, n) AS (
-      SELECT * FROM unnest($2::int[], $3::int[])
+      SELECT * FROM unnest($3::int[], $4::int[])
     ),
     ins_drinks AS (
       INSERT INTO turn_drinks (drink_id, turn_id, n)
@@ -57,7 +61,7 @@ pub async fn make_first_turns(client: &Client, first_turn: &FirstTurnPost) -> Re
       CROSS JOIN drinks d
       RETURNING drink_id, turn_id, n
     )
-    SELECT 1 FROM ins_drinks";
+    SELECT team_id, turn_id FROM ins_turns";
 
     let (drink_ids, counts): (Vec<i32>, Vec<i32>) = first_turn
         .drinks
@@ -66,17 +70,16 @@ pub async fn make_first_turns(client: &Client, first_turn: &FirstTurnPost) -> Re
         .unzip();
 
     client
-        .execute(query_str, &[&first_turn.game_id, &drink_ids, &counts])
+        .execute(
+            query_str,
+            &[&first_turn.game_id, &place_number, &drink_ids, &counts],
+        )
         .await?;
 
     Ok(())
 }
 
 pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, PgError> {
-    // transaction so: first turns + game update are atomic
-
-    make_first_turns(client, &first_turn).await?;
-
     let row = client
         .query_one(
             "UPDATE games
@@ -87,19 +90,11 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
         )
         .await?;
     let game = build_game_from_row(&row);
-    let game_data = match get_team_data(client, game.id).await {
-        Ok(data) => data,
-        Err(e) => return Err(e),
-    };
-    for team in game_data.teams {
-        let place_number = match get_first_place(client, game.board_id).await {
-            Ok(place) => place,
-            Err(e) => return Err(e),
-        };
-        add_visited_place(client, place_number, team.turns.first().unwrap().turn_id).await?;
-    }
 
-    Ok(build_game_from_row(&row))
+    let place_number = get_first_place(client, game.board_id).await?;
+    make_first_turns(client, &first_turn, place_number).await?;
+
+    Ok(game)
 }
 
 pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError> {
@@ -168,21 +163,16 @@ pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
     let rows = client.query("SELECT game_id FROM games", &[]).await?;
     let game_ids: Vec<GameId> = rows.iter().map(|row| row.get(0)).collect();
 
-    let game_datas = join_all(
+    let game_datas: Vec<GameData> = join_all(
         game_ids
             .into_iter()
             .map(|game_id| async move { get_team_data(client, game_id).await }),
     )
-    .await;
+    .await
+    .into_iter()
+    .collect::<Result<Vec<_>, _>>()?;
 
-    let mut result = Vec::new();
-    for game_data in game_datas {
-        if let Ok(data) = game_data {
-            result.push(data);
-        }
-    }
-
-    Ok(result)
+    Ok(game_datas)
 }
 
 /// Retrieves the current place of a team on the game board
