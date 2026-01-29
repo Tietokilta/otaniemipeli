@@ -5,11 +5,9 @@ import DropdownMenu from "@/app/components/dropdown-menu";
 
 export default function GameStartDialogue({
   game,
-  setGameAction,
   className,
 }: {
   game: Game;
-  setGameAction: (updatedGame: Game) => void;
   className?: string;
 }) {
   const socket = useSocket();
@@ -85,21 +83,6 @@ export default function GameStartDialogue({
       return { drinks: next };
     });
   };
-
-  // Listen for game reply
-  useEffect(() => {
-    if (!socket) return;
-
-    const onReplyGame = (g: Game) => {
-      setGameAction(g);
-    };
-
-    socket.on("reply-game", onReplyGame);
-
-    return () => {
-      socket.off("reply-game", onReplyGame);
-    };
-  }, [socket, setGameAction]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -19,15 +19,11 @@ export default function Page({
 }) {
   const { game_id } = use(params);
   const socket = useSocket();
-  const { gameData, error, isLoading, setGameData } = useGameData(
+  const { gameData, error, isLoading } = useGameData(
     socket,
     Number(game_id),
     { pollingInterval: 1000 },
   );
-
-  const doGameUpdate = (updatedGame: Game) => {
-    setGameData((prev) => (prev ? { ...prev, game: updatedGame } : prev));
-  };
 
   if (isLoading) {
     return <GameLoadingSpinner />;
@@ -49,7 +45,6 @@ export default function Page({
         {!gameData.game.started && (
           <GameStartDialogue
             game={gameData.game}
-            setGameAction={doGameUpdate}
             className="w-full"
           />
         )}

@@ -68,9 +68,9 @@ export default function CreateGameForm({ className }: { className?: string }) {
             <p className="h-6 w-full font-bold center text-lg">
               {selectedBoard && selectedBoard.name}
             </p>
-            <div className="button w-full text-lg" onClick={handleSend}>
+            <button type="button" className="button w-full text-lg" onClick={handleSend}>
               Create Game
-            </div>
+            </button>
           </form>
         </div>
       )}
