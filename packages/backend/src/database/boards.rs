@@ -104,7 +104,7 @@ pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<Boar
         p.rule,
         p.place_type,
         bp.place_number,
-        bp.start
+        bp.start,
         bp.end,
         bp.x,
         bp.y,

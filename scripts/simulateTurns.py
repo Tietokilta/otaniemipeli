@@ -143,8 +143,15 @@ def retry_operation(
 def parse_game_data(payload: Any) -> GameData:
     """Parse a reply-game payload into a typed GameData object."""
     if not isinstance(payload, dict):
-        raise RuntimeError("reply-game payload not a dict")
+        raise RuntimeError(f"reply-game payload not a dict: {type(payload).__name__} = {payload!r}")
     return GameData.from_dict(payload)
+
+
+def parse_game(payload: Any) -> Game:
+    """Parse a reply-game payload into a typed Game object."""
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"reply-game payload not a dict: {type(payload).__name__} = {payload!r}")
+    return Game.from_dict(payload)
 
 
 def parse_games(payload: Any) -> Games:
@@ -361,7 +368,11 @@ def do_start_game(
     res = wait_or_raise(waiter, timeout, context="start-game")
     if res.name != "reply-game":
         raise RuntimeError(f"unexpected event after start-game: {res.name}")
-    return parse_game_data(res.payload)
+    # The server returns a Game, not GameData, so parse it and then fetch full game data
+    game = parse_game(res.payload)
+    print(f"  Game started: {game.name}")
+    # Fetch full game data with teams
+    return fetch_game_data(sio, waiter, timeout, game_id=game_id)
 
 
 def fetch_game_data(sio: socketio.Client, waiter: WaitAny, timeout: float, *, game_id: int) -> GameData:

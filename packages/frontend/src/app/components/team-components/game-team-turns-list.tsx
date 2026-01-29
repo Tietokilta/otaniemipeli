@@ -11,19 +11,10 @@ export default function GameTeamTurnsList({
   collect?: boolean;
   className?: string;
 }): JSX.Element {
-  const get_min_dice = (turn: Turn): number => {
-    return Math.min(turn.dice1, turn.dice2);
-  };
   return (
     <HorizontalList className={className}>
       {gameData.teams
         .sort((a, b) => {
-          if (collect) {
-            return (
-              b.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0) -
-              a.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0)
-            );
-          }
           const aLast = a.turns[a.turns.length - 1];
           const bLast = b.turns[b.turns.length - 1];
 
