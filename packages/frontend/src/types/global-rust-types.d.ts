@@ -262,7 +262,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};
