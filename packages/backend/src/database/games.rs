@@ -1,6 +1,6 @@
 use crate::database::boards::{get_board_place, get_first_place};
 use crate::database::team::get_teams;
-use crate::database::turns::{add_visited_place, build_turn, end_game_turns};
+use crate::database::turns::{build_turn, end_game_turns};
 use crate::utils::ids::{BoardId, GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::*;
@@ -146,15 +146,21 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
             .await
             .unwrap_or_default();
 
-        GameTeam {
-            team: team.clone(),
+        // Get the latest location from the turns
+        let location = match turns.iter().rev().find_map(|turn| turn.location) {
+            Some(place_number) => get_board_place(client, board_id, place_number).await.ok(),
+            None => None,
+        };
+
+        Ok(GameTeam {
+            team,
             turns,
-            location: get_team_board_place(client, game_id, board_id, team.team_id)
-                .await
-                .ok(),
-        }
+            location,
+        })
     }))
-    .await;
+    .await
+    .into_iter()
+    .collect::<Result<Vec<_>, _>>()?;
 
     Ok(GameData { game, teams })
 }
