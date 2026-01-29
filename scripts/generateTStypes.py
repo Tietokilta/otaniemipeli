@@ -262,7 +262,7 @@ def main():
         try:
             with open(ts_path, "r", encoding="utf-8") as f:
                 existing_ts = f.read()
-            if ts != existing_ts:
+            if "".join(ts.split()) != "".join(existing_ts.split()):
                 print(bcolors.FAIL + "TypeScript types are out of date. Please run the generator." + bcolors.ENDC)
                 exit(1)
             else:

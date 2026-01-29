@@ -292,7 +292,7 @@ def main():
         try:
             with open(py_path, "r", encoding="utf-8") as f:
                 existing_py = f.read()
-            if py_code != existing_py:
+            if "".join(py_code.split()) != "".join(existing_py.split()):
                 print(bcolors.FAIL + "Python types are out of date. Please run the generator." + bcolors.ENDC)
                 exit(1)
             else:

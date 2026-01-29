@@ -35,9 +35,9 @@ def get_total_drink_amount(games: list[GameData]) -> int:
     for game in games:
         for team in game.teams:
             for turn in team.turns:
-                for drink_data in turn.drinks["drinks"]:
-                    drink_info = get_drink_by_id(drink_data["drink"]["id"], drinks_response)
-                    total_drinks += drink_info["amount"] * drink_data["n"]
+                for drink_data in turn.drinks.drinks:
+                    drink_info = get_drink_by_id(drink_data.drink.id, drinks_response)
+                    total_drinks += drink_info.amount * drink_data.n
     return total_drinks
 
 if __name__ == "__main__":
