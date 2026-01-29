@@ -12,7 +12,6 @@ export default function AddTeamForm({ gameId }: { gameId: number }) {
       game_id: gameId,
       team_name: name,
       team_hash: "",
-      current_place_id: -1,
       double: false,
     };
     console.log(team);

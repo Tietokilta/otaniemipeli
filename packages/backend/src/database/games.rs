@@ -197,7 +197,7 @@ pub async fn get_team_board_place(
             "SELECT turns.place_number
              FROM turns
              WHERE turns.team_id = $1 AND turns.place_number IS NOT NULL AND turns.game_id = $2
-             ORDER BY turns.confirmed_at DESC
+             ORDER BY turns.turn_id DESC
              LIMIT 1",
             &[&team_id, &game_id],
         )

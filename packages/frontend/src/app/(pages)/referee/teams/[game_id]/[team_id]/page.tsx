@@ -33,11 +33,17 @@ export default function Page({
   useEffect(() => {
     // get board places
     if (gameData) {
-      getBoardPlaces("" + gameData?.game.board_id).then((b) => {
-        setBoard(b);
+      let cancelled = false;
+      getBoardPlaces("" + gameData.game.board_id).then((b) => {
+        if (!cancelled) {
+          setBoard(b);
+        }
       });
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [gameData]);
+  }, [gameData, gameData?.game.board_id]);
 
   if (isLoading) {
     return <GameLoadingSpinner />;

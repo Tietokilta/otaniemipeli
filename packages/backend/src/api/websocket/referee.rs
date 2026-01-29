@@ -10,7 +10,7 @@ use crate::database::games::{
 use crate::database::team::{create_team, make_team_double, make_team_normal};
 use crate::database::turns::{add_drinks_to_turn, add_visited_place, start_turn};
 use crate::utils::socket::check_auth;
-use crate::utils::state::AppState;
+use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
     EndTurn, FirstTurnPost, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team,
     UserType,
@@ -132,12 +132,25 @@ pub async fn referee_on_connect<A: Adapter>(
             let throw = (turn.dice1 as i8, turn.dice2 as i8);
 
             // find current place for that Team (avoid cloning whole game_data)
-            let current_place = game_data
+            let current_place = match game_data
                 .teams
                 .iter()
                 .find(|t| t.team.team_id == turn.team_id)
                 .and_then(|t| t.location.clone())
-                .unwrap();
+            {
+                Some(place) => place,
+                None => {
+                    emit_app_error(
+                        &s,
+                        AppError::NotFound(format!(
+                            "Team {} has no current location - cannot start turn",
+                            turn.team_id
+                        )),
+                    )
+                    .await;
+                    return;
+                }
+            };
 
             let pl = PlaceThrow {
                 place: current_place.clone(),

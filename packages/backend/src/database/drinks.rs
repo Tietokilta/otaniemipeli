@@ -61,7 +61,10 @@ pub async fn post_ingredient(client: &Client, ingredient: Ingredient) -> Result<
         )
         .await
 }
-pub async fn delete_ingredient(client: &Client, ingredient_id: IngredientId) -> Result<u64, PgError> {
+pub async fn delete_ingredient(
+    client: &Client,
+    ingredient_id: IngredientId,
+) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM ingredients WHERE ingredient_id = $1";
 
