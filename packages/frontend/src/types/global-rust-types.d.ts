@@ -111,10 +111,6 @@ declare global {
     drinks: TurnDrinks;
   }
 
-  interface Turns {
-    turns: Turn[];
-  }
-
   interface PostStartTurn {
     team_id: number;
     game_id: number;
@@ -264,6 +260,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

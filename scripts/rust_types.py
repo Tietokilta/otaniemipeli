@@ -205,13 +205,6 @@ class Turn:
 
 
 @dataclass
-class Turns:
-    turns: list['Turn'] = field(default_factory=list)
-    @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
-
-
-@dataclass
 class PostStartTurn:
     team_id: int
     game_id: int

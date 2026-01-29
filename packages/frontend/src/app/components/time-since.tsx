@@ -42,7 +42,7 @@ export function formatTurnLabel(
   if (Number.isNaN(startTs))
     return (
       <>
-        <p>"Vuoro päättyi</p> <p>(virheellinen aika)</p>
+        <p>Vuoro päättyi</p> <p>(virheellinen aika)</p>
       </>
     );
 
@@ -51,7 +51,7 @@ export function formatTurnLabel(
     if (Number.isNaN(endTs))
       return (
         <>
-          <p>"Vuoro päättyi</p> <p>(virheellinen aika)</p>
+          <p>Vuoro päättyi</p> <p>(virheellinen aika)</p>
         </>
       );
 
