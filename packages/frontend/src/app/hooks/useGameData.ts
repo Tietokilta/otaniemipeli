@@ -14,6 +14,12 @@ export interface UseGameDataOptions {
    * @default 500
    */
   retryTimeout?: number;
+  /**
+   * Polling interval in milliseconds. If set, the game data will be
+   * re-requested at this interval. Set to 0 or undefined to disable polling.
+   * @default undefined (no polling)
+   */
+  pollingInterval?: number;
 }
 
 export interface UseGameDataResult {
@@ -42,7 +48,7 @@ export function useGameData(
   gameId: number,
   options: UseGameDataOptions = {},
 ): UseGameDataResult {
-  const { maxRetries = 5, retryTimeout = 1000 } = options;
+  const { maxRetries = 5, retryTimeout = 1000, pollingInterval } = options;
 
   const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +61,7 @@ export function useGameData(
     }
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let pollingId: ReturnType<typeof setInterval> | null = null;
     let resolved = false;
     let attempts = 0;
 
@@ -78,6 +85,11 @@ export function useGameData(
       }, retryTimeout);
     };
 
+    const pollRequest = () => {
+      console.log("Polling game data for id:", gameId);
+      socket.emit("game-data", gameId);
+    };
+
     const onReply = (data: GameData) => {
       if (!data) {
         return;
@@ -99,6 +111,11 @@ export function useGameData(
       setGameData(data);
       setIsLoading(false);
       setError(null);
+
+      // Start polling after initial data is received
+      if (pollingInterval && pollingInterval > 0 && !pollingId) {
+        pollingId = setInterval(pollRequest, pollingInterval);
+      }
     };
 
     socket.on("reply-game", onReply);
@@ -112,9 +129,10 @@ export function useGameData(
     return () => {
       resolved = true;
       if (timeoutId) clearTimeout(timeoutId);
+      if (pollingId) clearInterval(pollingId);
       socket.off("reply-game", onReply);
     };
-  }, [socket, gameId, maxRetries, retryTimeout]);
+  }, [socket, gameId, maxRetries, retryTimeout, pollingInterval]);
 
   return { gameData, error, isLoading, setGameData };
 }

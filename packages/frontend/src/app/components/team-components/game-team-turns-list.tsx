@@ -20,8 +20,8 @@ export default function GameTeamTurnsList({
         .sort((a, b) => {
           if (collect) {
             return (
-              a.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0) -
-              b.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0)
+              b.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0) -
+              a.turns.reduce((acc, turn) => acc + get_min_dice(turn), 0)
             );
           }
           const aLast = a.turns[a.turns.length - 1];

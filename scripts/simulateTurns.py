@@ -148,6 +148,16 @@ def has_open_turn(team_entry: dict) -> bool:
     return any((not t.get("finished", True)) for t in turns)
 
 
+def roll_die(weighted_faces):
+    faces = []
+    weights = []
+    for item in weighted_faces:
+        face, weight = next(iter(item.items()))
+        faces.append(face)
+        weights.append(weight)
+
+    return random.choices(faces, weights=weights, k=1)[0]
+
 def start_turn(
     sio: socketio.Client,
     waiter: WaitAny,
@@ -157,7 +167,11 @@ def start_turn(
     dice: Optional[Tuple[int, int]] = None,
 ) -> dict:
     if dice is None:
-        dice = (random.randint(1, 6), random.randint(1, 6))
+        dice_weights = {
+            "dice_1": [{1: 0.1788}, {2: 0.1589}, {3: 0.1325}, {4: 0.1457}, {5: 0.1258}, {6: 0.2583}],
+            "dice_2": [{1: 0.1126}, {2: 0.2450}, {3: 0.1656}, {4: 0.2119}, {5: 0.1391}, {6: 0.1258}],
+        }
+        dice = (roll_die(dice_weights["dice_1"]), roll_die(dice_weights["dice_1"]))
 
     d1, d2 = dice
     start_payload = {"game_id": int(game_id), "team_id": int(team_id), "dice1": d1, "dice2": d2}
@@ -240,7 +254,7 @@ def start_game(
     game_id: int,
 ) -> None:
     # Backend expects FirstTurnPost { game_id, drinks }. Many setups accept empty.
-    sio.emit("start-game", {"game_id": int(game_id), "drinks": []}, namespace=REF_NS)
+    sio.emit("start-game", {"game_id": int(game_id), "drinks": [{"drink": {"id": 1, "name": "Kalja"}, "turn_id": -1, "n": 1}]}, namespace=REF_NS)
     res = wait_or_raise(waiter, timeout, context="start-game")
     if res.name != "reply-game":
         raise RuntimeError(f"unexpected event after start-game: {res.name}")
@@ -426,7 +440,7 @@ def _run_simulation_inner(args: argparse.Namespace) -> int:
             team_id = get_team_id(team_entry)
 
             if args.sleep:
-                time.sleep(random.randrange(1, 10))
+                time.sleep(random.randrange(1, 10) / 4)
 
             # Acquire a lock to prevent other threads from starting/ending a turn
             # for any team in this game at the same time. This avoids race conditions
@@ -637,7 +651,7 @@ def simulate_existing_game(args: argparse.Namespace) -> int:
             team_id = get_team_id(team_entry)
 
             if args.sleep:
-                time.sleep(random.randrange(1, 10))
+                time.sleep(random.randrange(1, 10) / 4)
 
             with TURN_LOCK:
                 current_game_data = fetch_game_data(sio, waiter, args.timeout, game_id=game_id)

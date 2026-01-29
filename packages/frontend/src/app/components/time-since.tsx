@@ -34,22 +34,43 @@ function formatClockTimeMs(ts: number) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-export function formatTurnLabel(startIso: string, endIso?: string): string {
+export function formatTurnLabel(
+  startIso: string,
+  endIso?: string,
+): JSX.Element {
   const startTs = dateFromDb(startIso).getTime();
   if (Number.isNaN(startTs))
-    return "Turn started 00 days 00 hours 00 minutes and 00 seconds ago";
+    return (
+      <>
+        <p>"Vuoro päättyi</p> <p>(virheellinen aika)</p>
+      </>
+    );
 
   if (endIso) {
     const endTs = dateFromDb(endIso).getTime();
-    if (Number.isNaN(endTs)) return "Vuoro päättyi (virheellinen aika)";
+    if (Number.isNaN(endTs))
+      return (
+        <>
+          <p>"Vuoro päättyi</p> <p>(virheellinen aika)</p>
+        </>
+      );
 
     const dur = formatDurationMs(endTs - startTs);
     const endClock = formatClockTimeMs(endTs);
-    return `Vuoro kesti ${dur} (päättyi ${endClock})`;
+    return (
+      <>
+        <p>Vuoro kesti {dur}</p>
+        <p>(päättyi {endClock})</p>
+      </>
+    );
   }
-
   const dur = formatDurationMs(Date.now() - startTs);
-  return `Vuoro alkoi ${dur} sitten`;
+  return (
+    <>
+      <p>Vuoro alkoi {dur} sitten</p>
+      <p>Vuoro käynnissä</p>
+    </>
+  );
 }
 
 export function TurnElapsed({
