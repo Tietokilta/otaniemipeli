@@ -2,7 +2,7 @@
 # Found in ./packages/backend/src/utils/types.rs
 
 from dataclasses import dataclass, field
-from typing import Optional, Any, Literal
+from typing import Optional, Literal
 import sys
 
 
