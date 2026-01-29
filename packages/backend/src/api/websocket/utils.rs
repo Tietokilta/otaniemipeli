@@ -143,7 +143,7 @@ pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
     Data(auth): Data<SocketAuth>,
     State(state): State<AppState>,
 ) {
-    println!("{}", s.ns());
+    tracing::info!("Socket namespace: {}", s.ns());
     let u_type: UserType = match s.ns() {
         "/admin" => UserType::Admin,
         "/referee" => UserType::Referee,
