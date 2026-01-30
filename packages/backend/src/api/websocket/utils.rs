@@ -72,6 +72,8 @@ pub async fn emit_team_data(client: &Client, s: &SocketRef<impl Adapter>, game_i
 pub async fn emit_teams(client: &Client, s: &SocketRef<impl Adapter>, game_id: GameId) {
     match get_teams(client, game_id).await {
         Ok(teams) => {
+            // TODO: The frontend doesn't handle this, but the scripts need it.
+            //  Should use reply-game?
             emit_msg(s, "reply-teams", &Teams { teams }).await;
         }
         Err(e) => {

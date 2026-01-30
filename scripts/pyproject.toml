@@ -1,0 +1,16 @@
+[project]
+name = "otaniemipeli-scripts"
+version = "0.1.0"
+description = "Python scripts for Otaniemipeli project"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0",
+    "python-socketio[client]>=5.11.0",
+    "matplotlib>=3.8.0",
+    "numpy>=1.26.0",
+]
+
+[project.scripts]
+generate-ts-types = "generateTStypes:main"
+generate-py-classes = "generatePYclasses:main"
+simulate-turns = "simulateTurns:main"

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { postToLogin } from "@/utils/fetchers";
+import Link from "next/link";
 
 export default function LoginComponent({
   setLoginAction,
@@ -46,7 +47,6 @@ export default function LoginComponent({
           className="box text-lg text-center"
           type="text"
           placeholder="Käyttäjänimi"
-          tabIndex={1}
           required={true}
           onChange={(e) =>
             setLoginInfo({
@@ -59,7 +59,6 @@ export default function LoginComponent({
           className="box text-lg text-center"
           type="password"
           placeholder="Salasana"
-          tabIndex={2}
           required={true}
           onChange={(e) =>
             setLoginInfo({
@@ -71,7 +70,6 @@ export default function LoginComponent({
       </div>
       <button
         className="button select-none w-full"
-        tabIndex={3}
         onClick={() => handleLogin()}
         onKeyUp={(e) => {
           if (e.key === "Enter") {
@@ -81,9 +79,9 @@ export default function LoginComponent({
       >
         Kirjaudu Sisään
       </button>
-      <a className="button w-4/5 text-sm" href="/follow" tabIndex={4}>
+      <Link className="button w-4/5 text-sm" href="/follow">
         Jatka kirjautumatta
-      </a>
+      </Link>
     </form>
   );
 }

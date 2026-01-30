@@ -44,9 +44,7 @@ export default function DropdownMenu<T extends WithNameAndId>({
                 p-3"
                 onClick={() =>
                   setSelectedOption((prev) =>
-                    selectedOption && prev?.id === option.id
-                      ? undefined
-                      : option,
+                    prev && prev?.id === option.id ? undefined : option,
                   )
                 }
               >

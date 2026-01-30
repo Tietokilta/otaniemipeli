@@ -197,7 +197,7 @@ pub struct PlaceThrow {
 pub struct Game {
     pub id: GameId,
     pub name: String,
-    pub board_id: BoardId,
+    pub board: Board,
     pub started: bool,
     pub finished: bool,
     pub start_time: DateTime<Utc>,

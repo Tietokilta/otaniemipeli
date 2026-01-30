@@ -33,7 +33,7 @@ export default function Page({
   const [places, setPlaces] = useState<BoardPlaces | undefined>();
 
   useEffect(() => {
-    getBoardPlaces(id.toString())
+    getBoardPlaces(Number(id))
       .then((data: BoardPlaces) => {
         setPlaces(data);
         if (data.places.length > 0) {

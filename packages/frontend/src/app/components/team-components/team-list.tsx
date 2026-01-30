@@ -1,54 +1,29 @@
 "use client";
 import ItemList from "@/app/components/item-list";
-import { useSocket } from "@/app/template";
-import { useEffect, useState } from "react";
 import AddTeamForm from "@/app/components/team-components/create-team-form";
 import TeamCard from "@/app/components/team-components/team-card";
 
 export default function TeamList({
   game,
+  teams,
   className,
   link,
 }: {
   game: Game;
+  teams: GameTeam[];
   className?: string;
   link?: boolean;
 }) {
-  const [teams, setTeams] = useState<Teams>({ teams: [] });
-  const socket = useSocket();
-  useEffect(() => {
-    if (!socket) return;
-
-    const onReplyTeams = (data: Teams) => {
-      setTeams(data);
-    };
-
-    socket.on("reply-teams", onReplyTeams);
-    socket.emit("get-teams", game.id);
-
-    return () => {
-      socket.off("reply-teams", onReplyTeams);
-    };
-  }, [socket, game.id]);
   return (
     <ItemList
       title="Joukkueet"
       addDialog={!game.started && <AddTeamForm gameId={game.id} />}
       className={className}
     >
-      <div
-        className="box-hover"
-        onClick={() => {
-          window.location.href =
-            window.location.origin + `/referee/teams/${game.id}/all`;
-        }}
-      >
-        <h2>Näytä kaikki</h2>
-      </div>
-      {teams.teams.map((team) => (
+      {teams.map((team) => (
         <TeamCard
-          team={team}
-          key={team.team_id}
+          team={team.team}
+          key={team.team.team_id}
           className="w-full"
           link={link}
         />

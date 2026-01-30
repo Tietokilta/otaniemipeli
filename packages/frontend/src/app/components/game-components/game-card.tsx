@@ -1,4 +1,5 @@
 import { getUserTypeFromPath } from "@/utils/helpers";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function GameCard({
@@ -13,24 +14,10 @@ export default function GameCard({
   go_to_games?: boolean;
 }) {
   const path = usePathname();
-  console.log(path);
-  console.log(`${path}/${game.id}`);
-  console.log(go_to_games);
-  return (
-    <li
-      key={game.id}
-      className={`${className} box`}
-      onClick={() =>
-        link
-          ? go_to_games
-            ? (window.location.href = `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`)
-            : (window.location.href = `${path}/${game.id}`)
-          : null
-      }
-      style={{ cursor: "pointer" }}
-    >
+  const content = (
+    <>
       <h2 className="text-xl font-semibold mb-2">{game.name}</h2>
-      <p className="text-quaternary-500">Lauta: {game.board_id}</p>
+      <p className="text-quaternary-500">{game.board.name}</p>
       <p className="text-quaternary-500">
         Aloitusaika: {new Date(game.start_time).toLocaleString()}
       </p>
@@ -43,6 +30,20 @@ export default function GameCard({
             ? "Peli on päättynyt"
             : "Peli ei ole alkanut"}
       </p>
-    </li>
+    </>
+  );
+  return link ? (
+    <Link
+      className={`${className} box-hover`}
+      href={
+        go_to_games
+          ? `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`
+          : `${path}/${game.id}`
+      }
+    >
+      {content}
+    </Link>
+  ) : (
+    <div className={`${className} box`}>{content}</div>
   );
 }

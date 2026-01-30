@@ -167,11 +167,9 @@ export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
 }
 export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
   return (
-    <div className="flex h-10 items-center w-full border-b border-primary-900">
-      <h2 className="text-2xl text-left px-1 items-center h-full">
-        {drink.n}x
-      </h2>
-      <h2 className="text-xl text-left items-center px-1 h-full">
+    <div className="flex items-center w-full border-b border-primary-900 whitespace-nowrap">
+      <h2 className="text-2xl text-left px-1">{drink.n}x</h2>
+      <h2 className="text-xl text-left px-1 overflow-hidden text-ellipsis">
         {drink.drink.name}
       </h2>
     </div>

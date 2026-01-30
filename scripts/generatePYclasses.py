@@ -195,7 +195,7 @@ def _resolve_type(field_type, cls_globals):
     return field_type
 
 
-def _from_dict(cls, data):
+def _from_dict[T](cls: type[T], data: Any) -> T:
     \"\"\"Recursively convert a dict to a dataclass instance.\"\"\"
     if data is None:
         return None
@@ -293,7 +293,7 @@ def _from_dict(cls, data):
         out.append(f"@dataclass\nclass {name}:")
         if not fields:
             out.append("    pass")
-            out.append(f"    @classmethod\n    def from_dict(cls, data): return _from_dict(cls, data)\n")
+            out.append(f"    @classmethod\n    def from_dict(cls, data: Any): return _from_dict(cls, data)\n")
             continue
 
         # First, determine which fields have defaults and which don't
@@ -311,9 +311,9 @@ def _from_dict(cls, data):
             if py_ty.startswith("Optional["):
                 fields_with_default.append((fname, py_ty, "= None"))
             elif py_ty.startswith("list"):
-                fields_with_default.append((fname, py_ty, "= field(default_factory=list)"))
+                fields_with_default.append((fname, py_ty, f"= field(default_factory={py_ty})"))
             elif py_ty.startswith("dict"):
-                fields_with_default.append((fname, py_ty, "= field(default_factory=dict)"))
+                fields_with_default.append((fname, py_ty, f"= field(default_factory={py_ty})"))
             else:
                 fields_no_default.append((fname, py_ty, None))
 
@@ -323,7 +323,7 @@ def _from_dict(cls, data):
         for fname, py_ty, default in fields_with_default:
             out.append(f"    {fname}: {py_ty} {default}")
 
-        out.append(f"    @classmethod\n    def from_dict(cls, data): return _from_dict(cls, data)")
+        out.append(f"    @classmethod\n    def from_dict(cls, data: Any): return _from_dict(cls, data)")
         out.append("\n")
 
     return "\n".join(out)

@@ -4,12 +4,10 @@ import { PlaceDrinkCard } from "@/app/components/drink-components/drink-card";
 
 export default function PlaceCard({
   place,
-  placeNumber,
   className,
   showInfo,
 }: {
   place: BoardPlace | undefined;
-  placeNumber?: number;
   className?: string;
   showInfo?: boolean;
 }): JSX.Element {
@@ -28,12 +26,11 @@ export default function PlaceCard({
     >
       <div className="flex flex-col gap-1 border-[var(--place-color)] border-4 rounded-lg bg-juvu-sini-400 p-2">
         <div className="flex gap-1 center w-full">
-          <p className="text-left ml-auto">{place.place.place_id}</p>
+          {/* <p className="text-left ml-auto">{place.place.place_id}</p> */}
           <p className="font-redaction-b-70 text-2xl text-center w-full">
             {place.place.place_name}
           </p>
-          <p className="text-right mr-auto">{place.place_number}</p>
-          {placeNumber && <p className="text-right mr-auto">{placeNumber}</p>}
+          <p className="text-right mr-auto">#{place.place_number}</p>
         </div>
         {showInfo && (
           <div className="flex gap-1 w-full h-full">

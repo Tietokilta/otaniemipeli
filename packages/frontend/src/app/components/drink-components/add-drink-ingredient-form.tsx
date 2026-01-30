@@ -27,16 +27,6 @@ export default function AddDrinkIngredientForm({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [picked, setPicked] = useState<Ingredient | undefined>(undefined);
 
-  const justOpened = useRef(true);
-
-  const openModal = () => {
-    setOpen(true);
-    justOpened.current = true;
-    requestAnimationFrame(() => {
-      justOpened.current = false;
-    });
-  };
-
   useEffect(() => {
     setSelectedIds(new Set(ingredientsStart.map((iq) => iq.ingredient.id)));
   }, [ingredientsStart]);
@@ -125,14 +115,14 @@ export default function AddDrinkIngredientForm({
         className="button"
         onClick={(e) => {
           e.stopPropagation(); // extra safety if inside another clickable
-          openModal();
+          setOpen(true);
         }}
       >
         Lisää ainesosa
       </div>
 
       {open && (
-        <PopUpDialogue justOpened={justOpened} setOpen={setOpen}>
+        <PopUpDialogue setOpen={setOpen}>
           <form
             onSubmit={handleSubmit}
             onMouseDown={(e) => e.stopPropagation()}

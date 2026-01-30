@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   HorizontalList,
   VerticalList,
@@ -14,29 +14,21 @@ import {
   GameErrorDisplay,
 } from "@/app/components/game-components/game-loading-states";
 
-export default function Page() {
+export default function Page({
+  params,
+}: {
+  params: Promise<{ game_id: string }>;
+}) {
   const socket = useSocket();
-  const path = usePathname();
-  console.log(path);
-  const gameId = Number(path.split("/")[3]);
-  console.log(gameId, path.split("/")[3]);
-  const { gameData, error, isLoading } = useGameData(socket, gameId);
-  const [teams, setTeams] = useState<GameTeam[] | null>(null);
+  const { game_id } = use(params);
+  const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
   const [board, setBoard] = useState<BoardPlaces | undefined>();
 
   useEffect(() => {
-    if (gameData) {
-      setTeams(gameData.teams);
-    }
-  }, [gameData]);
-  useEffect(() => {
     // get board places
-    if (gameData) {
-      getBoardPlaces("" + gameData?.game.board_id).then((b) => {
-        setBoard(b);
-      });
-    }
+    if (gameData) getBoardPlaces(gameData.game.board_id).then(setBoard);
   }, [gameData]);
+  console.log("BOARD IS", board);
 
   if (isLoading) {
     return <GameLoadingSpinner />;
@@ -48,9 +40,9 @@ export default function Page() {
 
   return (
     <div className="p-4 max-h-[80dvh] overflow-scroll">
-      {teams && (
+      {gameData?.teams && (
         <VerticalList className="gap-4">
-          {teams.map((team: GameTeam) => (
+          {gameData.teams.map((team: GameTeam) => (
             <div className="flex h-[30dvh]" key={team.team.team_id}>
               <div className="pr-4 mr-4 border-r-2 border-tertiary-500">
                 <TeamTurnCard

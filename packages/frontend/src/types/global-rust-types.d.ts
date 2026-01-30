@@ -132,7 +132,7 @@ declare global {
   interface Game {
     id: number;
     name: string;
-    board_id: number;
+    board: Board;
     started: boolean;
     finished: boolean;
     start_time: string;

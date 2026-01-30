@@ -6,9 +6,7 @@ export function HorizontalList({
   className?: string;
 }): JSX.Element {
   return (
-    <div
-      className={`${className} flex gap-1 overflow-x-scroll overflow-y-hidden`}
-    >
+    <div className={`${className} flex gap-1 overflow-x-scroll`}>
       {children}
     </div>
   );
@@ -21,9 +19,5 @@ export function VerticalList({
   children: React.ReactNode;
   className?: string;
 }): JSX.Element {
-  return (
-    <div className={`${className} flex flex-col overflow-y-auto min-h-0`}>
-      {children}
-    </div>
-  );
+  return <div className={`${className} flex flex-col`}>{children}</div>;
 }

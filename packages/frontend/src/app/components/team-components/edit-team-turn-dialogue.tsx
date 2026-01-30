@@ -20,25 +20,13 @@ export const EditTeamTurnDialogue = ({
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const justOpened = useRef(true);
   const [choice, setChoice] = useState<"penalty" | "turn" | null>(null);
   const socket = useSocket();
-
-  useEffect(() => {
-    if (!open) return;
-
-    justOpened.current = true;
-    const id = setTimeout(() => {
-      justOpened.current = false;
-    }, 0);
-
-    return () => clearTimeout(id);
-  }, [open]);
 
   if (!open) return null;
 
   return (
-    <PopUpDialogue justOpened={justOpened} setOpen={setOpen}>
+    <PopUpDialogue setOpen={setOpen}>
       {!choice && (
         <div className="flex flex-col gap-2 p-4">
           <h3>Lisää Joukkueelle {team.team.team_name}</h3>

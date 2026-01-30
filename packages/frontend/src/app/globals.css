@@ -66,6 +66,9 @@
   font-style: normal;
   font-weight: 500;
 }
+@utility writing-vertical {
+  writing-mode: vertical-rl;
+}
 
 :root {
   --background: var(--color-primary-100);

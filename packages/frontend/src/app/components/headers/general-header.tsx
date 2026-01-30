@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import React from "react";
 import { UserTypeEnum } from "@/utils/helpers";
+import Link from "next/link";
 
 export default function GeneralHeader({
   base_path,
@@ -59,46 +59,28 @@ export default function GeneralHeader({
       </div>
       <div className="flex h-full items-center pt-6">
         <nav className="flex cursor-default h-full py-3 rounded-md bottom">
-          <div
-            className={className}
-            onClick={() => {
-              router.push("/");
-            }}
-          >
-            <div className={hoverClass}>
+          <Link href="/">
+            <div className={`${className} ${hoverClass}`}>
               <h3>Alkuun</h3>
             </div>
-          </div>
-          <div
-            className={className}
-            onClick={() => {
-              router.push(base_path);
-            }}
-          >
-            <div className={hoverClass}>
+          </Link>
+          <Link href={base_path}>
+            <div className={`${className} ${hoverClass}`}>
               <h3>{role}</h3>
             </div>
-          </div>
+          </Link>
           {items.map((item) => (
-            <div
-              key={item.text}
-              className={className}
-              onClick={() => router.push(base_path + item.href)}
-            >
-              <div className={hoverClass}>
+            <Link key={item.text} href={base_path + item.href}>
+              <div className={`${className} ${hoverClass}`}>
                 <h3>{item.text}</h3>
               </div>
-            </div>
+            </Link>
           ))}
           <div
-            className={className}
-            onClick={() => {
-              handleLogout();
-            }}
+            className={`${className} ${hoverClass}`}
+            onClick={() => handleLogout()}
           >
-            <div className={hoverClass}>
-              <h3>Kirjaudu ulos</h3>
-            </div>
+            <h3>Kirjaudu ulos</h3>
           </div>
         </nav>
       </div>

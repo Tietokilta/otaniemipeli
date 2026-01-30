@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import { useEffect, useMemo, useState } from "react";
 
 export function dateFromDb(iso: string): Date {
   // trims extra fractional seconds, keeps timezone
@@ -29,71 +30,59 @@ function formatDurationMs(ms: number) {
   return timeString;
 }
 
-function formatClockTimeMs(ts: number) {
+export function formatShortDurationMs(ms: number) {
+  const d = new Date(ms);
+  return `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+}
+
+export function formatClockTimeMs(ts: number) {
   const d = new Date(ts);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
 export function formatTurnLabel(
   startIso: string,
-  endIso?: string,
+  endIso?: string | null,
 ): JSX.Element {
   const startTs = dateFromDb(startIso).getTime();
-  if (Number.isNaN(startTs))
-    return (
-      <>
-        <p>Vuoro päättyi</p> <p>(virheellinen aika)</p>
-      </>
-    );
+  if (Number.isNaN(startTs)) return <p>Virheellistä dataa</p>;
 
   if (endIso) {
     const endTs = dateFromDb(endIso).getTime();
-    if (Number.isNaN(endTs))
-      return (
-        <>
-          <p>Vuoro päättyi</p> <p>(virheellinen aika)</p>
-        </>
-      );
+    if (Number.isNaN(endTs)) return <p>Virheellistä dataa</p>;
 
-    const dur = formatDurationMs(endTs - startTs);
-    const endClock = formatClockTimeMs(endTs);
+    const elapsed = formatShortDurationMs(Date.now() - endTs);
+    const dur = formatShortDurationMs(endTs - startTs);
     return (
       <>
-        <p>Vuoro kesti {dur}</p>
-        <p>(päättyi {endClock})</p>
+        <p className="text-quaternary-500">Valmiina! ({elapsed})</p>
+        <p>Vuoro kesti: {dur}</p>
       </>
     );
   }
-  const dur = formatDurationMs(Date.now() - startTs);
+  const elapsed = formatShortDurationMs(Date.now() - startTs);
   return (
     <>
-      <p>Vuoro alkoi {dur} sitten</p>
-      <p>Vuoro käynnissä</p>
+      <p>Suoritus käynnissä</p>
+      <p>Vuoro alkoi {elapsed} sitten</p>
     </>
   );
 }
 
 export function TurnElapsed({
-  iso,
+  start,
   end,
 }: {
-  iso: string;
-  end?: string;
+  start: string;
+  end?: string | null;
 }): JSX.Element {
-  const [label, setLabel] = React.useState(() => formatTurnLabel(iso, end));
+  const [, rerender] = useState<unknown>({});
 
-  React.useEffect(() => {
-    if (end) {
-      setLabel(formatTurnLabel(iso, end));
-      return;
-    }
-
-    const id = window.setInterval(() => {
-      setLabel(formatTurnLabel(iso));
-    }, 1000);
-
+  // Force re-render every second
+  useEffect(() => {
+    const id = window.setInterval(() => rerender({}), 1000);
     return () => clearInterval(id);
-  }, [iso, end]);
+  }, [start, end]);
 
-  return <span>{label}</span>;
+  return <span>{formatTurnLabel(start, end)}</span>;
 }

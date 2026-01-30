@@ -78,18 +78,16 @@ export default function SelectMode({
               key={user_type}
               href={`/${user_type.toLowerCase()}`}
             >
-              <p className="select-none text-center w-full">
-                {UserTypeEnum[user_type]}
-              </p>
+              {UserTypeEnum[user_type]}
             </a>
           ))}
         <h1 className="text-tertiary-900 text-2xl font-bold">...tai...</h1>
-        <div
+        <button
           className="button w-full center select-none"
           onClick={() => handleLogout()}
         >
-          <p className="select-none text-center w-full">Kirjaudu ulos</p>
-        </div>
+          Kirjaudu ulos
+        </button>
         <a href="/websocket">websocket</a>
       </div>
     </div>

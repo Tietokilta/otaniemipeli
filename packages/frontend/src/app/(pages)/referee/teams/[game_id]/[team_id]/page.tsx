@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { HorizontalList } from "@/app/components/generic-list-components";
 import TeamTurnCard from "@/app/components/team-components/team-turn-card";
 import { useSocket } from "@/app/template";
@@ -14,36 +14,31 @@ import {
 export default function Page({
   params,
 }: {
-  params: Promise<{ team_id: string }>;
+  params: Promise<{ team_id: string; game_id: string }>;
 }) {
-  const { team_id } = use(params);
+  const { team_id, game_id } = use(params);
   const socket = useSocket();
-  const path = usePathname();
-  const gameId = Number(path.split("/")[3]);
-  const { gameData, error, isLoading } = useGameData(socket, gameId);
-  const [team, setTeam] = useState<GameTeam | null>(null);
-  const [board, setBoard] = useState<BoardPlaces | undefined>();
+  const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
 
-  useEffect(() => {
-    if (gameData) {
-      const teamId = Number(team_id);
-      setTeam(gameData.teams.find((t) => t.team.team_id === teamId) || null);
-    }
-  }, [gameData, team_id]);
+  const team = useMemo(
+    () =>
+      gameData?.teams.find((t) => t.team.team_id === Number(team_id)) || null,
+    [gameData, team_id],
+  );
+
+  const [board, setBoard] = useState<BoardPlaces | undefined>();
   useEffect(() => {
     // get board places
     if (gameData) {
       let cancelled = false;
-      getBoardPlaces("" + gameData.game.board_id).then((b) => {
-        if (!cancelled) {
-          setBoard(b);
-        }
+      getBoardPlaces(gameData.game.board_id).then((b) => {
+        if (!cancelled) setBoard(b);
       });
       return () => {
         cancelled = true;
       };
     }
-  }, [gameData, gameData?.game.board_id]);
+  }, [gameData]);
 
   if (isLoading) {
     return <GameLoadingSpinner />;

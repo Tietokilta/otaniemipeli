@@ -29,11 +29,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     <div className="gap-4 4 h-[85dvh] box">
       <h1>{gameData.game.name}</h1>
       <div className="flex flex-col gap-2 flex-3 max-h-[66dvh]">
-        <GameTeamTurnsList gameData={gameData} className="h-64 flex-1" />
+        <GameTeamTurnsList gameData={gameData} className="max-h-1/2" />
         <GameTeamTurnsList
           gameData={gameData}
           collect
-          className="h-64 flex-1"
+          className="flex-grow-2"
         />
       </div>
     </div>

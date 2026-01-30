@@ -28,7 +28,9 @@ export default function Page({
 
   return (
     <div className="center w-full">
-      {gameData && <TeamList game={gameData.game} link={true} />}
+      {gameData && (
+        <TeamList game={gameData.game} teams={gameData.teams} link={true} />
+      )}
     </div>
   );
 }

@@ -11,7 +11,15 @@ use tokio_postgres::Row;
 
 /// Retrieves all games from the database
 pub async fn get_games(client: &Client) -> Result<Games, PgError> {
-    let rows = client.query("SELECT * FROM games", &[]).await?;
+    let rows = client
+        .query(
+            "
+            SELECT games.*, boards.name AS board_name
+            FROM games
+            INNER JOIN boards ON games.board_id = boards.board_id",
+            &[],
+        )
+        .await?;
     let games = rows.iter().map(build_game_from_row).collect();
     Ok(Games { games })
 }
@@ -19,7 +27,14 @@ pub async fn get_games(client: &Client) -> Result<Games, PgError> {
 /// Retrieves a game by its ID
 pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, PgError> {
     let row_opt = client
-        .query_opt("SELECT * FROM games WHERE games.game_id = $1", &[&game_id])
+        .query_opt(
+            "
+            SELECT games.*, boards.name AS board_name
+            FROM games
+            INNER JOIN boards ON games.board_id = boards.board_id
+            WHERE games.game_id = $1",
+            &[&game_id],
+        )
         .await?;
     Ok(row_opt
         .map(|r| build_game_from_row(&r))
@@ -30,8 +45,14 @@ pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, Pg
 pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, PgError> {
     let row = client
         .query_one(
-            "INSERT INTO games (name, board_id) VALUES ($1, $2)
-             RETURNING *",
+            "
+            WITH ins_game AS (
+              INSERT INTO games (name, board_id) VALUES ($1, $2)
+              RETURNING *
+            )
+            SELECT ins_game.*, boards.name AS board_name
+            FROM ins_game
+            INNER JOIN boards ON ins_game.board_id = boards.board_id",
             &[&game.name, &game.board],
         )
         .await?;
@@ -59,7 +80,6 @@ pub async fn make_first_turns(
       SELECT d.drink_id, it.turn_id, GREATEST(1, d.n)
       FROM ins_turns it
       CROSS JOIN drinks d
-      RETURNING drink_id, turn_id, n
     )
     SELECT team_id, turn_id FROM ins_turns";
 
@@ -82,16 +102,22 @@ pub async fn make_first_turns(
 pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, PgError> {
     let row = client
         .query_one(
-            "UPDATE games
-             SET started = true, start_time = NOW()
-             WHERE game_id = $1
-             RETURNING *",
+            "
+            WITH upd_game AS (
+              UPDATE games
+              SET started = true, start_time = NOW()
+              WHERE game_id = $1
+              RETURNING *
+            )
+            SELECT upd_game.*, boards.name AS board_name
+            FROM upd_game
+            INNER JOIN boards ON upd_game.board_id = boards.board_id",
             &[&first_turn.game_id],
         )
         .await?;
     let game = build_game_from_row(&row);
 
-    let place_number = get_first_place(client, game.board_id).await?;
+    let place_number = get_first_place(client, game.board.id).await?;
     make_first_turns(client, &first_turn, place_number).await?;
 
     Ok(game)
@@ -100,10 +126,16 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
 pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError> {
     let row = client
         .query_one(
-            "UPDATE games
-             SET finished = true
-             WHERE game_id = $1
-             RETURNING *",
+            "
+            WITH upd_game AS (
+              UPDATE games
+              SET finished = true
+              WHERE game_id = $1
+              RETURNING *
+            )
+            SELECT upd_game.*, boards.name AS board_name
+            FROM upd_game
+            INNER JOIN boards ON upd_game.board_id = boards.board_id",
             &[&game_id],
         )
         .await?;
@@ -118,7 +150,10 @@ fn build_game_from_row(row: &Row) -> Game {
         name: row.get("name"),
         started: row.get("started"),
         finished: row.get("finished"),
-        board_id: row.get("board_id"),
+        board: Board {
+            id: row.get("board_id"),
+            name: row.get("board_name"),
+        },
     }
 }
 
@@ -126,7 +161,10 @@ fn default_game() -> Game {
     Game {
         id: GameId(-100),
         name: "unknown".to_string(),
-        board_id: BoardId(-404),
+        board: Board {
+            id: BoardId(-404),
+            name: "unknown".to_string(),
+        },
         started: false,
         finished: false,
         start_time: DateTime::parse_from_rfc3339("1986-02-13T14:00:00Z")
@@ -139,7 +177,7 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
 
-    let board_id = game.board_id;
+    let board_id = game.board.id;
 
     let teams = join_all(teams.into_iter().map(|team| async move {
         let turns = get_team_turns_with_drinks(client, team.team_id, game_id)

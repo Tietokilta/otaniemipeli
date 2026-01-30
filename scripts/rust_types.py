@@ -13,7 +13,7 @@ def _resolve_type(field_type, cls_globals):
     return field_type
 
 
-def _from_dict(cls, data):
+def _from_dict[T](cls: type[T], data: Any) -> T:
     """Recursively convert a dict to a dataclass instance."""
     if data is None:
         return None
@@ -105,7 +105,7 @@ UserType = Literal["Admin", "Ie", "Referee", "Secretary"]
 class SocketAuth:
     token: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -113,7 +113,7 @@ class LoginInfo:
     username: str
     password: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -123,7 +123,7 @@ class UserInfo:
     email: str
     user_types: 'UsersTypes'
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -133,7 +133,7 @@ class UserCreateInfo:
     user_type: UserType
     password: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -142,7 +142,7 @@ class SessionInfo:
     session_hash: str
     user_types: 'UsersTypes'
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -150,14 +150,14 @@ class UserSessionInfo:
     user: 'UserInfo'
     session: 'SessionInfo'
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class UsersTypes:
-    user_types: list[UserType] = field(default_factory=list)
+    user_types: list[UserType] = field(default_factory=list[UserType])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -168,14 +168,14 @@ class Team:
     team_hash: str
     double: bool
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Teams:
-    teams: list['Team'] = field(default_factory=list)
+    teams: list['Team'] = field(default_factory=list['Team'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -184,14 +184,14 @@ class TurnDrink:
     turn_id: int
     n: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class TurnDrinks:
-    drinks: list['TurnDrink'] = field(default_factory=list)
+    drinks: list['TurnDrink'] = field(default_factory=list['TurnDrink'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -199,32 +199,32 @@ class PostTurnDrinks:
     turn_drinks: 'TurnDrinks'
     game_id: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class FirstTurnPost:
     game_id: int
-    drinks: list['TurnDrink'] = field(default_factory=list)
+    drinks: list['TurnDrink'] = field(default_factory=list['TurnDrink'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class GameData:
     game: 'Game'
-    teams: list['GameTeam'] = field(default_factory=list)
+    teams: list['GameTeam'] = field(default_factory=list['GameTeam'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class GameTeam:
     team: 'Team'
-    turns: list['Turn'] = field(default_factory=list)
+    turns: list['Turn'] = field(default_factory=list['Turn'])
     location: Optional['BoardPlace'] = None
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -244,7 +244,7 @@ class Turn:
     dice2: Optional[int] = None
     location: Optional[int] = None
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -254,7 +254,7 @@ class PostStartTurn:
     dice1: int
     dice2: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -262,7 +262,7 @@ class EndTurn:
     team_id: int
     game_id: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -271,19 +271,19 @@ class PlaceThrow:
     throw: tuple[int, int]
     team_id: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Game:
     id: int
     name: str
-    board_id: int
+    board: 'Board'
     started: bool
     finished: bool
     start_time: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -291,14 +291,14 @@ class PostGame:
     name: str
     board: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Games:
-    games: list['Game'] = field(default_factory=list)
+    games: list['Game'] = field(default_factory=list['Game'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -306,22 +306,22 @@ class Board:
     id: int
     name: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Boards:
-    boards: list['Board'] = field(default_factory=list)
+    boards: list['Board'] = field(default_factory=list['Board'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class BoardPlaces:
     board: 'Board'
-    places: list['BoardPlace'] = field(default_factory=list)
+    places: list['BoardPlace'] = field(default_factory=list['BoardPlace'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -331,14 +331,14 @@ class Place:
     rule: str
     place_type: PlaceType
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Places:
-    places: list['Place'] = field(default_factory=list)
+    places: list['Place'] = field(default_factory=list['Place'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -354,14 +354,14 @@ class BoardPlace:
     connections: 'Connections'
     drinks: 'PlaceDrinks'
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class PlaceDrinks:
-    drinks: list['PlaceDrink'] = field(default_factory=list)
+    drinks: list['PlaceDrink'] = field(default_factory=list['PlaceDrink'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -374,7 +374,7 @@ class PlaceDrink:
     n: int
     n_update: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -386,14 +386,14 @@ class Connection:
     backwards: bool
     dashed: bool
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Connections:
-    connections: list['Connection'] = field(default_factory=list)
+    connections: list['Connection'] = field(default_factory=list['Connection'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -403,14 +403,14 @@ class Ingredient:
     abv: float
     carbonated: bool
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Ingredients:
-    ingredients: list['Ingredient'] = field(default_factory=list)
+    ingredients: list['Ingredient'] = field(default_factory=list['Ingredient'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -418,7 +418,7 @@ class Drink:
     id: int
     name: str
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -426,7 +426,7 @@ class IngredientQty:
     ingredient: 'Ingredient'
     quantity: float
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
@@ -434,43 +434,43 @@ class DrinkIngredients:
     drink: 'Drink'
     quantity: float
     abv: float
-    ingredients: list['IngredientQty'] = field(default_factory=list)
+    ingredients: list['IngredientQty'] = field(default_factory=list['IngredientQty'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class DrinkIngredientsPost:
     drink: 'Drink'
-    ingredients: list['IngredientQty'] = field(default_factory=list)
+    ingredients: list['IngredientQty'] = field(default_factory=list['IngredientQty'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class DrinksIngredients:
-    drink_ingredients: list['DrinkIngredients'] = field(default_factory=list)
+    drink_ingredients: list['DrinkIngredients'] = field(default_factory=list['DrinkIngredients'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class ResultIntJson:
     int: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class Drinks:
-    drinks: list['Drink'] = field(default_factory=list)
+    drinks: list['Drink'] = field(default_factory=list['Drink'])
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
 
 @dataclass
 class IngredientIdQuery:
     ingredient_id: int
     @classmethod
-    def from_dict(cls, data): return _from_dict(cls, data)
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
 
