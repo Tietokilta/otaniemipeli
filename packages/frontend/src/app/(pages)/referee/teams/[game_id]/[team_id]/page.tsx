@@ -30,7 +30,7 @@ export default function Page({
     // get board places
     if (gameData) {
       let cancelled = false;
-      getBoardPlaces(gameData.game.board_id).then((b) => {
+      getBoardPlaces(gameData.game.board.id).then((b) => {
         if (!cancelled) setBoard(b);
       });
       return () => {
