@@ -16,8 +16,7 @@ pub async fn games_get(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }
@@ -29,8 +28,7 @@ pub async fn games_get_all(state: State<AppState>) -> Result<Json<Vec<GameData>>
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }

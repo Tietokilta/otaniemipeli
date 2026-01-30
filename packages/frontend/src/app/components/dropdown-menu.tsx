@@ -13,7 +13,6 @@ type PickerProps<T extends WithNameAndId> = {
 export default function DropdownMenu<T extends WithNameAndId>({
   buttonText,
   options,
-  selectedOption,
   setSelectedOption,
 }: PickerProps<T>) {
   const trueOptions: T[] = options.map((option) => {

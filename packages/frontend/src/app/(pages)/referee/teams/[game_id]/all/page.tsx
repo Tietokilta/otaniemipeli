@@ -1,18 +1,17 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import {
+  GameErrorDisplay,
+  GameLoadingSpinner,
+} from "@/app/components/game-components/game-loading-states";
 import {
   HorizontalList,
   VerticalList,
 } from "@/app/components/generic-list-components";
 import TeamTurnCard from "@/app/components/team-components/team-turn-card";
-import { useSocket } from "@/app/template";
-import { usePathname } from "next/navigation";
-import { getBoardPlaces } from "@/utils/fetchers";
 import { useGameData } from "@/app/hooks/useGameData";
-import {
-  GameLoadingSpinner,
-  GameErrorDisplay,
-} from "@/app/components/game-components/game-loading-states";
+import { useSocket } from "@/app/template";
+import { getBoardPlaces } from "@/utils/fetchers";
+import { use, useEffect, useState } from "react";
 
 export default function Page({
   params,
@@ -26,7 +25,7 @@ export default function Page({
 
   useEffect(() => {
     // get board places
-    if (gameData) getBoardPlaces(gameData.game.board_id).then(setBoard);
+    if (gameData) getBoardPlaces(gameData.game.board.id).then(setBoard);
   }, [gameData]);
   console.log("BOARD IS", board);
 

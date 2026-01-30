@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addDrinkIngredient, getIngredients } from "@/utils/fetchers";
 import { DrinkCardNoIngredients } from "@/app/components/drink-components/drink-card";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
+import { addDrinkIngredient, getIngredients } from "@/utils/fetchers";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Props = {
   drink: Drink;

@@ -1,13 +1,12 @@
+import PlaceCard from "@/app/components/board-components/place-card";
+import { TurnDrinkCard } from "@/app/components/drink-components/drink-card";
+import { VerticalList } from "@/app/components/generic-list-components";
+import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
 import {
-  formatClockTimeMs,
   formatShortDurationMs,
   TurnElapsed,
 } from "@/app/components/time-since";
-import { TurnDrinkCard } from "@/app/components/drink-components/drink-card";
-import React, { useEffect, useMemo } from "react";
-import { VerticalList } from "@/app/components/generic-list-components";
-import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
-import PlaceCard from "@/app/components/board-components/place-card";
+import { useMemo, useState } from "react";
 
 interface TurnCombined {
   turn_ids: number[];
@@ -19,23 +18,15 @@ interface TurnCombined {
   dice_throws: [number, number][];
   drinks: TurnDrink[];
 }
-const getTimeInBetween = (turns: Turn[]): number[] => {
+
+const getTurnDuration = (turns: Turn[]): number[] => {
   return turns.map((turn: Turn) => {
     const start = new Date(turn.start_time);
     const end = turn.end_time ? new Date(turn.end_time) : new Date();
     return end.getTime() - start.getTime();
   });
 };
-function formatDhms(totalMs: number): string {
-  const totalSeconds = Math.floor(totalMs / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
 
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(days)} päivää ${pad(hours)} tuntia ${pad(minutes)} minuuttia ja ${pad(seconds)} sekuntia.`;
-}
 export function sumByDrinkId(rows: TurnDrink[]) {
   const byId = new Map<number, TurnDrink>();
   let total_drinks = 0;
@@ -64,7 +55,7 @@ export default function TeamTurnCard({
   board?: BoardPlaces;
 }): JSX.Element {
   const lastTurn = teamTurns[teamTurns.length - 1];
-  const [showDialogue, setShowDialogue] = React.useState<boolean>(false);
+  const [showDialogue, setShowDialogue] = useState<boolean>(false);
 
   const location = useMemo<BoardPlace | undefined>(() => {
     if (!board || teamTurns.length === 0) return undefined;
@@ -80,13 +71,13 @@ export default function TeamTurnCard({
       turns: teamTurns.length - penalties,
       penalties,
       combined_time: formatShortDurationMs(
-        getTimeInBetween(teamTurns).reduce((a, b) => a + b, 0),
+        getTurnDuration(teamTurns).reduce((a, b) => a + b, 0),
       ),
       team_id: team.team.team_id,
       dice_throws: teamTurns.map((t) => [t.dice1, t.dice2] as [number, number]),
       ...sumByDrinkId(teamTurns.flatMap((t) => t.drinks.drinks)),
     };
-  }, [collect, lastTurn, team, teamTurns]);
+  }, [collect, team, teamTurns]);
 
   const onClickAction = collect ? undefined : () => setShowDialogue(true);
 

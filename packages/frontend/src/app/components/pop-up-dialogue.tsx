@@ -1,12 +1,12 @@
-import React, { Dispatch, RefObject, SetStateAction } from "react";
+import { Dispatch, ReactNode, SetStateAction } from "react";
 
 const PopUpDialogue = ({
   children,
   title,
   setOpen,
 }: {
-  children: React.ReactNode;
-  title?: React.ReactNode;
+  children: ReactNode;
+  title?: ReactNode;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   return (

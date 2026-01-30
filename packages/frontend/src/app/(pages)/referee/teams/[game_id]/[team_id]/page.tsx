@@ -1,15 +1,14 @@
 "use client";
-import { use, useEffect, useMemo, useState } from "react";
+import {
+  GameErrorDisplay,
+  GameLoadingSpinner,
+} from "@/app/components/game-components/game-loading-states";
 import { HorizontalList } from "@/app/components/generic-list-components";
 import TeamTurnCard from "@/app/components/team-components/team-turn-card";
-import { useSocket } from "@/app/template";
-import { usePathname } from "next/navigation";
-import { getBoardPlaces } from "@/utils/fetchers";
 import { useGameData } from "@/app/hooks/useGameData";
-import {
-  GameLoadingSpinner,
-  GameErrorDisplay,
-} from "@/app/components/game-components/game-loading-states";
+import { useSocket } from "@/app/template";
+import { getBoardPlaces } from "@/utils/fetchers";
+import { use, useEffect, useMemo, useState } from "react";
 
 export default function Page({
   params,

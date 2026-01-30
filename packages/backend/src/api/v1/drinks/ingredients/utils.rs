@@ -25,8 +25,7 @@ pub async fn drinks_ingredients_get(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }
@@ -93,8 +92,7 @@ pub async fn drink_ingredients_get(
         Some(_) => {}
         None => {
             return Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }

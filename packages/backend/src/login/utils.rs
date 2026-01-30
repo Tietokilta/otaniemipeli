@@ -35,8 +35,7 @@ pub async fn start_session(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }
@@ -58,8 +57,7 @@ pub async fn verify_session(
         Err(e) => {
             eprintln!("{}", e);
             Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ))
         }
     }
@@ -76,8 +74,7 @@ pub async fn end_session(state: State<AppState>, headers: HeaderMap) -> Result<J
     match delete_session(auth_hash.as_str(), &client).await {
         Ok(_) => Ok(Json(())),
         Err(_) => Err(AppError::Database(
-            "The server encountered an unexpected error!"
-                .to_string(),
+            "The server encountered an unexpected error!".to_string(),
         )),
     }
 }
@@ -96,13 +93,11 @@ pub async fn end_all_sessions(
         Ok(session) => match delete_all_sessions(session.uid, &client).await {
             Ok(_) => Ok(Json(())),
             Err(_) => Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             )),
         },
         Err(_) => Err(AppError::Database(
-            "The server encountered an unexpected error!"
-                .to_string(),
+            "The server encountered an unexpected error!".to_string(),
         )),
     }
 }
@@ -111,8 +106,7 @@ pub async fn exist_users(state: State<AppState>) -> Result<Json<bool>, AppError>
     match users_exist(&client).await {
         Ok(bool) => Ok(Json(bool)),
         Err(_) => Err(AppError::Database(
-            "The server encountered an unexpected error!"
-                .to_string(),
+            "The server encountered an unexpected error!".to_string(),
         )),
     }
 }
@@ -131,8 +125,7 @@ pub async fn create_user(
         Err(_) => {
             info!("Users exist check failed");
             return Err(AppError::Database(
-                "The server encountered an unexpected error!"
-                    .to_string(),
+                "The server encountered an unexpected error!".to_string(),
             ));
         }
     };
@@ -164,8 +157,7 @@ pub async fn create_user(
             Err(_) => {
                 tracing::info!("User create failed!");
                 Err(AppError::Database(
-                    "The server encountered an unexpected error!"
-                        .to_string(),
+                    "The server encountered an unexpected error!".to_string(),
                 ))
             }
         }
@@ -184,8 +176,7 @@ pub async fn create_user(
             Err(_) => {
                 tracing::info!("check_session failed");
                 return Err(AppError::Database(
-                    "The server encountered an unexpected error!"
-                        .to_string(),
+                    "The server encountered an unexpected error!".to_string(),
                 ));
             }
         };
@@ -210,8 +201,7 @@ pub async fn create_user(
             Err(_) => {
                 tracing::info!("User create db_failed");
                 Err(AppError::Database(
-                    "The server encountered an unexpected error!"
-                        .to_string(),
+                    "The server encountered an unexpected error!".to_string(),
                 ))
             }
         };

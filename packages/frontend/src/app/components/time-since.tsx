@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function dateFromDb(iso: string): Date {
   // trims extra fractional seconds, keeps timezone
@@ -8,26 +8,6 @@ export function dateFromDb(iso: string): Date {
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
-}
-
-function formatDurationMs(ms: number) {
-  let diff = ms;
-  if (diff < 0) diff = 0;
-
-  const totalSec = Math.floor(diff / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
-
-  let timeString = "";
-  if (days > 0) timeString += `${pad2(days)} päivää `;
-  if (hours > 0 || days > 0) timeString += `${pad2(hours)} tuntia `;
-  if (minutes > 0 || hours > 0 || days > 0)
-    timeString += `${pad2(minutes)} minuuttia ja `;
-  timeString += `${pad2(seconds)} sekuntia`;
-
-  return timeString;
 }
 
 export function formatShortDurationMs(ms: number) {
