@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import PopUpDialogue from "../pop-up-dialogue";
+import { DrinkSelectionCard } from "../team-components/edit-team-turn-dialogue";
 
 export default function GameStartDialogue({
   game,
@@ -21,7 +22,9 @@ export default function GameStartDialogue({
   const socket = useSocket();
 
   const [knownDrinks, setKnownDrinks] = useState<Drink[]>([]);
-  const [selectedDrinks, setSelectedDrinks] = useState<TurnDrink[]>([]);
+  const [selectedDrinks, setSelectedDrinks] = useState<TurnDrinks>({
+    drinks: [],
+  });
 
   const [open, setOpen] = useState(false);
   const justOpened = useRef(true);
@@ -56,19 +59,17 @@ export default function GameStartDialogue({
     const picked = typeof action === "function" ? action(undefined) : action;
     if (!picked) return;
     // Check if already selected
-    setSelectedDrinks((prev): TurnDrink[] => {
-      const already = prev.some((td) => td.drink.id === picked.id);
-      return already ? prev : [...prev, { drink: picked, turn_id: -1, n: 1 }];
+    setSelectedDrinks((prev): TurnDrinks => {
+      const already = prev.drinks.some((td) => td.drink.id === picked.id);
+      return already
+        ? prev
+        : { drinks: [...prev.drinks, { drink: picked, turn_id: -1, n: 1 }] };
     });
   }, []);
 
-  const handleDelete = (id: number) => {
-    setSelectedDrinks((prev) => prev.filter((td) => td.drink.id !== id));
-  };
-
   const availableDrinks = useMemo<Drink[]>(() => {
     return knownDrinks.filter(
-      (d1) => !selectedDrinks.some((td) => td.drink.id === d1.id),
+      (d1) => !selectedDrinks.drinks.some((td) => td.drink.id === d1.id),
     );
   }, [knownDrinks, selectedDrinks]);
 
@@ -77,7 +78,7 @@ export default function GameStartDialogue({
     if (!socket) return;
     const firstTurn: FirstTurnPost = {
       game_id: game.id,
-      drinks: selectedDrinks,
+      drinks: selectedDrinks.drinks,
     };
     socket.emit("start-game", firstTurn);
     setOpen(false);
@@ -101,43 +102,41 @@ export default function GameStartDialogue({
             onSubmit={handleSubmit}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            className="rounded-lg w-xl bg-white p-6 shadow"
+            className="w-xl bg-white h-[80dvh] max-h-200 flex flex-col gap-2 px-4 py-2"
           >
-            <div className="flex flex-col mb-4 border-2 border-juvu-sini-800 rounded-3xl p-2 h-80">
-              <DropdownMenu
-                buttonText="Lisää juoma"
-                options={availableDrinks}
-                selectedOption={undefined}
-                setSelectedOption={handleAdd}
-              />
+            <p className="text-xl">Valitse aloitusjuomat</p>
+            <DropdownMenu
+              buttonText="Lisää juoma"
+              options={availableDrinks}
+              selectedOption={undefined}
+              setSelectedOption={handleAdd}
+            />
 
-              <div className="flex flex-col flex-1 gap-1 py-2 overflow-y-auto">
-                {selectedDrinks.length === 0 && (
-                  <p className="text-tertiary-500">Ei valittuja juomia</p>
-                )}
-                {selectedDrinks.map((td) => (
-                  <DrinkSelectionCard
-                    key={td.drink.id}
-                    turnDrink={td}
-                    onDelete={handleDelete}
-                    updateDrinks={setSelectedDrinks}
-                  />
-                ))}
-              </div>
+            <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
+              {selectedDrinks.drinks.length === 0 && (
+                <p className="text-tertiary-500">Ei valittuja juomia</p>
+              )}
+              {selectedDrinks.drinks.map((td) => (
+                <DrinkSelectionCard
+                  key={td.drink.id}
+                  turnDrink={td}
+                  updateDrinks={setSelectedDrinks}
+                />
+              ))}
             </div>
 
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-between px-4 py-4">
               <button
                 type="button"
-                className="button"
+                className="button text-xl p-4"
                 onClick={() => setOpen(false)}
               >
                 Eiku
               </button>
               <button
                 type="submit"
-                className="button"
-                disabled={selectedDrinks.length === 0}
+                className="button text-xl p-4"
+                disabled={selectedDrinks.drinks.length === 0}
               >
                 Aloita peli
               </button>
@@ -146,56 +145,5 @@ export default function GameStartDialogue({
         </PopUpDialogue>
       )}
     </>
-  );
-}
-
-function DrinkSelectionCard({
-  turnDrink,
-  onDelete,
-  updateDrinks,
-}: {
-  turnDrink: TurnDrink;
-  onDelete: (id: number) => void;
-  updateDrinks: React.Dispatch<React.SetStateAction<TurnDrink[]>>;
-}): JSX.Element {
-  const handleChange = (n: number) => {
-    updateDrinks((list) => {
-      return list.map((td) =>
-        td.drink.id === turnDrink.drink.id ? { ...td, n: Math.max(1, n) } : td,
-      );
-    });
-  };
-
-  return (
-    <div className="flex items-center box p-2 gap-2">
-      <p className="flex-1 overflow-hidden text-nowrap text-left text-ellipsis text-xl font-bold">
-        {turnDrink.drink.name}
-      </p>
-      <button
-        type="button"
-        className="button py-1"
-        onClick={() => handleChange(Math.max(1, turnDrink.n - 1))}
-      >
-        -
-      </button>
-      <p className="text-lg text-center">{Math.max(1, turnDrink.n)}</p>
-      <button
-        type="button"
-        className="button py-1"
-        onClick={() => handleChange(turnDrink.n + 1)}
-      >
-        +
-      </button>
-      <button
-        type="button"
-        className="button py-1"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(turnDrink.drink.id);
-        }}
-      >
-        Poista
-      </button>
-    </div>
   );
 }

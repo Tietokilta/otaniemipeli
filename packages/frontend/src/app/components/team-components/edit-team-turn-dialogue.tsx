@@ -26,7 +26,10 @@ export const EditTeamTurnDialogue = ({
   if (!open) return null;
 
   return (
-    <PopUpDialogue setOpen={setOpen}>
+    <PopUpDialogue
+      setOpen={setOpen}
+      title={`Vuoro joukkueelle ${team.team.team_name}`}
+    >
       {!choice && (
         <div className="flex flex-col gap-6 p-4">
           <h3>
@@ -278,53 +281,52 @@ const AddTeamPenaltyForm = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2 pb-4">
+    <form
+      className="w-xl flex flex-col gap-2 bg-juvu-valko h-[80dvh] max-h-200 px-4 py-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
+    >
       <p className="text-xl">
         Lisätään rangaistus joukkueelle:{" "}
         <span className="text-juvu-sini-800">{team.team.team_name}</span>
       </p>
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-      >
-        <DropdownMenu
-          buttonText="Lisää juoma"
-          options={drinks.drink_ingredients}
-          selectedOption={selectedDrink}
-          setSelectedOption={setSelectedDrink}
-        />
-        {penaltyDrinks.drinks.length > 0 && (
-          <ul className="list-none flex flex-col gap-1">
-            {penaltyDrinks.drinks.map((drink) => (
-              <DrinkSelectionCard
-                key={drink.drink.id}
-                turnDrink={drink}
-                updateDrinks={setPenaltyDrinks}
-              />
-            ))}
-          </ul>
+      <DropdownMenu
+        buttonText="Lisää juoma"
+        options={drinks.drink_ingredients}
+        selectedOption={selectedDrink}
+        setSelectedOption={setSelectedDrink}
+      />
+      <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
+        {penaltyDrinks.drinks.length === 0 && (
+          <p className="text-tertiary-500">Ei valittuja juomia</p>
         )}
-        <div className="flex justify-between px-4 py-4">
-          <button
-            type="button"
-            className="button text-xl p-4"
-            onClick={() => controller(null)}
-          >
-            Eiku
-          </button>
-          <button
-            type="button"
-            className="button text-xl p-4"
-            onClick={handleSubmit}
-            disabled={penaltyDrinks.drinks.length === 0}
-          >
-            Sakkoa
-          </button>
-        </div>
-      </form>
-    </div>
+        {penaltyDrinks.drinks.map((drink) => (
+          <DrinkSelectionCard
+            key={drink.drink.id}
+            turnDrink={drink}
+            updateDrinks={setPenaltyDrinks}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between px-4 py-4">
+        <button
+          type="button"
+          className="button text-xl p-4"
+          onClick={() => controller(null)}
+        >
+          Eiku
+        </button>
+        <button
+          type="button"
+          className="button text-xl p-4"
+          onClick={handleSubmit}
+          disabled={penaltyDrinks.drinks.length === 0}
+        >
+          Sakkoa
+        </button>
+      </div>
+    </form>
   );
 };
 
@@ -369,7 +371,7 @@ export function DrinkSelectionCard({
       >
         <button
           type="button"
-          className="w-1/3 aspect-square button text-3xl select-none"
+          className="w-1/3 button text-3xl select-none"
           onClick={() => updateN(-1)}
         >
           -
@@ -379,7 +381,7 @@ export function DrinkSelectionCard({
         </div>
         <button
           type="button"
-          className="w-1/3 aspect-square button text-3xl select-none"
+          className="w-1/3 button text-3xl select-none"
           onClick={() => updateN(1)}
         >
           +
