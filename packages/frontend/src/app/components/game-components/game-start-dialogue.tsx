@@ -168,7 +168,7 @@ function DrinkSelectionCard({
 
   return (
     <div className="flex items-center box p-2 gap-2">
-      <p className="flex-1 overflow-hidden whitespace-nowrap text-left text-ellipsis text-xl font-bold">
+      <p className="flex-1 overflow-hidden text-nowrap text-left text-ellipsis text-xl font-bold">
         {turnDrink.drink.name}
       </p>
       <button

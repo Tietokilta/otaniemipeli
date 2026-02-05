@@ -28,40 +28,47 @@ export const EditTeamTurnDialogue = ({
   return (
     <PopUpDialogue setOpen={setOpen}>
       {!choice && (
-        <div className="flex flex-col gap-2 p-4">
-          <h3>Lisää Joukkueelle {team.team.team_name}</h3>
-          <div className="flex gap-2 p-4 center">
-            <button className="button" onClick={() => setChoice("penalty")}>
-              Sakkoa
-            </button>
-            {
-              // if last turn of the team is finished show start turn if not show end turn option
-              team.turns.length === 0 ||
-              team.turns[team.turns.length - 1].end_time ? (
-                <button className="button" onClick={() => setChoice("turn")}>
-                  Uusi vuoro
-                </button>
-              ) : (
-                <button
-                  className="button"
-                  onClick={() => {
-                    if (!socket) {
-                      return;
-                    }
-                    const params: EndTurn = {
-                      team_id: team.team.team_id,
-                      game_id: team.team.game_id,
-                    };
-                    socket.emit("end-turn", params);
-                    socket.emit("game-data", team.team.game_id);
-                    setChoice(null);
-                  }}
-                >
-                  Päätä vuoro
-                </button>
-              )
-            }
-          </div>
+        <div className="flex flex-col gap-6 p-4">
+          <h3>
+            Joukkue:{" "}
+            <span className="text-juvu-sini-800">{team.team.team_name}</span>
+          </h3>
+          <button
+            className="button text-xl p-5"
+            onClick={() => setChoice("penalty")}
+          >
+            Sakko
+          </button>
+          {
+            // if last turn of the team is finished show start turn if not show end turn option
+            team.turns.length === 0 ||
+            team.turns[team.turns.length - 1].end_time ? (
+              <button
+                className="button text-xl p-5"
+                onClick={() => setChoice("turn")}
+              >
+                Uusi vuoro (nopanheitto)
+              </button>
+            ) : (
+              <button
+                className="button text-xl p-5"
+                onClick={() => {
+                  if (!socket) {
+                    return;
+                  }
+                  const params: EndTurn = {
+                    team_id: team.team.team_id,
+                    game_id: team.team.game_id,
+                  };
+                  socket.emit("end-turn", params);
+                  socket.emit("game-data", team.team.game_id);
+                  setChoice(null);
+                }}
+              >
+                Juomat juotu
+              </button>
+            )
+          }
         </div>
       )}
       {choice === "penalty" && (
@@ -75,6 +82,29 @@ export const EditTeamTurnDialogue = ({
         <AddTeamTurnForm team={team} controller={setChoice} setOpen={setOpen} />
       )}
     </PopUpDialogue>
+  );
+};
+
+const Dice = ({
+  value,
+  setValue,
+}: {
+  value: number;
+  setValue: React.Dispatch<React.SetStateAction<number>>;
+}) => {
+  return (
+    <div className="flex gap-2 justify-center">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <button
+          key={i}
+          type="button"
+          className={`rounded cursor-pointer border-2 text-3xl w-[12vw] max-w-24 aspect-square ${value === i ? "bg-juvu-sini-800 border-juvu-sini-600 text-white" : ""}`}
+          onClick={() => setValue(i)}
+        >
+          {i}
+        </button>
+      ))}
+    </div>
   );
 };
 
@@ -112,7 +142,10 @@ const AddTeamTurnForm = ({
 
   return (
     <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2">
-      <p>Lisätään vuoroa joukkueelle: {team.team.team_name}</p>
+      <p className="text-xl">
+        Lisätään vuoroa joukkueelle:{" "}
+        <span className="text-juvu-sini-800">{team.team.team_name}</span>
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -120,36 +153,27 @@ const AddTeamTurnForm = ({
         }}
       >
         <div className="flex flex-col w-full gap-2">
-          <div className="flex gap-2 center">
-            <h2>Noppa 1:</h2>
-            <input
-              type="number"
-              min="1"
-              max="6"
-              value={dice1}
-              onChange={(e) => setDice1(Number(e.target.value))}
-              required
-            />
-          </div>
-          <div className="flex gap-2 center">
-            <h2>Noppa 2:</h2>
-            <input
-              type="number"
-              min="1"
-              max="6"
-              value={dice2}
-              onChange={(e) => setDice2(Number(e.target.value))}
-              required
-            />
-          </div>
+          <h2>Noppa 1:</h2>
+          <Dice value={dice1} setValue={setDice1} />
+          <h2>Noppa 2:</h2>
+          <Dice value={dice2} setValue={setDice2} />
         </div>
       </form>
-      <div className="flex gap-2 px-4 pb-4">
-        <button className="button" onClick={() => controller(null)}>
+      <div className="flex justify-between px-4 py-4">
+        <button
+          type="button"
+          className="button text-xl p-4"
+          onClick={() => controller(null)}
+        >
           Eiku
         </button>
-        <button className="button ml-auto" type="button" onClick={submitTurn}>
-          Lähetä
+        <button
+          className="button text-xl p-4"
+          type="button"
+          onClick={submitTurn}
+          disabled={dice1 === 0 || dice2 === 0}
+        >
+          Heitä
         </button>
       </div>
     </div>
@@ -239,14 +263,6 @@ const AddTeamPenaltyForm = ({
     prevSelectedDrinkRef.current = undefined;
   }, [selectedDrink, team]);
 
-  const deleteDrink = (id: number) => {
-    setPenaltyDrinks((prev) => {
-      return {
-        drinks: prev.drinks.filter((drink) => drink.drink.id !== id),
-      };
-    });
-  };
-
   const handleSubmit = () => {
     if (!socket) {
       return;
@@ -263,7 +279,10 @@ const AddTeamPenaltyForm = ({
 
   return (
     <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2 pb-4">
-      <p>Lisätään rangaistus joukkueelle: {team.team.team_name}</p>
+      <p className="text-xl">
+        Lisätään rangaistus joukkueelle:{" "}
+        <span className="text-juvu-sini-800">{team.team.team_name}</span>
+      </p>
       <form
         className="flex flex-col gap-2"
         onSubmit={(e) => {
@@ -276,25 +295,31 @@ const AddTeamPenaltyForm = ({
           selectedOption={selectedDrink}
           setSelectedOption={setSelectedDrink}
         />
-        <div>
-          {penaltyDrinks.drinks.length > 0 && (
-            <ul className="list-disc pl-5 gap-1">
-              {penaltyDrinks.drinks.map((drink) => (
-                <DrinkSelectionCard
-                  key={drink.drink.id}
-                  turnDrink={drink}
-                  onDelete={deleteDrink}
-                  updateDrinks={setPenaltyDrinks}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="flex gap-2 center">
-          <button className="button ml-1" onClick={() => controller(null)}>
+        {penaltyDrinks.drinks.length > 0 && (
+          <ul className="list-none flex flex-col gap-1">
+            {penaltyDrinks.drinks.map((drink) => (
+              <DrinkSelectionCard
+                key={drink.drink.id}
+                turnDrink={drink}
+                updateDrinks={setPenaltyDrinks}
+              />
+            ))}
+          </ul>
+        )}
+        <div className="flex justify-between px-4 py-4">
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={() => controller(null)}
+          >
             Eiku
           </button>
-          <button className="button mr-1" onClick={handleSubmit}>
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={handleSubmit}
+            disabled={penaltyDrinks.drinks.length === 0}
+          >
             Sakkoa
           </button>
         </div>
@@ -305,94 +330,60 @@ const AddTeamPenaltyForm = ({
 
 export function DrinkSelectionCard({
   turnDrink,
-  onDelete,
   updateDrinks,
 }: {
   turnDrink: TurnDrink;
-  onDelete: (id: number) => void;
   updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
 }): JSX.Element {
-  const [n, setN] = useState<number>(turnDrink.n || 1);
-  const [showEverything, setShowEverything] = useState<boolean>(false);
-
-  // Track initial render to avoid unnecessary update on mount
-  const isFirstRender = useRef(true);
-  // Store stable reference for turnDrink
-  const turnDrinkRef = useRef(turnDrink);
-  turnDrinkRef.current = turnDrink;
-
-  useEffect(() => {
-    // Skip the initial render
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    const td = turnDrinkRef.current;
+  const updateN = (change: number) => {
     updateDrinks((dr) => {
+      if (turnDrink.n + change < 1) {
+        // Delete drink if n goes below 1
+        return {
+          drinks: dr.drinks.filter(
+            (drink) => drink.drink.id !== turnDrink.drink.id,
+          ),
+        };
+      }
       return {
         drinks: dr.drinks.map((existingDrink) =>
-          existingDrink.drink.id === td.drink.id
+          existingDrink.drink.id === turnDrink.drink.id
             ? {
                 ...existingDrink,
-                ...td,
-                n: n,
+                n: existingDrink.n + change,
               }
             : existingDrink,
         ),
       };
     });
-  }, [n, updateDrinks]);
+  };
 
   return (
-    <div
-      className="flex gap-2 w-full box p-2 cursor-pointer center"
-      onClick={() => {
-        setShowEverything(!showEverything);
-      }}
-    >
-      <div className="flex h-1/3">
-        <p className="mr-auto text-lg font-bold">{turnDrink.drink.name}</p>
-        {showEverything && (
-          <div
-            className="flex button ml-auto justify-center items-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(turnDrink.drink.id);
-            }}
-          >
-            <p>Poista</p>
-          </div>
-        )}
+    <div className="flex gap-2 w-full box p-2 center">
+      <div className="w-1/2 mr-auto text-lg font-bold overflow-hidden flex-grow-0 text-ellipsis text-nowrap text-left">
+        {turnDrink.drink.name}
       </div>
       <div
-        className="flex gap-2 w-1/2 center ml-auto"
+        className="flex gap-2 w-1/2 center"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-1/3 center button p-1">
-          <p
-            className="text-center w-full select-none"
-            onClick={() => {
-              if (n <= 1) return;
-              setN(n - 1);
-            }}
-          >
-            -
-          </p>
+        <button
+          type="button"
+          className="w-1/3 aspect-square button text-3xl select-none"
+          onClick={() => updateN(-1)}
+        >
+          -
+        </button>
+        <div className="w-1/3 center p-1 text-lg text-center">
+          {turnDrink.n}
         </div>
-        <div className="w-1/3 center p-1">
-          <p className="text-sm text-center w-full">{n}</p>
-        </div>
-        <div className="w-1/3 center button p-1">
-          <p
-            className="text-center w-full select-none"
-            onClick={() => {
-              setN(n + 1);
-            }}
-          >
-            +
-          </p>
-        </div>
+        <button
+          type="button"
+          className="w-1/3 aspect-square button text-3xl select-none"
+          onClick={() => updateN(1)}
+        >
+          +
+        </button>
       </div>
     </div>
   );
