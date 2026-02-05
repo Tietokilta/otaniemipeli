@@ -74,14 +74,17 @@ export async function getDrinkIngredients(
   return await res.json();
 }
 
-export async function addDrinkIngredient(toPost: DrinkIngredientsPost) {
+export async function addDrinkIngredient(
+  toPost: DrinkIngredientsPost,
+  token: string | null,
+) {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/drinks/ingredients`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `${localStorage.getItem("auth_token")}`,
+        Authorization: `${token ?? ""}`,
       },
       body: JSON.stringify(toPost),
     },

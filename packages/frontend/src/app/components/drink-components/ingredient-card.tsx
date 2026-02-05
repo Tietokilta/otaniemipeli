@@ -34,7 +34,7 @@ export default function IngredientCard({
     : "text-xl font-mono px-1 text-left";
 
   return (
-    <li className="shadow-md shadow-juvu-sini-600 box center w-full">
+    <li className="box-hover center w-full">
       <div className="flex border-juvu-sini-800 items-center">
         <p className={className + "r w-[35%] font-bold text-right"}>
           {ingredient.name}
@@ -50,7 +50,7 @@ export default function IngredientCard({
         </p>
         {deleteFromDrink && drink_id ? (
           <button
-            className="rounded text-sm ml-auto bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
+            className="rounded cursor-pointer text-sm ml-auto bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
             onClick={handleDelete}
           >
             Poista

@@ -38,7 +38,7 @@ export default function DrinkCard({
 
   return (
     <li
-      className="shadow-md hover:shadow-lg shadow-juvu-kulta box-hover center w-full"
+      className={`shadow-md hover:shadow-lg shadow-juvu-kulta box-hover center w-full ${functional && "cursor-pointer"}`}
       onClick={onClickHandle}
     >
       <div className="flex items-center justify-items-start w-full">
@@ -78,7 +78,7 @@ export default function DrinkCard({
         >
           {state && functional ? (
             <button
-              className="button w-full my-1 text-sm"
+              className="rounded cursor-pointer w-full my-1 text-sm bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteDrink(
@@ -93,18 +93,19 @@ export default function DrinkCard({
           ) : null}
         </div>
       </div>
-      {functional && state && drink_ingredients.length >= drinkIngrLen ? (
-        <AddDrinkIngredientForm
-          drink={drink.drink}
-          ingredientsStart={drink_ingredients}
-          onUpdateAction={updateIngredients}
-        />
-      ) : null}
       {state ? (
         <>
-          <p className="w-full text-center text-2xl font-redaction-50">
-            Ainesosat
-          </p>
+          <hr className="my-2 -mx-3 border-juvu-sini-600" />
+          <div className="w-full mb-2 flex text-2xl font-redaction-50">
+            <div className="w-full">Ainesosat</div>
+            {functional && state && drink_ingredients.length >= drinkIngrLen ? (
+              <AddDrinkIngredientForm
+                drink={drink.drink}
+                ingredientsStart={drink_ingredients}
+                onUpdateAction={updateIngredients}
+              />
+            ) : null}
+          </div>
           <ul className="flex flex-col gap-2 w-full">
             {drink_ingredients.map((ingredient) => (
               <IngredientCard

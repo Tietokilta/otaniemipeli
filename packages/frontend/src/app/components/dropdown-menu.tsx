@@ -24,7 +24,7 @@ export default function DropdownMenu<T extends WithNameAndId>({
   return (
     <Menu>
       <MenuButton className="w-full button center text-lg">
-        {buttonText}
+        {buttonText}&nbsp;&#9660;
       </MenuButton>
       <MenuItems
         anchor="right"
@@ -40,7 +40,8 @@ export default function DropdownMenu<T extends WithNameAndId>({
                 data-focus:bg-primary-500
                 text-tertiary-500
                 data-focus:text-tertiary-900
-                p-3"
+                p-3
+                cursor-pointer"
                 onClick={() =>
                   setSelectedOption((prev) =>
                     prev && prev?.id === option.id ? undefined : option,

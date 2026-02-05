@@ -103,7 +103,7 @@ export default function AddDrinkIngredientForm({
       return;
     }
 
-    await addDrinkIngredient(toPost);
+    await addDrinkIngredient(toPost, localStorage.getItem("auth_token"));
 
     onUpdateAction?.();
     setOpen(false);
@@ -112,7 +112,7 @@ export default function AddDrinkIngredientForm({
   return (
     <>
       <div
-        className="button"
+        className="rounded cursor-pointer text-sm bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center text-nowrap"
         onClick={(e) => {
           e.stopPropagation(); // extra safety if inside another clickable
           setOpen(true);
@@ -127,51 +127,19 @@ export default function AddDrinkIngredientForm({
             onSubmit={handleSubmit}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-lg bg-white p-6 shadow"
+            className="max-w-2xl rounded-lg bg-white p-6 shadow"
           >
             <h2 className="mb-1 text-xl font-semibold">
               Lisää ainesosa juomaan
             </h2>
             <DrinkCardNoIngredients drink={drink} className="mb-2" />
-            <div className="flex w-full mb-4 border-2 border-juvu-sini-800 rounded-3xl p-2 h-60">
-              <DropdownMenu
-                buttonText="Ainesosat"
-                options={available}
-                selectedOption={picked}
-                setSelectedOption={setPicked}
-              />
-
-              <div className="flex flex-col items-center w-full h-full overflow-scroll mb-4">
-                {selected.length > 0 ? (
-                  selected.map((ing) => (
-                    <button
-                      type="button"
-                      key={ing.id}
-                      className="flex border-juvu-sini-800 border-2 w-full rounded-2xl items-center mx-2 py-1 my-1 hover:border-juvu-sini-600"
-                      onClick={() => remove(ing.id)}
-                      title={
-                        originalIds.has(ing.id)
-                          ? "Jo lisätty (lukittu)"
-                          : "Poista valinnasta"
-                      }
-                    >
-                      <p className="text-base px-2 text-right border-juvu-sini-600 border-r font-bold w-full">
-                        {ing.name}
-                      </p>
-                      <p className="text-base px-2 text-left border-juvu-sini-800 w-3/12">
-                        {ing.abv}%
-                      </p>
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-base pl-2 my-2 text-tertiary-900">
-                    Valitse ainesosa
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex w-full mb-4 border-2 border-juvu-sini-800 rounded-3xl p-2 h-80">
+            <DropdownMenu
+              buttonText="Lisää ainesosa"
+              options={available}
+              selectedOption={picked}
+              setSelectedOption={setPicked}
+            />
+            <div className="flex w-full mt-2 mb-4 border-2 border-juvu-sini-800 rounded-3xl p-2 h-80">
               <div className="flex flex-col items-center w-full h-full overflow-scroll mb-4">
                 {selected.length > 0 ? (
                   selected.map((ing) => {
@@ -185,9 +153,18 @@ export default function AddDrinkIngredientForm({
                         key={ing.id}
                         className="flex border-juvu-sini-800 border-2 w-full rounded-2xl items-center px-3 py-1 my-1 hover:border-juvu-sini-600"
                       >
-                        <p className="text-base p-2 text-left font-bold w-9/12">
+                        <p className="text-base px-2 py-2 text-left font-bold">
                           {ing.name}
                         </p>
+                        {ing.abv > 0 ? (
+                          <p className="text-base px-2 border-juvu-sini-800 border-l">
+                            {ing.abv}%
+                          </p>
+                        ) : (
+                          <p className="text-base px-2 border-juvu-sini-800 border-l">
+                            0.0%
+                          </p>
+                        )}
                         {isOriginal ? (
                           <span className="ml-auto text-sm opacity-70">
                             {existingQty ?? 0} cl (jo lisätty)
