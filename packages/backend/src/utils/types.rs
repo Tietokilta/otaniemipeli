@@ -111,7 +111,8 @@ pub struct Team {
     pub game_id: GameId,
     pub team_name: String,
     pub team_hash: String,
-    pub double: bool,
+    // TODO: store elsewhere?
+    pub double_tampere: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Teams {
@@ -153,8 +154,10 @@ pub struct Turn {
     pub turn_id: TurnId,
     pub team_id: TeamId,
     pub game_id: GameId,
-    /// when dice were thrown OR "give penalty" clicked (including game start penalty)
+    /// when "give turn" OR "give penalty" clicked (including game start penalty)
     pub start_time: DateTime<Utc>,
+    /// when dice were thrown (= confirmed_at if penalty turn)
+    pub thrown_at: Option<DateTime<Utc>>,
     /// when dice throw and square results were confirmed by referee, or penalty confirmed
     pub confirmed_at: Option<DateTime<Utc>>,
     /// when IE started making the drink (= confirmed_at if no drinks awarded)
@@ -265,7 +268,7 @@ impl PlaceDrinks {
         client: &Client,
         turn_id: TurnId,
         game_id: GameId,
-        double: bool,
+        multiplier: i32,
     ) -> Result<TurnDrinks, AppError> {
         let mut result = Vec::new();
         for pd in &self.drinks {
@@ -281,7 +284,7 @@ impl PlaceDrinks {
         }
         let drinks: Vec<TurnDrink> = result
             .iter()
-            .map(|pd| pd.to_turn_drink(turn_id, double))
+            .map(|pd| pd.to_turn_drink(turn_id, multiplier))
             .collect();
         Ok(TurnDrinks { drinks })
     }
@@ -297,11 +300,11 @@ pub struct PlaceDrink {
     pub n_update: String,
 }
 impl PlaceDrink {
-    pub fn to_turn_drink(&self, turn_id: TurnId, double: bool) -> TurnDrink {
+    pub fn to_turn_drink(&self, turn_id: TurnId, multiplier: i32) -> TurnDrink {
         TurnDrink {
             drink: self.drink.clone(),
             turn_id,
-            n: if double { self.n * 2 } else { self.n },
+            n: self.n * multiplier,
         }
     }
 }

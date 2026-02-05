@@ -12,7 +12,7 @@ export default function AddTeamForm({ gameId }: { gameId: number }) {
       game_id: gameId,
       team_name: name,
       team_hash: "",
-      double: false,
+      double_tampere: false,
     };
     console.log(team);
     if (socket) {

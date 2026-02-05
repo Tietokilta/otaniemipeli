@@ -76,6 +76,7 @@ pub fn build_turn(row: Row) -> Turn {
         team_id: row.get("team_id"),
         game_id: row.get("game_id"),
         start_time: row.get("start_time"),
+        thrown_at: row.get("thrown_at"),
         confirmed_at: row.get("confirmed_at"),
         mixing_at: row.get("mixing_at"),
         mixed_at: row.get("mixed_at"),

@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS teams
     game_id         INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
     team_name       TEXT NOT NULL,
     team_hash       TEXT NOT NULL,
-    doubled         BOOLEAN NOT NULL DEFAULT FALSE
+    double_tampere  BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- turns taken by teams in a game
@@ -125,8 +125,10 @@ CREATE TABLE IF NOT EXISTS turns
     turn_id      SERIAL PRIMARY KEY,
     team_id      INTEGER NOT NULL REFERENCES teams (team_id) ON DELETE CASCADE,
     game_id      INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
-    -- when dice were thrown OR "give penalty" clicked (including game start penalty)
+    -- when "give turn" OR "give penalty" clicked (including game start penalty)
     start_time   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- when dice were thrown (= confirmed_at if penalty turn)
+    thrown_at    TIMESTAMPTZ,
     -- when dice throw and square results were confirmed by referee, or penalty confirmed
     confirmed_at TIMESTAMPTZ,
     -- when IE started making the drink (= confirmed_at if no drinks awarded)

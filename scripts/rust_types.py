@@ -166,7 +166,7 @@ class Team:
     game_id: int
     team_name: str
     team_hash: str
-    double: bool
+    double_tampere: bool
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 
@@ -235,6 +235,7 @@ class Turn:
     start_time: str
     penalty: bool
     drinks: 'TurnDrinks'
+    thrown_at: Optional[str] = None
     confirmed_at: Optional[str] = None
     mixing_at: Optional[str] = None
     mixed_at: Optional[str] = None

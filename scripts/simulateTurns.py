@@ -323,7 +323,7 @@ def do_create_team(
         game_id=game_id,
         team_name=team_name,
         team_hash="",  # Backend will assign
-        double=False,
+        double_tampere=False,
     )
     sio.emit("create-team", team_payload.__dict__, namespace=REF_NS)
 

@@ -56,7 +56,7 @@ declare global {
     game_id: number;
     team_name: string;
     team_hash: string;
-    double: boolean;
+    double_tampere: boolean;
   }
 
   interface Teams {
@@ -99,6 +99,7 @@ declare global {
     team_id: number;
     game_id: number;
     start_time: string;
+    thrown_at: string | null;
     confirmed_at: string | null;
     mixing_at: string | null;
     mixed_at: string | null;
@@ -262,6 +263,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

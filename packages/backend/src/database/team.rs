@@ -8,7 +8,7 @@ pub fn build_team_from_row(row: &tokio_postgres::Row) -> Team {
         game_id: row.get("game_id"),
         team_name: row.get("team_name"),
         team_hash: row.get("team_hash"),
-        double: row.get("doubled"),
+        double_tampere: row.get("double_tampere"),
     }
 }
 
@@ -34,21 +34,15 @@ pub async fn get_teams(client: &Client, game_id: GameId) -> Result<Vec<Team>, Pg
     Ok(rows.iter().map(|row| build_team_from_row(&row)).collect())
 }
 
-pub async fn make_team_double(client: &Client, team_id: TeamId) -> Result<(), PgError> {
+pub async fn set_team_double_tampere(
+    client: &Client,
+    team_id: TeamId,
+    double_tampere: bool,
+) -> Result<(), PgError> {
     let query_str = "\
-    UPDATE teams SET doubled = TRUE WHERE team_id = $1";
+    UPDATE teams SET double_tampere = $2 WHERE team_id = $1";
     client
-        .execute(query_str, &[&team_id])
-        .await
-        .map_err(|e| PgError::from(e))?;
-    Ok(())
-}
-
-pub async fn make_team_normal(client: &Client, team_id: TeamId) -> Result<(), PgError> {
-    let query_str = "\
-    UPDATE teams SET doubled = FALSE WHERE team_id = $1";
-    client
-        .execute(query_str, &[&team_id])
+        .execute(query_str, &[&team_id, &double_tampere])
         .await
         .map_err(|e| PgError::from(e))?;
     Ok(())

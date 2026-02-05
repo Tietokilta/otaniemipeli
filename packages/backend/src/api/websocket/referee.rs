@@ -1,20 +1,14 @@
 use crate::api::websocket::utils::{
-    emit_app_error, emit_db_error, emit_msg, emit_team_data, emit_teams, end_turn_emit,
-    end_turn_handler, game_data_handler, get_db_client, get_drinks_handler, get_games_handler,
-    run_emit_fn, verify_login_handler,
+    emit_db_error, emit_msg, emit_team_data, emit_teams, end_turn_handler, game_data_handler,
+    get_db_client, get_drinks_handler, get_games_handler, run_emit_fn, start_turn_handler,
+    verify_login_handler,
 };
-use crate::database::boards::move_team;
-use crate::database::games::{
-    check_dice, end_game, get_games, get_team_data, post_game, start_game,
-};
-use crate::database::team::{create_team, make_team_double, make_team_normal};
-use crate::database::turns::{add_drinks_to_turn, add_visited_place, start_turn};
+use crate::database::games::{get_games, post_game, start_game};
+use crate::database::team::create_team;
+use crate::database::turns::add_drinks_to_turn;
 use crate::utils::socket::check_auth;
-use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{
-    EndTurn, FirstTurnPost, PlaceThrow, PostGame, PostStartTurn, PostTurnDrinks, SocketAuth, Team,
-    UserType,
-};
+use crate::utils::state::AppState;
+use crate::utils::types::{FirstTurnPost, PostGame, PostTurnDrinks, SocketAuth, Team, UserType};
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
 
@@ -81,154 +75,7 @@ pub async fn referee_on_connect<A: Adapter>(
     );
     s.on("get-drinks", get_drinks_handler);
     s.on("game-data", game_data_handler);
-    s.on(
-        "start-turn",
-        |s: SocketRef<A>,
-         Data(turn_start_data): Data<PostStartTurn>,
-         State(state): State<AppState>| async move {
-            tracing::info!("Referee: start-turn called");
-
-            let client = match get_db_client(&state, &s).await {
-                Some(c) => c,
-                None => return,
-            };
-
-            // Validate dice throw
-            if let Err(e) = check_dice(turn_start_data.dice1, turn_start_data.dice2) {
-                emit_app_error(&s, e).await;
-                return;
-            }
-
-            // If double double the drinks or effects when needed
-            let double = turn_start_data.dice1 == turn_start_data.dice2;
-            let throw = (turn_start_data.dice1 as i8, turn_start_data.dice2 as i8);
-
-            // Get game data
-            let game_data = match get_team_data(&client, turn_start_data.game_id).await {
-                Ok(gd) => gd,
-                Err(e) => {
-                    emit_db_error(&s, e).await;
-                    return;
-                }
-            };
-
-            // Begin the turn
-            let turn = match start_turn(&client, turn_start_data).await {
-                Ok(turn) => turn,
-                Err(e) => {
-                    emit_db_error(&s, e).await;
-                    return;
-                }
-            };
-
-            // If team has area double e.g. in Tampere
-            let team_double = match game_data
-                .teams
-                .iter()
-                .find(|t| t.team.team_id == turn.team_id)
-            {
-                Some(team) => team.team.double,
-                None => false,
-            };
-
-            // find current place for that Team (avoid cloning whole game_data)
-            let current_place = match game_data
-                .teams
-                .iter()
-                .find(|t| t.team.team_id == turn.team_id)
-                .and_then(|t| t.location.clone())
-            {
-                Some(place) => place,
-                None => {
-                    emit_app_error(
-                        &s,
-                        AppError::NotFound(format!(
-                            "Team {} has no current location - cannot start turn",
-                            turn.team_id
-                        )),
-                    )
-                    .await;
-                    return;
-                }
-            };
-
-            let pl = PlaceThrow {
-                place: current_place.clone(),
-                throw,
-                team_id: turn.team_id,
-            };
-
-            let place_after = match move_team(&client, pl).await {
-                Ok(p) => p,
-                Err(e) => {
-                    emit_app_error(&s, e).await;
-                    return;
-                }
-            };
-
-            // If moving to tampere on doubles then make team double drinks and if moving out of tampere
-            // and team had double drinks then revert back to normal drinks
-            if current_place.area == "normal" && place_after.area == "tampere" && double {
-                match make_team_double(&client, turn.team_id).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        emit_db_error(&s, e).await;
-                    }
-                };
-            } else if current_place.area == "tampere" && place_after.area == "normal" && team_double
-            {
-                match make_team_normal(&client, turn.team_id).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        emit_db_error(&s, e).await;
-                    }
-                };
-            }
-
-            // Convert place drinks to turn drinks and apply double if needed
-            let turn_drinks = match place_after
-                .drinks
-                .to_turn_drinks(&client, turn.turn_id, turn.game_id, double || team_double)
-                .await
-            {
-                Ok(td) => td,
-                Err(e) => {
-                    emit_app_error(&s, e).await;
-                    return;
-                }
-            };
-            let dr_empty = turn_drinks.drinks.is_empty();
-            // Write turn drinks to database
-            if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
-                emit_db_error(&s, e).await;
-                return;
-            }
-
-            if let Err(e) = add_visited_place(&client, place_after.place_number, turn.turn_id).await
-            {
-                emit_db_error(&s, e).await;
-                return;
-            }
-            if place_after.end {
-                if let Err(e) = end_game(&client, turn.game_id).await {
-                    emit_db_error(&s, e).await;
-                    return;
-                };
-            }
-            if dr_empty && !place_after.end {
-                end_turn_emit(
-                    &client,
-                    &s,
-                    EndTurn {
-                        team_id: turn.team_id,
-                        game_id: turn.game_id,
-                    },
-                )
-                .await;
-            }
-            emit_team_data(&client, &s, turn.game_id).await;
-        },
-    );
+    s.on("start-turn", start_turn_handler);
     s.on("end-turn", end_turn_handler);
     s.on(
         "add-penalties",
