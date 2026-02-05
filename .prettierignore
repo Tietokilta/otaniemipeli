@@ -5,5 +5,5 @@ target
 scripts
 .next
 pnpm-lock.yaml
-README.md
+*.md
 prettierrc.json
