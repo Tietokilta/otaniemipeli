@@ -44,7 +44,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
         <div className="flex flex-col gap-1 w-2/5">
           {drinks.drink_ingredients.length > 0 && (
             <Menu>
-              <MenuButton className="flex rounded text-base bg-juvu-sini-800 p-1 text-white h-10 mx-1 center w-full hover:bg-juvu-sini-600">
+              <MenuButton className="flex rounded cursor-pointer text-base bg-juvu-sini-800 p-1 text-white h-10 mx-1 center w-full hover:bg-juvu-sini-600">
                 Juomat
               </MenuButton>
               <MenuItems
@@ -58,7 +58,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
                       key={`${place.board_id}-${place.place_number}-${drink.drink.id}`}
                     >
                       <div
-                        className="w-full bg-juvu-sini-800 data-focus:bg-juvu-sini-600 hover:text-juvu-sini-800 hover:bg-juvu-sini-600 p-3"
+                        className="w-full bg-juvu-sini-800 data-focus:bg-juvu-sini-600 hover:text-juvu-sini-800 hover:bg-juvu-sini-600 p-3 cursor-pointer"
                         onClick={() =>
                           addDrink({
                             board_id: place.board_id,

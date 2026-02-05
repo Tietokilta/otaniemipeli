@@ -57,11 +57,9 @@ export default function BoardOverlay({
         </div>
       )}
       <div className="flex flex-col gap-2 w-1/3 h-full">
+        <PlaceCard place={focusedPlace} />
         <div className="mb-auto h-full">
           <AddDrinkToPlace place={focusedPlace} />
-        </div>
-        <div className="h-full">
-          <PlaceCard place={focusedPlace} />
         </div>
       </div>
     </div>
