@@ -32,7 +32,7 @@ jobs:
         run: pnpm lint
 
       - name: Typecheck
-        run: pnpm types:frontend:check
+        run: pnpm typecheck
 
       - name: Format check
         run: pnpm format:check
