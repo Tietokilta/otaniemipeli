@@ -5,6 +5,7 @@ use deadpool_postgres::Client;
 use std::cmp::min;
 use tokio_postgres::Row;
 
+/// Retrieves all game boards.
 pub async fn get_boards(client: &Client) -> Result<Boards, PgError> {
     let query = client
         .query("SELECT board_id, name FROM boards;", &[])
@@ -21,6 +22,7 @@ pub async fn get_boards(client: &Client) -> Result<Boards, PgError> {
     })
 }
 
+/// Retrieves all place definitions.
 pub async fn get_places(client: &Client) -> Result<Places, PgError> {
     let query = client
         .query(
@@ -42,6 +44,7 @@ pub async fn get_places(client: &Client) -> Result<Places, PgError> {
     })
 }
 
+/// Retrieves a single board by ID.
 pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, PgError> {
     let query = client
         .query_opt(
@@ -61,12 +64,14 @@ pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, PgEr
     }
 }
 
+/// Creates a new board.
 pub async fn post_board(client: &Client, board: Board) -> Result<u64, PgError> {
     client
         .execute("INSERT INTO boards (name) values ($1)", &[&board.name])
         .await
 }
 
+/// Builds a BoardPlace struct from a row and fetches its connections.
 async fn build_board_place_and_get_connections(
     client: &Client,
     row: &Row,
@@ -94,6 +99,7 @@ async fn build_board_place_and_get_connections(
     })
 }
 
+/// Retrieves all places on a board with their connections and drinks.
 pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<BoardPlaces, PgError> {
     let board: Board = get_board(client, board_id).await?;
     let query_str = "\
@@ -129,6 +135,7 @@ pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<Boar
     Ok(board_places)
 }
 
+/// Retrieves a specific place on a board by place number.
 pub async fn get_board_place(
     client: &Client,
     board_id: BoardId,
@@ -158,6 +165,7 @@ pub async fn get_board_place(
     build_board_place_and_get_connections(client, &row).await
 }
 
+/// Retrieves drinks associated with a place on a board.
 pub async fn get_place_drinks(
     client: &Client,
     place_number: i32,
@@ -203,6 +211,7 @@ pub async fn get_place_drinks(
     })
 }
 
+/// Adds drink assignments to a place on a board.
 pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, PgError> {
     let query_str = "\
     INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, n, n_update) \
@@ -227,6 +236,7 @@ pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
     Ok(drinks.drinks.len() as u64)
 }
 
+/// Retrieves connections from a place to adjacent places.
 pub async fn get_board_place_connections(
     client: &Client,
     board_id: BoardId,
@@ -252,6 +262,7 @@ pub async fn get_board_place_connections(
         .collect())
 }
 
+/// Creates a new place definition.
 pub async fn add_place(client: &Client, place: Place) -> Result<u64, PgError> {
     let query_str = "\
     INSERT INTO places (place_name, rule, place_type) \
@@ -265,6 +276,7 @@ pub async fn add_place(client: &Client, place: Place) -> Result<u64, PgError> {
         .await
 }
 
+/// Adds a place to a board at a specific position.
 pub async fn add_board_place(
     client: &Client,
     board_id: BoardId,
@@ -290,6 +302,7 @@ pub async fn add_board_place(
         .await
 }
 
+/// Updates the x,y coordinates of a place on a board.
 pub async fn update_coordinates(
     client: &Client,
     board_id: BoardId,
@@ -306,6 +319,7 @@ pub async fn update_coordinates(
         .await
 }
 
+/// Calculates the destination place for a team based on their dice throw.
 pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace, AppError> {
     let board_places: BoardPlaces = match get_board_places(client, place.place.board_id).await {
         Ok(bp) => bp,
@@ -316,6 +330,7 @@ pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace,
     get_next_place(&place.place, &board_places, throw)
 }
 
+/// Selects a connection based on movement direction and terrain type.
 fn pick_connection(
     connections: &[Connection],
     backwards_mode: bool,
@@ -326,6 +341,7 @@ fn pick_connection(
         .find(|c| c.backwards == backwards_mode && c.on_land == on_land)
 }
 
+/// Moves a team forward on the board by the given throw amount.
 fn move_forwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
@@ -375,6 +391,7 @@ fn move_forwards<'a>(
     Ok(current_place.clone())
 }
 
+/// Moves a team backward on the board by the given throw amount.
 fn move_backwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
@@ -404,6 +421,7 @@ fn move_backwards<'a>(
     Ok(current_place.clone())
 }
 
+/// Determines the next place based on current position and connections.
 fn get_next_place<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
@@ -421,6 +439,7 @@ fn get_next_place<'a>(
     }
 }
 
+/// Gets the starting place number for a board.
 pub async fn get_first_place(client: &Client, board_id: BoardId) -> Result<i32, PgError> {
     let query_str = "\
     SELECT place_number FROM board_places WHERE board_id = $1 AND start = TRUE";

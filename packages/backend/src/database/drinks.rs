@@ -9,6 +9,7 @@ use crate::utils::{
 };
 use deadpool_postgres::Client;
 
+/// Retrieves all ingredients from the database.
 pub async fn get_ingredients(client: &Client) -> Result<Ingredients, PgError> {
     let query_str = "\
     SELECT ingredient_id, name, abv, carbonated FROM ingredients";
@@ -30,6 +31,8 @@ pub async fn get_ingredients(client: &Client) -> Result<Ingredients, PgError> {
     }
     Ok(Ingredients { ingredients })
 }
+
+/// Retrieves a single ingredient by ID.
 pub async fn get_ingredient(client: &Client, id: IngredientId) -> Result<Ingredient, PgError> {
     let query_str = "\
     SELECT ingredient_id, name, abv, carbonated FROM ingredients WHERE ingredient_id = $1";
@@ -50,6 +53,8 @@ pub async fn get_ingredient(client: &Client, id: IngredientId) -> Result<Ingredi
         Err(e) => Err(e),
     }
 }
+
+/// Inserts a new ingredient into the database.
 pub async fn post_ingredient(client: &Client, ingredient: Ingredient) -> Result<u64, PgError> {
     let query_str = "\
     INSERT INTO ingredients (name, abv, carbonated) VALUES ($1, $2, $3)";
@@ -61,6 +66,8 @@ pub async fn post_ingredient(client: &Client, ingredient: Ingredient) -> Result<
         )
         .await
 }
+
+/// Deletes an ingredient by ID.
 pub async fn delete_ingredient(
     client: &Client,
     ingredient_id: IngredientId,
@@ -70,11 +77,15 @@ pub async fn delete_ingredient(
 
     client.execute(query_str, &[&ingredient_id]).await
 }
+
+/// Deletes a drink by ID.
 pub async fn delete_drink(client: &Client, drink_id: DrinkId) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM drinks WHERE drink_id = $1";
     client.execute(query_str, &[&drink_id]).await
 }
+
+/// Inserts a new drink into the database.
 pub async fn post_drink(client: &Client, drink: Drink) -> Result<u64, PgError> {
     let query_str = "\
     INSERT INTO drinks (name, favorite, no_mix_required) VALUES ($1, $2, $3)";
@@ -87,6 +98,7 @@ pub async fn post_drink(client: &Client, drink: Drink) -> Result<u64, PgError> {
         .await
 }
 
+/// Retrieves all drinks from the database.
 pub async fn get_drinks(client: &Client) -> Result<Drinks, PgError> {
     let query_str = "\
     SELECT drink_id, name, favorite, no_mix_required FROM drinks";
@@ -109,6 +121,8 @@ pub async fn get_drinks(client: &Client) -> Result<Drinks, PgError> {
     }
     Ok(Drinks { drinks })
 }
+
+/// Adds an ingredient to a drink with a specified quantity.
 pub async fn add_ingredient(
     client: &Client,
     drink_id: DrinkId,
@@ -122,6 +136,8 @@ pub async fn add_ingredient(
         .execute(query_str, &[&drink_id, &ingredient_id, &quantity])
         .await
 }
+
+/// Adds multiple ingredients to a drink.
 pub async fn add_ingredients(
     client: &Client,
     drink_ingredient: DrinkIngredientsPost,
@@ -144,6 +160,7 @@ pub async fn add_ingredients(
     Ok(rows)
 }
 
+/// Retrieves all ingredients for a specific drink.
 pub async fn get_drink_ingredients(
     client: &Client,
     drink: Drink,
@@ -196,6 +213,7 @@ pub async fn get_drink_ingredients(
     Ok(drink_ingredients)
 }
 
+/// Retrieves all drinks with their ingredients and calculated ABV.
 pub async fn get_drinks_ingredients(client: &Client) -> Result<DrinksIngredients, PgError> {
     let mut drink_ingredients: Vec<DrinkIngredients> = Vec::new();
     let drinks = match get_drinks(&client).await {
@@ -219,6 +237,8 @@ pub async fn get_drinks_ingredients(client: &Client) -> Result<DrinksIngredients
     }
     Ok(DrinksIngredients { drink_ingredients })
 }
+
+/// Removes an ingredient from a drink.
 pub async fn delete_ingredient_from_drink(
     client: &Client,
     drink_id: DrinkId,
@@ -231,6 +251,7 @@ pub async fn delete_ingredient_from_drink(
         .await
 }
 
+/// Updates a drink's name, favorite status, and no-mix flag.
 pub async fn update_drink(client: &Client, drink: Drink) -> Result<u64, PgError> {
     let query_str = "\
     UPDATE drinks SET name = $1, favorite = $2, no_mix_required = $3 WHERE drink_id = $4";

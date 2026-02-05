@@ -105,6 +105,7 @@ pub async fn add_visited_place(
         .map_err(PgError::from)
 }
 
+/// Adds or updates drinks associated with a turn.
 pub async fn add_drinks_to_turn(client: &Client, drinks: TurnDrinks) -> Result<u64, PgError> {
     let mut total_added = 0;
     for drink in drinks.drinks {

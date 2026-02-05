@@ -7,6 +7,7 @@ use rand::distr::Alphanumeric;
 use rand::Rng;
 use sha2::{Digest, Sha256};
 
+/// Hashes a password with a random salt using SHA-256.
 fn hash_password(pw: String) -> String {
     let salt: String = rand::rng()
         .sample_iter(&Alphanumeric)
@@ -18,6 +19,8 @@ fn hash_password(pw: String) -> String {
     hasher.update(&pre_hash);
     format!("{salt}{:X}", hasher.finalize())
 }
+
+/// Compares a plaintext password against a stored salted hash.
 fn compare_pw_to_db(pw_post: String, pw_db: String) -> bool {
     let salt: String = pw_db.chars().take(32).collect();
     let mut hasher = Sha256::new();
@@ -26,6 +29,7 @@ fn compare_pw_to_db(pw_post: String, pw_db: String) -> bool {
     pw_hash == pw_db
 }
 
+/// Authenticates a user and creates a new session on success.
 pub async fn post_login_db(
     login_info: LoginInfo,
     client: &Client,
@@ -87,6 +91,7 @@ pub async fn post_login_db(
     Ok((user, session_hash))
 }
 
+/// Creates a new session for a user and returns the session hash.
 pub async fn create_session(uid: UserId, client: &Client) -> Result<String, PgError> {
     let query_str = "\
     INSERT INTO sessions (uid, session_hash) \
@@ -102,6 +107,8 @@ pub async fn create_session(uid: UserId, client: &Client) -> Result<String, PgEr
         Err(e) => Err(e),
     }
 }
+
+/// Extends session expiry and cleans up expired sessions.
 pub async fn update_session(session_hash: &str, client: &Client) -> Result<(u64, u64), PgError> {
     let update_query = "\
         UPDATE sessions
@@ -116,6 +123,8 @@ pub async fn update_session(session_hash: &str, client: &Client) -> Result<(u64,
 
     Ok((update, delete))
 }
+
+/// Validates a session and returns session info if valid.
 pub async fn check_session(session_hash: &str, client: &Client) -> Result<SessionInfo, PgError> {
     let query_str = "\
     SELECT \
@@ -161,16 +170,22 @@ pub async fn check_session(session_hash: &str, client: &Client) -> Result<Sessio
     let ses = session.clone();
     Ok(ses)
 }
+
+/// Deletes a specific session by its hash.
 pub async fn delete_session(session_hash: &str, client: &Client) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM sessions WHERE session_hash = $1";
     client.execute(query_str, &[&session_hash]).await
 }
+
+/// Deletes all sessions for a user.
 pub async fn delete_all_sessions(uid: UserId, client: &Client) -> Result<u64, PgError> {
     let query_str = "\
     DELETE FROM sessions WHERE uid = $1";
     client.execute(query_str, &[&uid]).await
 }
+
+/// Checks if any users exist in the database.
 pub async fn users_exist(client: &Client) -> Result<bool, PgError> {
     let query_str = "\
     SELECT EXISTS (SELECT 1 FROM users)";
@@ -180,6 +195,8 @@ pub async fn users_exist(client: &Client) -> Result<bool, PgError> {
     let exists: bool = row.get(0);
     Ok(exists)
 }
+
+/// Checks if an email or username is already taken.
 pub async fn email_or_username_exist(
     client: &Client,
     email: &str,
@@ -196,6 +213,8 @@ pub async fn email_or_username_exist(
         Ok(true)
     }
 }
+
+/// Creates a new user account and returns user info with an active session.
 pub async fn user_create(
     client: &Client,
     mut user_info: UserCreateInfo,

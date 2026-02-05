@@ -2,6 +2,7 @@ use crate::utils::ids::{GameId, TeamId};
 use crate::utils::types::{PgError, Team};
 use deadpool_postgres::Client;
 
+/// Constructs a Team struct from a database row.
 pub fn build_team_from_row(row: &tokio_postgres::Row) -> Team {
     Team {
         team_id: row.get("team_id"),
@@ -12,6 +13,7 @@ pub fn build_team_from_row(row: &tokio_postgres::Row) -> Team {
     }
 }
 
+/// Creates a new team with a generated hash and returns it.
 pub async fn create_team(client: &Client, team: Team) -> Result<Team, PgError> {
     let query_str = "\
     INSERT INTO teams (game_id, team_name, team_hash) VALUES ($1, $2, $3) RETURNING *";
@@ -24,6 +26,7 @@ pub async fn create_team(client: &Client, team: Team) -> Result<Team, PgError> {
         .map_err(|e| PgError::from(e))
 }
 
+/// Retrieves all teams for a specific game.
 pub async fn get_teams(client: &Client, game_id: GameId) -> Result<Vec<Team>, PgError> {
     let query_str = "\
     SELECT * FROM teams WHERE game_id = $1";
@@ -34,6 +37,7 @@ pub async fn get_teams(client: &Client, game_id: GameId) -> Result<Vec<Team>, Pg
     Ok(rows.iter().map(|row| build_team_from_row(&row)).collect())
 }
 
+/// Sets the double Tampere flag for a team.
 pub async fn set_team_double_tampere(
     client: &Client,
     team_id: TeamId,

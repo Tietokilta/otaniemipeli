@@ -1,6 +1,7 @@
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use tokio_postgres::NoTls;
 
+/// Creates a database connection pool from a connection string.
 pub fn make_pool(conn_str: &str) -> anyhow::Result<Pool> {
     let mgr_cfg = ManagerConfig {
         recycling_method: deadpool_postgres::RecyclingMethod::Fast,

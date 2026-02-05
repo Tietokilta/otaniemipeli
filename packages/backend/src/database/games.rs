@@ -59,6 +59,7 @@ pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, PgError>
     Ok(build_game_from_row(&row))
 }
 
+/// Creates initial turns for all teams in a game at the starting position.
 pub async fn make_first_turns(
     client: &Client,
     first_turn: &FirstTurnPost,
@@ -99,6 +100,7 @@ pub async fn make_first_turns(
     Ok(())
 }
 
+/// Starts a game by setting its start time and creating initial turns.
 pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, PgError> {
     let row = client
         .query_one(
@@ -123,6 +125,7 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
     Ok(game)
 }
 
+/// Ends a game by marking it finished and ending all active turns.
 pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError> {
     let row = client
         .query_one(
@@ -143,6 +146,7 @@ pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError>
     Ok(build_game_from_row(&row))
 }
 
+/// Constructs a Game struct from a database row.
 fn build_game_from_row(row: &Row) -> Game {
     Game {
         id: row.get("game_id"),
@@ -157,6 +161,7 @@ fn build_game_from_row(row: &Row) -> Game {
     }
 }
 
+/// Returns a placeholder game for when no game is found.
 fn default_game() -> Game {
     Game {
         id: GameId(-100),
@@ -173,6 +178,7 @@ fn default_game() -> Game {
     }
 }
 
+/// Retrieves full game data including teams, turns, and locations.
 pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData, PgError> {
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
@@ -203,6 +209,7 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
     Ok(GameData { game, teams })
 }
 
+/// Retrieves game data for all games.
 pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
     let rows = client.query("SELECT game_id FROM games", &[]).await?;
     let game_ids: Vec<GameId> = rows.iter().map(|row| row.get(0)).collect();
