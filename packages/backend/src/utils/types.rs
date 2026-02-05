@@ -333,6 +333,8 @@ pub struct Ingredients {
 pub struct Drink {
     pub id: DrinkId,
     pub name: String,
+    pub favorite: bool,
+    pub no_mix_required: bool,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct IngredientQty {

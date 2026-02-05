@@ -73,8 +73,10 @@ CREATE TABLE IF NOT EXISTS board_places
 -- "recipes"
 CREATE TABLE IF NOT EXISTS drinks
 (
-    drink_id SERIAL PRIMARY KEY,
-    name     TEXT
+    drink_id        SERIAL PRIMARY KEY,
+    name            TEXT,
+    favorite        BOOLEAN NOT NULL DEFAULT FALSE,
+    no_mix_required BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- ingredients of "recipes"

@@ -226,6 +226,8 @@ declare global {
   interface Drink {
     id: number;
     name: string;
+    favorite: boolean;
+    no_mix_required: boolean;
   }
 
   interface IngredientQty {

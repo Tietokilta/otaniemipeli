@@ -16,22 +16,19 @@ export async function addIngredient(
   ingredient: Ingredient,
   token: string | null,
 ) {
-  const res: Response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/ingredients`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ?? "",
-      },
-      body: JSON.stringify(ingredient),
+  const res: Response = await fetch(`${process.env.API_URL}/ingredients`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ?? "",
     },
-  );
+    body: JSON.stringify(ingredient),
+  });
   return await res.json();
 }
 
 export async function addDrink(drink: Drink, token: string | null) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/drinks`, {
+  const res = await fetch(`${process.env.API_URL}/drinks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -48,7 +45,7 @@ export async function deleteIngredient(
   token: string | null,
 ) {
   const res: Response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
+    `${process.env.API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
     {
       method: "DELETE",
       headers: {
@@ -78,17 +75,14 @@ export async function addDrinkIngredient(
   toPost: DrinkIngredientsPost,
   token: string | null,
 ) {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/drinks/ingredients`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${token ?? ""}`,
-      },
-      body: JSON.stringify(toPost),
+  const res = await fetch(`${process.env.API_URL}/drinks/ingredients`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `${token ?? ""}`,
     },
-  );
+    body: JSON.stringify(toPost),
+  });
 
   if (!res.ok) console.error(res.statusText);
 
@@ -118,6 +112,24 @@ export async function getDrinks(): Promise<DrinksIngredients> {
   if (!res.ok) throw new Error(`HTTP ${res.status} drinks`);
 
   return await res.json();
+}
+
+export async function updateDrink(
+  drink: Drink,
+  token: string | null,
+): Promise<number> {
+  const res = await fetch(`${process.env.API_URL}/drinks`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ?? "",
+    },
+    body: JSON.stringify(drink),
+  });
+
+  if (!res.ok) console.error(`HTTP ${res.status} updating drink`);
+
+  return res.status;
 }
 
 export async function getBoards(): Promise<Boards> {

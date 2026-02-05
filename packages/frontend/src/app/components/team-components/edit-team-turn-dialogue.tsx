@@ -1,15 +1,8 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  Dispatch,
-  SetStateAction,
-} from "react";
+import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
 import { useSocket } from "@/app/template";
 import PopUpDialogue from "../pop-up-dialogue";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import { getDrinks } from "@/utils/fetchers";
-import { teamsCurrentTurn } from "@/utils/helpers";
 
 export const EditTeamTurnDialogue = ({
   team,
@@ -183,14 +176,6 @@ const AddTeamTurnForm = ({
   );
 };
 
-interface DrinkIngredientsWithID extends DrinkIngredients {
-  id: number;
-  name: string;
-}
-interface DrinksIngredientsWithID {
-  drink_ingredients: DrinkIngredientsWithID[];
-}
-
 const AddTeamPenaltyForm = ({
   team,
   controller,
@@ -200,85 +185,50 @@ const AddTeamPenaltyForm = ({
   controller: Dispatch<SetStateAction<"penalty" | "turn" | null>>;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const [drinks, setDrinks] = useState<DrinksIngredientsWithID>({
-    drink_ingredients: [],
-  });
-  const [selectedDrink, setSelectedDrink] = useState<
-    DrinkIngredientsWithID | undefined
-  >();
+  const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
   const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
     drinks: [],
   });
   const socket = useSocket();
 
-  // Track the previous selected drink to prevent duplicate processing
-  const prevSelectedDrinkRef = useRef<DrinkIngredientsWithID | undefined>(
-    undefined,
-  );
-
   useEffect(() => {
     getDrinks().then((drinks) => {
-      setDrinks({
-        drink_ingredients: drinks.drink_ingredients.map((drink) => ({
-          ...drink,
-          name: drink.drink.name,
-          id: drink.drink.id,
-        })),
-      } as DrinksIngredientsWithID);
-    });
-  }, []);
+      const drinkList = drinks.drink_ingredients.map((d) => d.drink);
+      setAvailableDrinks(drinkList);
 
-  useEffect(() => {
-    // Skip if no drink selected or if it's the same drink as before
-    if (!selectedDrink) return;
-    if (prevSelectedDrinkRef.current?.id === selectedDrink.id) return;
-
-    prevSelectedDrinkRef.current = selectedDrink;
-
-    const currentTurn = teamsCurrentTurn(team);
-    setPenaltyDrinks((prev) => {
-      const existingDrink = prev.drinks.find(
-        (drink) => drink.drink.id === selectedDrink.id,
-      );
-      if (!existingDrink) {
-        return {
-          drinks: [
-            ...prev.drinks,
-            {
-              drink: selectedDrink.drink,
-              turn_id: currentTurn?.turn_id ?? -1,
-              n: 1,
-              penalty: true,
-            },
-          ],
-        };
-      } else {
-        return {
-          drinks: prev.drinks.filter(
-            (drink) => drink.drink.id !== selectedDrink.id,
-          ),
-        };
+      // Add favorite drinks with n=0
+      const favoriteDrinks = drinkList
+        .filter((d) => d.favorite)
+        .map((d) => ({
+          drink: d,
+          turn_id: -1,
+          n: 0,
+        }));
+      if (favoriteDrinks.length > 0) {
+        setPenaltyDrinks({ drinks: favoriteDrinks });
       }
     });
-
-    // Reset selectedDrink after processing to allow re-selection
-    setSelectedDrink(undefined);
-    prevSelectedDrinkRef.current = undefined;
-  }, [selectedDrink, team]);
+  }, []);
 
   const handleSubmit = () => {
     if (!socket) {
       return;
     }
+    // Filter out drinks with n=0
+    const drinksToSubmit: TurnDrinks = {
+      drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
+    };
     const postPenalty: PostTurnDrinks = {
       game_id: team.team.game_id,
-      turn_drinks: penaltyDrinks,
+      turn_drinks: drinksToSubmit,
     };
     socket.emit("add-penalties", postPenalty);
 
     setOpen(false);
     controller(null);
   };
+
+  const hasSelectedDrinks = penaltyDrinks.drinks.some((d) => d.n > 0);
 
   return (
     <form
@@ -291,24 +241,11 @@ const AddTeamPenaltyForm = ({
         Lisätään rangaistus joukkueelle:{" "}
         <span className="text-juvu-sini-800">{team.team.team_name}</span>
       </p>
-      <DropdownMenu
-        buttonText="Lisää juoma"
-        options={drinks.drink_ingredients}
-        selectedOption={selectedDrink}
-        setSelectedOption={setSelectedDrink}
+      <DrinkSelectionList
+        availableDrinks={availableDrinks}
+        selectedDrinks={penaltyDrinks}
+        setSelectedDrinks={setPenaltyDrinks}
       />
-      <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
-        {penaltyDrinks.drinks.length === 0 && (
-          <p className="text-tertiary-500">Ei valittuja juomia</p>
-        )}
-        {penaltyDrinks.drinks.map((drink) => (
-          <DrinkSelectionCard
-            key={drink.drink.id}
-            turnDrink={drink}
-            updateDrinks={setPenaltyDrinks}
-          />
-        ))}
-      </div>
       <div className="flex justify-between px-4 py-4">
         <button
           type="button"
@@ -321,7 +258,7 @@ const AddTeamPenaltyForm = ({
           type="button"
           className="button text-xl p-4"
           onClick={handleSubmit}
-          disabled={penaltyDrinks.drinks.length === 0}
+          disabled={!hasSelectedDrinks}
         >
           Sakkoa
         </button>
@@ -330,17 +267,96 @@ const AddTeamPenaltyForm = ({
   );
 };
 
+export function DrinkSelectionList<T extends Drink>({
+  availableDrinks,
+  selectedDrinks,
+  setSelectedDrinks,
+  buttonText = "Lisää juoma",
+}: {
+  availableDrinks: T[];
+  selectedDrinks: TurnDrinks;
+  setSelectedDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
+  buttonText?: string;
+}): JSX.Element {
+  const [selectedOption, setSelectedOption] = useState<T | undefined>();
+
+  // Filter out already-selected drinks from the dropdown
+  const filteredDrinks = availableDrinks.filter(
+    (d) => !selectedDrinks.drinks.some((td) => td.drink.id === d.id),
+  );
+
+  useEffect(() => {
+    if (!selectedOption) return;
+
+    setSelectedDrinks((prev) => {
+      const existing = prev.drinks.find(
+        (d) => d.drink.id === selectedOption.id,
+      );
+      if (existing) {
+        // Increment n if already exists (e.g., favorite at n=0)
+        return {
+          drinks: prev.drinks.map((d) =>
+            d.drink.id === selectedOption.id ? { ...d, n: d.n + 1 } : d,
+          ),
+        };
+      }
+      // Add new drink with n=1
+      return {
+        drinks: [
+          ...prev.drinks,
+          {
+            drink: selectedOption,
+            turn_id: -1,
+            n: 1,
+          },
+        ],
+      };
+    });
+
+    setSelectedOption(undefined);
+  }, [selectedOption, setSelectedDrinks]);
+
+  return (
+    <>
+      <DropdownMenu
+        buttonText={buttonText}
+        options={filteredDrinks}
+        selectedOption={selectedOption}
+        setSelectedOption={setSelectedOption}
+      />
+      <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
+        {selectedDrinks.drinks.length === 0 && (
+          <p className="text-tertiary-500">Ei valittuja juomia</p>
+        )}
+        {selectedDrinks.drinks.map((drink) => (
+          <DrinkSelectionCard
+            key={drink.drink.id}
+            turnDrink={drink}
+            updateDrinks={setSelectedDrinks}
+            favorite={drink.drink.favorite}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function DrinkSelectionCard({
   turnDrink,
   updateDrinks,
+  favorite = false,
 }: {
   turnDrink: TurnDrink;
   updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
+  favorite?: boolean;
 }): JSX.Element {
   const updateN = (change: number) => {
     updateDrinks((dr) => {
-      if (turnDrink.n + change < 1) {
-        // Delete drink if n goes below 1
+      const newN = turnDrink.n + change;
+      // Don't go below 0
+      if (newN < 0) return dr;
+      // Delete non-favorite drinks when going below 1
+      if (newN < 1 && !favorite) {
         return {
           drinks: dr.drinks.filter(
             (drink) => drink.drink.id !== turnDrink.drink.id,
@@ -352,7 +368,7 @@ export function DrinkSelectionCard({
           existingDrink.drink.id === turnDrink.drink.id
             ? {
                 ...existingDrink,
-                n: existingDrink.n + change,
+                n: newN,
               }
             : existingDrink,
         ),

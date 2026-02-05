@@ -77,14 +77,19 @@ pub async fn delete_drink(client: &Client, drink_id: DrinkId) -> Result<u64, PgE
 }
 pub async fn post_drink(client: &Client, drink: Drink) -> Result<u64, PgError> {
     let query_str = "\
-    INSERT INTO drinks (name) VALUES ($1)";
+    INSERT INTO drinks (name, favorite, no_mix_required) VALUES ($1, $2, $3)";
 
-    client.execute(query_str, &[&drink.name]).await
+    client
+        .execute(
+            query_str,
+            &[&drink.name, &drink.favorite, &drink.no_mix_required],
+        )
+        .await
 }
 
 pub async fn get_drinks(client: &Client) -> Result<Drinks, PgError> {
     let query_str = "\
-    SELECT drink_id, name FROM drinks";
+    SELECT drink_id, name, favorite, no_mix_required FROM drinks";
 
     let mut drinks: Vec<Drink> = Vec::new();
 
@@ -97,6 +102,8 @@ pub async fn get_drinks(client: &Client) -> Result<Drinks, PgError> {
         let drink: Drink = Drink {
             id: row.get(0),
             name: row.get(1),
+            favorite: row.get(2),
+            no_mix_required: row.get(3),
         };
         drinks.push(drink);
     }
@@ -221,5 +228,22 @@ pub async fn delete_ingredient_from_drink(
     DELETE FROM drink_ingredients WHERE drink_id = $1 AND ingredient_id = $2";
     client
         .execute(query_str, &[&drink_id, &ingredient_id])
+        .await
+}
+
+pub async fn update_drink(client: &Client, drink: Drink) -> Result<u64, PgError> {
+    let query_str = "\
+    UPDATE drinks SET name = $1, favorite = $2, no_mix_required = $3 WHERE drink_id = $4";
+
+    client
+        .execute(
+            query_str,
+            &[
+                &drink.name,
+                &drink.favorite,
+                &drink.no_mix_required,
+                &drink.id,
+            ],
+        )
         .await
 }

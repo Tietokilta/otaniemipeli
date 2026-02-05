@@ -9,7 +9,7 @@ pub mod ingredients;
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/", get(drinks_get).post(drinks_post))
+        .route("/", get(drinks_get).post(drinks_post).patch(drink_patch))
         .route("/{id}", delete(drink_delete))
         .merge(ingredients::router())
 }

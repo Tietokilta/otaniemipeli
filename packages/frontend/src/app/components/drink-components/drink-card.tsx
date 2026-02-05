@@ -2,7 +2,11 @@
 import { useState } from "react";
 import AddDrinkIngredientForm from "@/app/components/drink-components/add-drink-ingredient-form";
 import IngredientCard from "@/app/components/drink-components/ingredient-card";
-import { deleteDrink, getDrinkIngredients } from "@/utils/fetchers";
+import {
+  deleteDrink,
+  getDrinkIngredients,
+  updateDrink,
+} from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
 import RefillSVG from "@/public/refill";
 
@@ -18,7 +22,27 @@ export default function DrinkCard({
   const [state, setState] = useState(false);
   const [drink_ingredients, setDrinkIngredients] = useState(drink.ingredients);
   const [drinkIngrLen, setDrinkIngrLen] = useState(drink_ingredients.length);
+  const [favorite, setFavorite] = useState(drink.drink.favorite);
+  const [noMixRequired, setNoMixRequired] = useState(
+    drink.drink.no_mix_required,
+  );
   const router = useRouter();
+
+  const handleFavoriteChange = async (checked: boolean) => {
+    setFavorite(checked);
+    await updateDrink(
+      { ...drink.drink, favorite: checked, no_mix_required: noMixRequired },
+      localStorage.getItem("auth_token"),
+    );
+  };
+
+  const handleNoMixRequiredChange = async (checked: boolean) => {
+    setNoMixRequired(checked);
+    await updateDrink(
+      { ...drink.drink, favorite, no_mix_required: checked },
+      localStorage.getItem("auth_token"),
+    );
+  };
 
   const onClickHandle = async () => {
     await updateIngredients();
@@ -96,6 +120,31 @@ export default function DrinkCard({
       {state ? (
         <>
           <hr className="my-2 -mx-3 border-juvu-sini-600" />
+          {functional && (
+            <div
+              className="flex gap-4 mb-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={favorite}
+                  onChange={(e) => handleFavoriteChange(e.target.checked)}
+                  className="w-5 h-5 cursor-pointer"
+                />
+                <span>Suosikki</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={noMixRequired}
+                  onChange={(e) => handleNoMixRequiredChange(e.target.checked)}
+                  className="w-5 h-5 cursor-pointer"
+                />
+                <span>Ei vaadi IE-työtä</span>
+              </label>
+            </div>
+          )}
           <div className="w-full mb-2 flex text-2xl font-redaction-50">
             <div className="w-full">Ainesosat</div>
             {functional && state && drink_ingredients.length >= drinkIngrLen ? (

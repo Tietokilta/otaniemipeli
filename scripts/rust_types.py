@@ -417,6 +417,8 @@ class Ingredients:
 class Drink:
     id: int
     name: str
+    favorite: bool
+    no_mix_required: bool
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

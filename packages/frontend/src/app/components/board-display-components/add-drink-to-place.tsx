@@ -78,14 +78,6 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
               </MenuItems>
             </Menu>
           )}
-          {placeDrinks.drinks.length > 0 &&
-            placeDrinks.drinks.map((drink) => (
-              <p
-                key={`${drink.board_id}-${drink.place_number}-${drink.drink.id}`}
-              >
-                {drink.drink.name} {drink.place_number} {drink.drink.id}
-              </p>
-            ))}
         </div>
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-1 w-full h-full overflow-hidden overflow-y-scroll box list-none">

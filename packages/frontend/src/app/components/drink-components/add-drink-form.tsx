@@ -12,6 +12,8 @@ export default function AddDrinkForm({
     const drink: Drink = {
       id: -1,
       name: name,
+      favorite: false,
+      no_mix_required: false,
     };
 
     await addDrink(drink, localStorage.getItem("auth_token"));

@@ -1,4 +1,4 @@
-use crate::database::drinks::{delete_drink, get_drinks_ingredients, post_drink};
+use crate::database::drinks::{delete_drink, get_drinks_ingredients, post_drink, update_drink};
 use crate::utils::errors::wrap_db_error;
 use crate::utils::ids::DrinkId;
 use crate::utils::remove_ingredients;
@@ -38,4 +38,12 @@ pub async fn drink_delete(
             .map(|_| ResultIntJson { int: drink_id.0 }),
         "Error deleting drink!",
     )
+}
+
+pub async fn drink_patch(
+    state: State<AppState>,
+    Json(drink): Json<Drink>,
+) -> Result<Json<u64>, AppError> {
+    let client: Client = state.db.get().await?;
+    wrap_db_error(update_drink(&client, drink).await, "Error updating drink!")
 }

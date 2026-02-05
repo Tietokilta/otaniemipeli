@@ -263,7 +263,7 @@ pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
 pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDrinks, PgError> {
     let rows = client
         .query(
-            "SELECT td.drink_id, d.name, td.n
+            "SELECT td.drink_id, d.name, d.favorite, d.no_mix_required, td.n
              FROM turn_drinks td
              JOIN drinks d ON td.drink_id = d.drink_id
              WHERE td.turn_id = $1",
@@ -278,6 +278,8 @@ pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDri
                 drink: Drink {
                     id: row.get("drink_id"),
                     name: row.get("name"),
+                    favorite: row.get("favorite"),
+                    no_mix_required: row.get("no_mix_required"),
                 },
                 turn_id,
                 n: row.get("n"),

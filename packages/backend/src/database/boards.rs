@@ -169,6 +169,8 @@ pub async fn get_place_drinks(
         pd.board_id,
         pd.drink_id,
         d.name,
+        d.favorite,
+        d.no_mix_required,
         pd.refill,
         pd.optional,
         pd.n,
@@ -189,6 +191,8 @@ pub async fn get_place_drinks(
                 drink: Drink {
                     id: row.get("drink_id"),
                     name: row.get("name"),
+                    favorite: row.get("favorite"),
+                    no_mix_required: row.get("no_mix_required"),
                 },
                 refill: row.get("refill"),
                 optional: row.get("optional"),
