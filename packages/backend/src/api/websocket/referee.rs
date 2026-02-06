@@ -1,8 +1,8 @@
 use crate::api::websocket::utils::{
-    emit_app_error, emit_msg, emit_team_data, end_turn_handler, game_data_handler, get_db_client,
-    get_drinks_handler, get_games_handler, run_emit_fn, start_turn_handler, verify_login_handler,
+    emit_app_error, emit_result, end_turn_handler, game_data_handler, get_db_client,
+    get_drinks_handler, get_games_handler, start_turn_handler, verify_login_handler,
 };
-use crate::database::games::{get_games, post_game, start_game};
+use crate::database::games::{get_games, get_team_data, post_game, start_game};
 use crate::database::team::create_team;
 use crate::database::turns::{add_drinks_to_turn, create_penalty_turn};
 use crate::utils::socket::check_auth;
@@ -21,55 +21,47 @@ pub async fn referee_on_connect<A: Adapter>(
         "create-game",
         |s: SocketRef<A>, Data(game): Data<PostGame>, State(state): State<AppState>| async move {
             tracing::info!("Referee: create-game called");
-            let client = match get_db_client(&state, &s).await {
-                Some(c) => c,
-                None => return,
+            let client = match get_db_client(&state).await {
+                Ok(c) => c,
+                Err(e) => return emit_app_error(&s, e),
             };
             if let Err(e) = post_game(&client, game).await {
-                emit_app_error(&s, e).await;
+                emit_app_error(&s, e);
                 return;
-            };
-            run_emit_fn(&client, &s, "reply-games", |c| {
-                Box::pin(async move { get_games(c).await })
-            })
-            .await;
+            }
+            emit_result(&s, "reply-games", get_games(&client).await);
         },
     );
     s.on(
-    "start-game",
-    |s: SocketRef<A>, Data(first_turn): Data<FirstTurnPost>, State(state): State<AppState>| async move {
-      tracing::info!("Referee: start-game called");
-      let client = match get_db_client(&state, &s).await {
-        Some(c) => c,
-        None => return,
-      };
-      match start_game(&client, first_turn).await {
-        Ok(game) => {
-          emit_msg(&s, "reply-game", &game).await;
-        }
-        Err(e) => {
-          emit_app_error(&s, e).await;
-        }
-      }
-    },
-  );
+        "start-game",
+        |s: SocketRef<A>,
+         Data(first_turn): Data<FirstTurnPost>,
+         State(state): State<AppState>| async move {
+            tracing::info!("Referee: start-game called");
+            let client = match get_db_client(&state).await {
+                Ok(c) => c,
+                Err(e) => return emit_app_error(&s, e),
+            };
+            emit_result(&s, "reply-game", start_game(&client, first_turn).await);
+        },
+    );
     s.on("get-games", get_games_handler);
     s.on(
         "create-team",
         |s: SocketRef<A>, Data(team): Data<Team>, State(state): State<AppState>| async move {
             tracing::info!("Referee: create-team called");
-            let client = match get_db_client(&state, &s).await {
-                Some(c) => c,
-                None => return,
+            let client = match get_db_client(&state).await {
+                Ok(c) => c,
+                Err(e) => return emit_app_error(&s, e),
             };
-            let team: Team = match create_team(&client, team).await {
-                Ok(team) => team,
+            let team = match create_team(&client, team).await {
+                Ok(t) => t,
                 Err(e) => {
-                    emit_app_error(&s, e).await;
+                    emit_app_error(&s, e);
                     return;
                 }
             };
-            emit_team_data(&client, &s, team.game_id).await;
+            emit_result(&s, "reply-game", get_team_data(&client, team.game_id).await);
         },
     );
     s.on("get-drinks", get_drinks_handler);
@@ -82,25 +74,25 @@ pub async fn referee_on_connect<A: Adapter>(
          Data(penalty): Data<PostPenalty>,
          State(state): State<AppState>| async move {
             tracing::info!("Referee: add-penalties called");
-            let client = match get_db_client(&state, &s).await {
-                Some(c) => c,
-                None => return,
+            let client = match get_db_client(&state).await {
+                Ok(c) => c,
+                Err(e) => return emit_app_error(&s, e),
             };
             // Create a new penalty turn with thrown_at and confirmed_at set
             let turn = match create_penalty_turn(&client, penalty.team_id, penalty.game_id).await {
                 Ok(t) => t,
                 Err(e) => {
-                    emit_app_error(&s, e).await;
+                    emit_app_error(&s, e);
                     return;
                 }
             };
             // Add the drinks to the turn
             let turn_drinks = penalty.drinks.to_turn_drinks(turn.turn_id);
             if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
-                emit_app_error(&s, e).await;
+                emit_app_error(&s, e);
                 return;
             }
-            emit_team_data(&client, &s, penalty.game_id).await;
+            emit_result(&s, "reply-game", get_team_data(&client, penalty.game_id).await);
         },
     );
 

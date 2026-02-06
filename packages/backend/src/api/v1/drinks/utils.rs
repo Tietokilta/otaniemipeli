@@ -10,7 +10,11 @@ use deadpool_postgres::Client;
 
 pub async fn drinks_get(state: State<AppState>) -> Result<Json<DrinksIngredients>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_json(get_drinks_ingredients(&client).await.map(remove_ingredients))
+    wrap_json(
+        get_drinks_ingredients(&client)
+            .await
+            .map(remove_ingredients),
+    )
 }
 
 pub async fn drinks_post(

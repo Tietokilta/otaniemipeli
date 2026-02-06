@@ -133,7 +133,13 @@ pub async fn add_ingredients(
     let drink_id: DrinkId = drink_ingredient.drink.id;
     let mut rows = 0;
     for ingredient in &drink_ingredient.ingredients {
-        add_ingredient(client, drink_id, ingredient.ingredient.id, ingredient.quantity).await?;
+        add_ingredient(
+            client,
+            drink_id,
+            ingredient.ingredient.id,
+            ingredient.quantity,
+        )
+        .await?;
         rows += 1;
     }
     Ok(rows)
@@ -193,8 +199,7 @@ pub async fn get_drinks_ingredients(client: &Client) -> Result<DrinksIngredients
     let mut drink_ingredients: Vec<DrinkIngredients> = Vec::new();
     let drinks = get_drinks(client).await?;
     for drink in drinks.drinks {
-        let mut drinks_ingredient: DrinkIngredients =
-            get_drink_ingredients(client, drink).await?;
+        let mut drinks_ingredient: DrinkIngredients = get_drink_ingredients(client, drink).await?;
         let ingr = drinks_ingredient.ingredients.iter();
         let qty = ingr.clone().fold(0.0, |acc, iq| acc + iq.quantity);
         let abv = ingr
