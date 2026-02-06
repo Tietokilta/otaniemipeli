@@ -1,6 +1,7 @@
 use crate::api::websocket::utils::{
     emit_app_error, emit_result, end_turn_handler, game_data_handler, get_db_client,
     get_drinks_handler, get_games_handler, start_turn_handler, verify_login_handler,
+    ServerResponse,
 };
 use crate::database::games::{get_games, get_team_data, post_game, start_game};
 use crate::database::team::create_team;
@@ -29,7 +30,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 emit_app_error(&s, e);
                 return;
             }
-            emit_result(&s, "reply-games", get_games(&client).await);
+            emit_result(&s, get_games(&client).await.map(ServerResponse::Games));
         },
     );
     s.on(
@@ -42,7 +43,11 @@ pub async fn referee_on_connect<A: Adapter>(
                 Ok(c) => c,
                 Err(e) => return emit_app_error(&s, e),
             };
-            emit_result(&s, "reply-game", start_game(&client, first_turn).await);
+            let game = match start_game(&client, first_turn).await {
+                Ok(g) => g,
+                Err(e) => return emit_app_error(&s, e),
+            };
+            emit_result(&s, get_team_data(&client, game.id).await.map(ServerResponse::GameData));
         },
     );
     s.on("get-games", get_games_handler);
@@ -61,7 +66,12 @@ pub async fn referee_on_connect<A: Adapter>(
                     return;
                 }
             };
-            emit_result(&s, "reply-game", get_team_data(&client, team.game_id).await);
+            emit_result(
+                &s,
+                get_team_data(&client, team.game_id)
+                    .await
+                    .map(ServerResponse::GameData),
+            );
         },
     );
     s.on("get-drinks", get_drinks_handler);
@@ -92,7 +102,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 emit_app_error(&s, e);
                 return;
             }
-            emit_result(&s, "reply-game", get_team_data(&client, penalty.game_id).await);
+            emit_result(&s, get_team_data(&client, penalty.game_id).await.map(ServerResponse::GameData));
         },
     );
 

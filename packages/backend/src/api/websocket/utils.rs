@@ -6,12 +6,39 @@ use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, st
 use crate::utils::ids::GameId;
 use crate::utils::socket::check_auth;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{EndTurn, GameData, PlaceThrow, PostStartTurn, SocketAuth, UserType};
+use crate::utils::types::{
+    DrinksIngredients, EndTurn, GameData, Games, PlaceThrow, PostStartTurn, SocketAuth, UserType,
+};
 use deadpool_postgres::Client;
 use serde::Serialize;
 use socketioxide::adapter::{Adapter, Emitter};
 use socketioxide::extract::{Data, SocketRef, State};
 use socketioxide_core::adapter::CoreAdapter;
+
+/// Server-to-client websocket responses with typed payloads.
+/// Each variant maps to a specific event name.
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum ServerResponse {
+    Error(String),
+    Drinks(DrinksIngredients),
+    GameData(GameData),
+    Games(Games),
+    Verification(bool),
+}
+
+impl ServerResponse {
+    /// Returns the event name for this response type
+    fn event_name(&self) -> &'static str {
+        match self {
+            ServerResponse::Error(_) => "response-error",
+            ServerResponse::Drinks(_) => "reply-drinks",
+            ServerResponse::GameData(_) => "reply-game",
+            ServerResponse::Games(_) => "reply-games",
+            ServerResponse::Verification(_) => "verification-reply",
+        }
+    }
+}
 
 pub(crate) async fn get_db_client(state: &AppState) -> Result<Client, AppError> {
     Ok(state.db.get().await?)
@@ -19,23 +46,20 @@ pub(crate) async fn get_db_client(state: &AppState) -> Result<Client, AppError> 
 
 pub fn emit_app_error(s: &SocketRef<impl Adapter>, error: AppError) {
     tracing::error!("{error}");
-    emit_msg(s, "response-error", &format!("{error}"));
+    emit_msg(s, ServerResponse::Error(format!("{error}")));
 }
 
-pub fn emit_msg<T: Serialize>(s: &SocketRef<impl Adapter>, event: &str, payload: &T) {
-    if let Err(err) = s.emit(event, payload) {
-        tracing::error!("Failed replying game data: {err}")
+pub fn emit_msg(s: &SocketRef<impl Adapter>, response: ServerResponse) {
+    let event = response.event_name();
+    if let Err(err) = s.emit(event, &response) {
+        tracing::error!("Failed emitting {event}: {err}")
     };
 }
 
 /// Emits data on success, or error message on failure
-pub fn emit_result<T: Serialize>(
-    s: &SocketRef<impl Adapter>,
-    event: &str,
-    result: Result<T, AppError>,
-) {
+pub fn emit_result(s: &SocketRef<impl Adapter>, result: Result<ServerResponse, AppError>) {
     match result {
-        Ok(data) => emit_msg(s, event, &data),
+        Ok(data) => emit_msg(s, data),
         Err(e) => emit_app_error(s, e),
     }
 }
@@ -49,7 +73,12 @@ pub async fn get_drinks_handler<A: CoreAdapter<Emitter>>(
         Ok(c) => c,
         Err(e) => return emit_app_error(&s, e),
     };
-    emit_result(&s, "reply-drinks", get_drinks_ingredients(&client).await);
+    emit_result(
+        &s,
+        get_drinks_ingredients(&client)
+            .await
+            .map(ServerResponse::Drinks),
+    );
 }
 
 pub async fn game_data_handler<A: CoreAdapter<Emitter>>(
@@ -62,7 +91,12 @@ pub async fn game_data_handler<A: CoreAdapter<Emitter>>(
         Ok(c) => c,
         Err(e) => return emit_app_error(&s, e),
     };
-    emit_result(&s, "reply-game", get_team_data(&client, game_id).await);
+    emit_result(
+        &s,
+        get_team_data(&client, game_id)
+            .await
+            .map(ServerResponse::GameData),
+    );
 }
 
 async fn process_start_turn(
@@ -159,8 +193,9 @@ pub async fn start_turn_handler<A: CoreAdapter<Emitter>>(
     };
     emit_result(
         &s,
-        "reply-game",
-        process_start_turn(&client, turn_start_data).await,
+        process_start_turn(&client, turn_start_data)
+            .await
+            .map(ServerResponse::GameData),
     );
 }
 
@@ -179,7 +214,12 @@ pub async fn end_turn_handler<A: CoreAdapter<Emitter>>(
         Ok(c) => c,
         Err(e) => return emit_app_error(&s, e),
     };
-    emit_result(&s, "reply-game", process_end_turn(&client, turn_data).await);
+    emit_result(
+        &s,
+        process_end_turn(&client, turn_data)
+            .await
+            .map(ServerResponse::GameData),
+    );
 }
 
 pub async fn get_games_handler<A: CoreAdapter<Emitter>>(
@@ -191,7 +231,7 @@ pub async fn get_games_handler<A: CoreAdapter<Emitter>>(
         Ok(c) => c,
         Err(e) => return emit_app_error(&s, e),
     };
-    emit_result(&s, "reply-games", get_games(&client).await);
+    emit_result(&s, get_games(&client).await.map(ServerResponse::Games));
 }
 
 pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
@@ -212,7 +252,7 @@ pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
     };
     let auth = check_auth(&auth.token, &s, &state, u_type).await;
     tracing::info!("{}: Connection verified: {}", s.ns(), auth);
-    emit_msg(&s, "verification-reply", &auth);
+    emit_msg(&s, ServerResponse::Verification(auth));
     if !auth {
         let _ = s.disconnect();
     }
