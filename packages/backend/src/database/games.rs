@@ -283,7 +283,6 @@ pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDri
                     favorite: row.get("favorite"),
                     no_mix_required: row.get("no_mix_required"),
                 },
-                turn_id,
                 n: row.get("n"),
             })
             .collect(),

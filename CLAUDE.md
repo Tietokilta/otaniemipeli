@@ -30,6 +30,7 @@ pnpm format         # Prettier + cargo fmt
 pnpm typecheck    # TypeScript + generated types validation
 
 # Build
+# Note: Claude should almost never run production builds since it's very slow
 pnpm build:frontend                                    # Next.js
 pnpm build:backend                                     # Rust (cargo)
 docker compose -f docker-compose-prod.yml up --build   # Production

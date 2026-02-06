@@ -201,7 +201,6 @@ const AddTeamPenaltyForm = ({
         .filter((d) => d.favorite)
         .map((d) => ({
           drink: d,
-          turn_id: -1,
           n: 0,
         }));
       if (favoriteDrinks.length > 0) {
@@ -214,14 +213,11 @@ const AddTeamPenaltyForm = ({
     if (!socket) {
       return;
     }
-    // Convert TurnDrinks to PenaltyDrinks (filter out n=0 and remove turn_id)
     const postPenalty: PostPenalty = {
       team_id: team.team.team_id,
       game_id: team.team.game_id,
       drinks: {
-        drinks: penaltyDrinks.drinks
-          .filter((d) => d.n > 0)
-          .map((d) => ({ drink: d.drink, n: d.n })),
+        drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
       },
     };
     socket.emit("add-penalties", postPenalty);
@@ -308,7 +304,6 @@ export function DrinkSelectionList<T extends Drink>({
           ...prev.drinks,
           {
             drink: selectedOption,
-            turn_id: -1,
             n: 1,
           },
         ],

@@ -61,7 +61,6 @@ declare global {
 
   interface TurnDrink {
     drink: Drink;
-    turn_id: number;
     n: number;
   }
 
@@ -69,19 +68,10 @@ declare global {
     drinks: TurnDrink[];
   }
 
-  interface PenaltyDrink {
-    drink: Drink;
-    n: number;
-  }
-
-  interface PenaltyDrinks {
-    drinks: PenaltyDrink[];
-  }
-
   interface PostPenalty {
     team_id: number;
     game_id: number;
-    drinks: PenaltyDrinks;
+    drinks: TurnDrinks;
   }
 
   interface FirstTurnPost {
@@ -269,6 +259,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

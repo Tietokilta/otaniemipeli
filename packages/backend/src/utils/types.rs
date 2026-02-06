@@ -128,7 +128,6 @@ pub struct Team {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TurnDrink {
     pub drink: Drink,
-    pub turn_id: TurnId,
     pub n: i32,
 }
 
@@ -138,36 +137,10 @@ pub struct TurnDrinks {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PenaltyDrink {
-    pub drink: Drink,
-    pub n: i32,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PenaltyDrinks {
-    pub drinks: Vec<PenaltyDrink>,
-}
-
-impl PenaltyDrinks {
-    pub fn to_turn_drinks(&self, turn_id: TurnId) -> TurnDrinks {
-        TurnDrinks {
-            drinks: self
-                .drinks
-                .iter()
-                .map(|pd| TurnDrink {
-                    drink: pd.drink.clone(),
-                    turn_id,
-                    n: pd.n,
-                })
-                .collect(),
-        }
-    }
-}
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PostPenalty {
     pub team_id: TeamId,
     pub game_id: GameId,
-    pub drinks: PenaltyDrinks,
+    pub drinks: TurnDrinks,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -316,13 +289,13 @@ pub struct PlaceDrinks {
 }
 
 impl PlaceDrinks {
-    pub fn to_turn_drinks(&self, turn_id: TurnId, visited: bool, multiplier: i32) -> TurnDrinks {
+    pub fn to_turn_drinks(&self, visited: bool, multiplier: i32) -> TurnDrinks {
         TurnDrinks {
             drinks: self
                 .drinks
                 .iter()
                 .filter(|pd| pd.refill || !visited)
-                .map(|pd| pd.to_turn_drink(turn_id, multiplier))
+                .map(|pd| pd.to_turn_drink(multiplier))
                 .collect(),
         }
     }
@@ -340,10 +313,9 @@ pub struct PlaceDrink {
 }
 
 impl PlaceDrink {
-    pub fn to_turn_drink(&self, turn_id: TurnId, multiplier: i32) -> TurnDrink {
+    pub fn to_turn_drink(&self, multiplier: i32) -> TurnDrink {
         TurnDrink {
             drink: self.drink.clone(),
-            turn_id,
             n: self.n * multiplier,
         }
     }

@@ -35,7 +35,6 @@ export default function GameStartDialogue({
         .filter((d) => d.favorite)
         .map((d) => ({
           drink: d,
-          turn_id: -1,
           n: 0,
         }));
       if (favoriteDrinks.length > 0) {

@@ -37,7 +37,7 @@ export function sumByDrinkId(rows: TurnDrink[]) {
     if (existing) {
       existing.n += n; // add up
     } else {
-      byId.set(drink.id, { drink, turn_id: -1, n });
+      byId.set(drink.id, { drink, n });
     }
   }
   return { drinks: Array.from(byId.values()), total_drinks };

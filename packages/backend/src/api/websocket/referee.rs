@@ -97,8 +97,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 }
             };
             // Add the drinks to the turn
-            let turn_drinks = penalty.drinks.to_turn_drinks(turn.turn_id);
-            if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
+            if let Err(e) = add_drinks_to_turn(&client, turn.turn_id, penalty.drinks).await {
                 emit_app_error(&s, e);
                 return;
             }

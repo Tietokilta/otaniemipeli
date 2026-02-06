@@ -147,13 +147,12 @@ async fn process_start_turn(
     let visited = place_visited(client, turn.game_id, place_after.place_number).await?;
 
     // Convert place drinks to turn drinks and apply double if needed
-    let turn_drinks =
-        place_after
-            .drinks
-            .to_turn_drinks(turn.turn_id, visited, double * double_tampere);
+    let turn_drinks = place_after
+        .drinks
+        .to_turn_drinks(visited, double * double_tampere);
 
     let no_drinks = turn_drinks.drinks.is_empty();
-    add_drinks_to_turn(client, turn_drinks).await?;
+    add_drinks_to_turn(client, turn.turn_id, turn_drinks).await?;
 
     // Update the turn with the new location
     // TODO: only do when confirmed, merge the updates

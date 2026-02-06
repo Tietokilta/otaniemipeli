@@ -121,14 +121,18 @@ pub async fn add_visited_place(
 }
 
 /// Adds or updates drinks associated with a turn.
-pub async fn add_drinks_to_turn(client: &Client, drinks: TurnDrinks) -> Result<u64, AppError> {
+pub async fn add_drinks_to_turn(
+    client: &Client,
+    turn_id: TurnId,
+    drinks: TurnDrinks,
+) -> Result<u64, AppError> {
     let mut total_added = 0;
     for drink in drinks.drinks {
         client
             .execute(
                 "INSERT INTO turn_drinks (turn_id, drink_id, n) VALUES ($1, $2, $3)
                  ON CONFLICT (turn_id, drink_id) DO UPDATE SET n = turn_drinks.n + EXCLUDED.n",
-                &[&drink.turn_id, &drink.drink.id, &drink.n],
+                &[&turn_id, &drink.drink.id, &drink.n],
             )
             .await?;
         total_added += drink.n as u64;
