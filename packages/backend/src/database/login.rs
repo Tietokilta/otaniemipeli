@@ -1,7 +1,6 @@
 use crate::utils::ids::UserId;
-use crate::utils::types::{
-    LoginInfo, PgError, SessionInfo, UserCreateInfo, UserInfo, UserType, UsersTypes,
-};
+use crate::utils::state::AppError;
+use crate::utils::types::{LoginInfo, SessionInfo, UserCreateInfo, UserInfo, UserType, UsersTypes};
 use deadpool_postgres::Client;
 use rand::distr::Alphanumeric;
 use rand::Rng;
@@ -33,7 +32,7 @@ fn compare_pw_to_db(pw_post: String, pw_db: String) -> bool {
 pub async fn post_login_db(
     login_info: LoginInfo,
     client: &Client,
-) -> Result<(UserInfo, String), PgError> {
+) -> Result<(UserInfo, String), AppError> {
     let query_str = "\
     SELECT \
         u.uid, \
@@ -53,25 +52,19 @@ pub async fn post_login_db(
         user_types: UsersTypes::new(),
     };
 
-    let query = match client.query(query_str, &[&login_info.username]).await {
-        Ok(r) => {
-            if r.len() == 0 {
+    let rows = client.query(query_str, &[&login_info.username]).await?;
+    if rows.is_empty() {
+        return Ok((user, "".to_string()));
+    }
+    match rows[0].clone().try_get::<usize, String>(3) {
+        Ok(pw) => {
+            if !compare_pw_to_db(login_info.password, pw) {
                 return Ok((user, "".to_string()));
             }
-            match r[0].clone().try_get::<usize, String>(3) {
-                Ok(pw) => {
-                    if compare_pw_to_db(login_info.password, pw) {
-                        r
-                    } else {
-                        return Ok((user, "".to_string()));
-                    }
-                }
-                Err(_) => return Ok((user, "".to_string())),
-            }
         }
-        Err(e) => return Err(e),
-    };
-    for row in query {
+        Err(_) => return Ok((user, "".to_string())),
+    }
+    for row in rows {
         match row.try_get::<usize, i32>(0) {
             Ok(_) => {
                 user.uid = row.get(0);
@@ -92,7 +85,7 @@ pub async fn post_login_db(
 }
 
 /// Creates a new session for a user and returns the session hash.
-pub async fn create_session(uid: UserId, client: &Client) -> Result<String, PgError> {
+pub async fn create_session(uid: UserId, client: &Client) -> Result<String, AppError> {
     let query_str = "\
     INSERT INTO sessions (uid, session_hash) \
     SELECT u.uid, $2 \
@@ -101,15 +94,12 @@ pub async fn create_session(uid: UserId, client: &Client) -> Result<String, PgEr
     RETURNING uid";
 
     let session_hash = hex::encode_upper(rand::random::<[u8; 32]>());
-
-    match client.execute(query_str, &[&uid, &session_hash]).await {
-        Ok(_) => Ok(session_hash),
-        Err(e) => Err(e),
-    }
+    client.execute(query_str, &[&uid, &session_hash]).await?;
+    Ok(session_hash)
 }
 
 /// Extends session expiry and cleans up expired sessions.
-pub async fn update_session(session_hash: &str, client: &Client) -> Result<(u64, u64), PgError> {
+pub async fn update_session(session_hash: &str, client: &Client) -> Result<(u64, u64), AppError> {
     let update_query = "\
         UPDATE sessions
         SET last_active = now(),
@@ -125,7 +115,7 @@ pub async fn update_session(session_hash: &str, client: &Client) -> Result<(u64,
 }
 
 /// Validates a session and returns session info if valid.
-pub async fn check_session(session_hash: &str, client: &Client) -> Result<SessionInfo, PgError> {
+pub async fn check_session(session_hash: &str, client: &Client) -> Result<SessionInfo, AppError> {
     let query_str = "\
     SELECT \
         s.uid, \
@@ -135,16 +125,10 @@ pub async fn check_session(session_hash: &str, client: &Client) -> Result<Sessio
          LEFT JOIN user_types as ut ON s.uid = ut.uid \
          WHERE s.session_hash = $1 AND s.expires > now()";
 
-    match update_session(session_hash, client).await {
-        Ok(_) => {}
-        Err(e) => {
-            println!("{e}");
-        }
+    if let Err(e) = update_session(session_hash, client).await {
+        tracing::warn!("{e}");
     }
-    let query = match client.query(query_str, &[&session_hash]).await {
-        Ok(r) => r,
-        Err(e) => return Err(e),
-    };
+    let query = client.query(query_str, &[&session_hash]).await?;
     let mut session: SessionInfo = SessionInfo {
         uid: UserId(-404),
         session_hash: "".to_string(),
@@ -156,37 +140,35 @@ pub async fn check_session(session_hash: &str, client: &Client) -> Result<Sessio
                 session.uid = row.get(0);
                 session.session_hash = row.get(1);
                 session.user_types.push(row.get(2));
-                match row.try_get::<usize, UserType>(2) {
-                    Ok(_) => {}
-                    Err(e) => println!("{e}"),
+                if let Err(e) = row.try_get::<usize, UserType>(2) {
+                    tracing::warn!("{e}");
                 }
             }
             Err(e) => {
-                println!("{e}");
+                tracing::warn!("{e}");
                 continue;
             }
         }
     }
-    let ses = session.clone();
-    Ok(ses)
+    Ok(session)
 }
 
 /// Deletes a specific session by its hash.
-pub async fn delete_session(session_hash: &str, client: &Client) -> Result<u64, PgError> {
+pub async fn delete_session(session_hash: &str, client: &Client) -> Result<u64, AppError> {
     let query_str = "\
     DELETE FROM sessions WHERE session_hash = $1";
-    client.execute(query_str, &[&session_hash]).await
+    Ok(client.execute(query_str, &[&session_hash]).await?)
 }
 
 /// Deletes all sessions for a user.
-pub async fn delete_all_sessions(uid: UserId, client: &Client) -> Result<u64, PgError> {
+pub async fn delete_all_sessions(uid: UserId, client: &Client) -> Result<u64, AppError> {
     let query_str = "\
     DELETE FROM sessions WHERE uid = $1";
-    client.execute(query_str, &[&uid]).await
+    Ok(client.execute(query_str, &[&uid]).await?)
 }
 
 /// Checks if any users exist in the database.
-pub async fn users_exist(client: &Client) -> Result<bool, PgError> {
+pub async fn users_exist(client: &Client) -> Result<bool, AppError> {
     let query_str = "\
     SELECT EXISTS (SELECT 1 FROM users)";
 
@@ -201,39 +183,31 @@ pub async fn email_or_username_exist(
     client: &Client,
     email: &str,
     username: &str,
-) -> Result<bool, PgError> {
+) -> Result<bool, AppError> {
     let q = "\
     SELECT COUNT(*) AS n \
     FROM users \
     WHERE email = $1 OR username = $2";
     let row = client.query_one(q, &[&email, &username]).await?;
-    if row.get::<_, i64>(0) == 0 {
-        Ok(false)
-    } else {
-        Ok(true)
-    }
+    Ok(row.get::<_, i64>(0) != 0)
 }
 
 /// Creates a new user account and returns user info with an active session.
 pub async fn user_create(
     client: &Client,
     mut user_info: UserCreateInfo,
-) -> Result<(UserInfo, SessionInfo), PgError> {
+) -> Result<(UserInfo, SessionInfo), AppError> {
     let query_str = "\
     INSERT INTO users \
     (username, email, password) values ($1, $2, $3)";
     let original_password = user_info.password.clone();
     user_info.password = hash_password(user_info.password);
-    match client
+    client
         .execute(
             query_str,
             &[&user_info.username, &user_info.email, &user_info.password],
         )
-        .await
-    {
-        Ok(_) => {}
-        Err(e) => return Err(e),
-    };
+        .await?;
     let user_session = post_login_db(
         LoginInfo {
             username: user_info.username,
@@ -247,23 +221,9 @@ pub async fn user_create(
 
     let query_str2 = "\
     INSERT INTO user_types (uid, user_type) VALUES ($1, $2)";
-    return match client
+    client
         .execute(query_str2, &[&user.uid, &user_info.user_type])
-        .await
-    {
-        Ok(_) => match check_session(&auth, client).await {
-            Ok(s) => Ok((user, s)),
-            Err(e) => Err(e),
-        },
-        Err(e) => Err(e),
-    };
-
-    Ok((
-        user,
-        SessionInfo {
-            uid: UserId(-1),
-            session_hash: "".to_string(),
-            user_types: UsersTypes::new(),
-        },
-    ))
+        .await?;
+    let session = check_session(&auth, client).await?;
+    Ok((user, session))
 }

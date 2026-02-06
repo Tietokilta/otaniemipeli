@@ -1,4 +1,5 @@
 use crate::database::login::check_session;
+use crate::utils::types::PgError;
 use axum::body::Body;
 use axum::extract::State;
 use axum::middleware::Next;
@@ -64,6 +65,7 @@ impl IntoResponse for AppError {
         (status, Json(ErrorBody { error: msg })).into_response()
     }
 }
+
 fn self_code(err: &AppError) -> &'static str {
     match err {
         AppError::Validation(_) => "Validation",
@@ -78,8 +80,15 @@ fn self_code(err: &AppError) -> &'static str {
 
 impl From<deadpool_postgres::PoolError> for AppError {
     fn from(e: deadpool_postgres::PoolError) -> Self {
-        eprintln!("{e}");
+        tracing::error!("{e}");
         AppError::Database("Database operations encountered an error!".into())
+    }
+}
+
+impl From<PgError> for AppError {
+    fn from(e: PgError) -> Self {
+        tracing::error!("Database error: {}", e);
+        AppError::Database(e.to_string())
     }
 }
 

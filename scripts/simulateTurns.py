@@ -38,16 +38,12 @@ from rust_types import (
     Games,
     Game,
     Team,
-    Teams,
-    Turn,
     TurnDrink,
-    TurnDrinks,
     FirstTurnPost,
     PostStartTurn,
     EndTurn as EndTurnPayload,
     PostGame,
     Drink,
-    SocketAuth,
 )
 
 
@@ -161,13 +157,6 @@ def parse_games(payload: Any) -> Games:
     return Games.from_dict(payload)
 
 
-def parse_teams(payload: Any) -> Teams:
-    """Parse a reply-teams payload into a typed Teams object."""
-    if not isinstance(payload, dict):
-        raise RuntimeError("reply-teams payload not a dict")
-    return Teams.from_dict(payload)
-
-
 def get_team_id(game_team: GameTeam) -> int:
     """Extract team_id from a GameTeam."""
     return game_team.team.team_id
@@ -223,10 +212,6 @@ def setup_socket_handlers(sio: socketio.Client, waiter: WaitAny, verbose: bool =
     @sio.on("reply-game", namespace=REF_NS)
     def on_reply_game(data):
         waiter.push("reply-game", data)
-
-    @sio.on("reply-teams", namespace=REF_NS)
-    def on_reply_teams(data):
-        waiter.push("reply-teams", data)
 
     @sio.on("reply-drinks", namespace=REF_NS)
     def on_reply_drinks(data):
@@ -327,15 +312,11 @@ def do_create_team(
     )
     sio.emit("create-team", team_payload.__dict__, namespace=REF_NS)
 
-    # Wait for reply-teams, ignoring other events
-    while True:
-        res = wait_or_raise(waiter, timeout, context=f"create-team ({team_name})")
-        if res.name == "reply-teams":
-            teams = parse_teams(res.payload)
-            print(f"  Created team, now have {len(teams.teams)} teams")
-            break
-        else:
-            print(f"  ...ignoring event {res.name} while waiting for reply-teams")
+    res = wait_or_raise(waiter, timeout, context=f"create-team ({team_name})")
+    if res.name != "reply-game":
+        raise RuntimeError(f"unexpected event after create-team: {res.name}")
+    game_data = parse_game_data(res.payload)
+    print(f"  Created team, now have {len(game_data.teams)} teams")
 
 
 def do_start_game(
@@ -834,10 +815,6 @@ def start_existing_game(args: argparse.Namespace) -> int:
     @sio.on("reply-game", namespace=REF_NS)
     def on_reply_game(data):
         waiter.push("reply-game", data)
-
-    @sio.on("reply-teams", namespace=REF_NS)
-    def on_reply_teams(data):
-        waiter.push("reply-teams", data)
 
     @sio.on("response-error", namespace=REF_NS)
     def on_response_error(data):

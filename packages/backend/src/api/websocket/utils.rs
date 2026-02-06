@@ -1,14 +1,12 @@
 use crate::database::boards::move_team;
 use crate::database::drinks::get_drinks_ingredients;
-use crate::database::games::{check_dice, end_game, get_games, get_team_data};
-use crate::database::team::{get_teams, set_team_double_tampere};
+use crate::database::games::{check_dice, end_game, get_games, get_team_data, place_visited};
+use crate::database::team::set_team_double_tampere;
 use crate::database::turns::{add_drinks_to_turn, add_visited_place, end_turn, start_turn};
 use crate::utils::ids::GameId;
 use crate::utils::socket::check_auth;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{
-    EndTurn, PgError, PlaceThrow, PostStartTurn, SocketAuth, Teams, UserType,
-};
+use crate::utils::types::{EndTurn, PlaceThrow, PostStartTurn, SocketAuth, UserType};
 use deadpool_postgres::Client;
 use serde::Serialize;
 use socketioxide::adapter::{Adapter, Emitter};
@@ -29,58 +27,48 @@ pub(crate) async fn get_db_client(state: &AppState, s: &SocketRef<impl Adapter>)
         }
     }
 }
-pub async fn emit_db_error(s: &SocketRef<impl Adapter>, error: PgError) {
-    tracing::error!("{error}");
-    if let Err(err) = s.emit("response-error", "Internal Server Error") {
-        tracing::error!("Failed replying error message: {err}")
-    };
-}
+
 pub async fn emit_app_error(s: &SocketRef<impl Adapter>, error: AppError) {
     tracing::error!("{error}");
     if let Err(err) = s.emit("response-error", &format!("{}", error)) {
         tracing::error!("Failed replying error message: {err}")
     };
 }
+
 pub async fn emit_msg<T: Serialize>(s: &SocketRef<impl Adapter>, event: &str, payload: &T) {
     if let Err(err) = s.emit(event, &payload) {
         tracing::error!("Failed replying game data: {err}")
     };
 }
-pub async fn run_emit_fn<T, F>(client: &Client, s: &SocketRef<impl Adapter>, event: &str, db_fn: F)
-where
+
+pub async fn run_emit_fn<T, E, F>(
+    client: &Client,
+    s: &SocketRef<impl Adapter>,
+    event: &str,
+    db_fn: F,
+) where
     T: Serialize,
+    E: Into<AppError>,
     // HRTB: for any 'a, given &'a Client, you can produce a Future that lives at least 'a
-    F: for<'a> Fn(&'a Client) -> Pin<Box<dyn Future<Output = Result<T, PgError>> + Send + 'a>>,
+    F: for<'a> Fn(&'a Client) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>,
 {
     match db_fn(client).await {
         Ok(data) => {
             emit_msg(s, event, &data).await;
         }
         Err(e) => {
-            emit_db_error(s, e).await;
+            emit_app_error(s, e.into()).await;
         }
     }
 }
+
 pub async fn emit_team_data(client: &Client, s: &SocketRef<impl Adapter>, game_id: GameId) -> () {
     match get_team_data(client, game_id).await {
         Ok(data) => {
             emit_msg(s, "reply-game", &data).await;
         }
         Err(e) => {
-            emit_db_error(s, e).await;
-        }
-    }
-}
-
-pub async fn emit_teams(client: &Client, s: &SocketRef<impl Adapter>, game_id: GameId) {
-    match get_teams(client, game_id).await {
-        Ok(teams) => {
-            // TODO: The frontend doesn't handle this, but the scripts need it.
-            //  Should use reply-game?
-            emit_msg(s, "reply-teams", &Teams { teams }).await;
-        }
-        Err(e) => {
-            emit_db_error(s, e).await;
+            emit_app_error(s, e).await;
         }
     }
 }
@@ -147,7 +135,7 @@ pub async fn start_turn_handler<A: CoreAdapter<Emitter>>(
     let game_data = match get_team_data(&client, turn_start_data.game_id).await {
         Ok(gd) => gd,
         Err(e) => {
-            emit_db_error(&s, e).await;
+            emit_app_error(&s, e).await;
             return;
         }
     };
@@ -156,7 +144,7 @@ pub async fn start_turn_handler<A: CoreAdapter<Emitter>>(
     let turn = match start_turn(&client, turn_start_data).await {
         Ok(turn) => turn,
         Err(e) => {
-            emit_db_error(&s, e).await;
+            emit_app_error(&s, e).await;
             return;
         }
     };
@@ -212,49 +200,48 @@ pub async fn start_turn_handler<A: CoreAdapter<Emitter>>(
         match set_team_double_tampere(&client, turn.team_id, true).await {
             Ok(_) => {}
             Err(e) => {
-                emit_db_error(&s, e).await;
+                emit_app_error(&s, e).await;
             }
         };
     } else if current_place.area == "tampere" && place_after.area == "normal" && double_tampere == 2
     {
-        match set_team_double_tampere(&client, turn.team_id, false).await {
-            Ok(_) => {}
-            Err(e) => {
-                emit_db_error(&s, e).await;
-            }
+        if let Err(e) = set_team_double_tampere(&client, turn.team_id, false).await {
+            emit_app_error(&s, e).await;
         };
     }
 
-    // Convert place drinks to turn drinks and apply double if needed
-    let turn_drinks = match place_after
-        .drinks
-        .to_turn_drinks(&client, turn.turn_id, turn.game_id, double * double_tampere)
-        .await
-    {
-        Ok(td) => td,
+    // See if someone has cleared the place already
+    let visited = match place_visited(&client, turn.game_id, place_after.place_number).await {
+        Ok(v) => v,
         Err(e) => {
             emit_app_error(&s, e).await;
             return;
         }
     };
 
+    // Convert place drinks to turn drinks and apply double if needed
+    let turn_drinks =
+        place_after
+            .drinks
+            .to_turn_drinks(turn.turn_id, visited, double * double_tampere);
+
     let no_drinks = turn_drinks.drinks.is_empty();
     // Write turn drinks to database
     if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
-        emit_db_error(&s, e).await;
+        emit_app_error(&s, e).await;
         return;
     }
     // Update the turn with the end location
     // TODO: only do when confirmed, merge the updates
     if let Err(e) = add_visited_place(&client, place_after.place_number, turn.turn_id).await {
-        emit_db_error(&s, e).await;
+        emit_app_error(&s, e).await;
         return;
     }
     // If the game ends in the current place, end the game
     // TODO: only do when confirmed, consider endgame beers
     if place_after.end {
         if let Err(e) = end_game(&client, turn.game_id).await {
-            emit_db_error(&s, e).await;
+            emit_app_error(&s, e).await;
             return;
         };
     }

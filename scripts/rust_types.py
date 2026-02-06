@@ -172,13 +172,6 @@ class Team:
 
 
 @dataclass
-class Teams:
-    teams: list['Team'] = field(default_factory=list['Team'])
-    @classmethod
-    def from_dict(cls, data: Any): return _from_dict(cls, data)
-
-
-@dataclass
 class TurnDrink:
     drink: 'Drink'
     turn_id: int
@@ -195,9 +188,25 @@ class TurnDrinks:
 
 
 @dataclass
-class PostTurnDrinks:
-    turn_drinks: 'TurnDrinks'
+class PenaltyDrink:
+    drink: 'Drink'
+    n: int
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class PenaltyDrinks:
+    drinks: list['PenaltyDrink'] = field(default_factory=list['PenaltyDrink'])
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class PostPenalty:
+    team_id: int
     game_id: int
+    drinks: 'PenaltyDrinks'
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

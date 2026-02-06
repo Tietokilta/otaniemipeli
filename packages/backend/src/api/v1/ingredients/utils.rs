@@ -1,5 +1,5 @@
 use crate::database::drinks::*;
-use crate::utils::errors::wrap_db_error;
+use crate::utils::errors::wrap_json;
 use crate::utils::ids::IngredientId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{Ingredient, Ingredients};
@@ -9,7 +9,7 @@ use deadpool_postgres::Client;
 
 pub async fn ingredients_get(state: State<AppState>) -> Result<Json<Ingredients>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(get_ingredients(&client).await, "Error getting ingredients!")
+    wrap_json(get_ingredients(&client).await)
 }
 
 pub async fn ingredients_post(
@@ -17,10 +17,7 @@ pub async fn ingredients_post(
     Json(ingredient): Json<Ingredient>,
 ) -> Result<Json<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        post_ingredient(&client, ingredient).await,
-        "Error posting ingredient!",
-    )
+    wrap_json(post_ingredient(&client, ingredient).await)
 }
 
 pub async fn ingredient_delete(
@@ -28,8 +25,5 @@ pub async fn ingredient_delete(
     state: State<AppState>,
 ) -> Result<Json<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        delete_ingredient(&client, id).await,
-        "Error deleting ingredient!",
-    )
+    wrap_json(delete_ingredient(&client, id).await)
 }

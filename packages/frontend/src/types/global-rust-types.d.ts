@@ -59,10 +59,6 @@ declare global {
     double_tampere: boolean;
   }
 
-  interface Teams {
-    teams: Team[];
-  }
-
   interface TurnDrink {
     drink: Drink;
     turn_id: number;
@@ -73,9 +69,19 @@ declare global {
     drinks: TurnDrink[];
   }
 
-  interface PostTurnDrinks {
-    turn_drinks: TurnDrinks;
+  interface PenaltyDrink {
+    drink: Drink;
+    n: number;
+  }
+
+  interface PenaltyDrinks {
+    drinks: PenaltyDrink[];
+  }
+
+  interface PostPenalty {
+    team_id: number;
     game_id: number;
+    drinks: PenaltyDrinks;
   }
 
   interface FirstTurnPost {

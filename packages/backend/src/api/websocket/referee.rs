@@ -1,14 +1,13 @@
 use crate::api::websocket::utils::{
-    emit_db_error, emit_msg, emit_team_data, emit_teams, end_turn_handler, game_data_handler,
-    get_db_client, get_drinks_handler, get_games_handler, run_emit_fn, start_turn_handler,
-    verify_login_handler,
+    emit_app_error, emit_msg, emit_team_data, end_turn_handler, game_data_handler, get_db_client,
+    get_drinks_handler, get_games_handler, run_emit_fn, start_turn_handler, verify_login_handler,
 };
 use crate::database::games::{get_games, post_game, start_game};
 use crate::database::team::create_team;
-use crate::database::turns::add_drinks_to_turn;
+use crate::database::turns::{add_drinks_to_turn, create_penalty_turn};
 use crate::utils::socket::check_auth;
 use crate::utils::state::AppState;
-use crate::utils::types::{FirstTurnPost, PostGame, PostTurnDrinks, SocketAuth, Team, UserType};
+use crate::utils::types::{FirstTurnPost, PostGame, PostPenalty, SocketAuth, Team, UserType};
 use socketioxide::adapter::Adapter;
 use socketioxide::extract::{Data, SocketRef, State};
 
@@ -27,7 +26,7 @@ pub async fn referee_on_connect<A: Adapter>(
                 None => return,
             };
             if let Err(e) = post_game(&client, game).await {
-                emit_db_error(&s, e).await;
+                emit_app_error(&s, e).await;
                 return;
             };
             run_emit_fn(&client, &s, "reply-games", |c| {
@@ -49,7 +48,7 @@ pub async fn referee_on_connect<A: Adapter>(
           emit_msg(&s, "reply-game", &game).await;
         }
         Err(e) => {
-          emit_db_error(&s, e).await;
+          emit_app_error(&s, e).await;
         }
       }
     },
@@ -66,11 +65,11 @@ pub async fn referee_on_connect<A: Adapter>(
             let team: Team = match create_team(&client, team).await {
                 Ok(team) => team,
                 Err(e) => {
-                    emit_db_error(&s, e).await;
+                    emit_app_error(&s, e).await;
                     return;
                 }
             };
-            emit_teams(&client, &s, team.game_id).await;
+            emit_team_data(&client, &s, team.game_id).await;
         },
     );
     s.on("get-drinks", get_drinks_handler);
@@ -80,18 +79,28 @@ pub async fn referee_on_connect<A: Adapter>(
     s.on(
         "add-penalties",
         |s: SocketRef<A>,
-         Data(turn_drinks): Data<PostTurnDrinks>,
+         Data(penalty): Data<PostPenalty>,
          State(state): State<AppState>| async move {
             tracing::info!("Referee: add-penalties called");
             let client = match get_db_client(&state, &s).await {
                 Some(c) => c,
                 None => return,
             };
-            if let Err(e) = add_drinks_to_turn(&client, turn_drinks.turn_drinks).await {
-                emit_db_error(&s, e).await;
+            // Create a new penalty turn with thrown_at and confirmed_at set
+            let turn = match create_penalty_turn(&client, penalty.team_id, penalty.game_id).await {
+                Ok(t) => t,
+                Err(e) => {
+                    emit_app_error(&s, e).await;
+                    return;
+                }
+            };
+            // Add the drinks to the turn
+            let turn_drinks = penalty.drinks.to_turn_drinks(turn.turn_id);
+            if let Err(e) = add_drinks_to_turn(&client, turn_drinks).await {
+                emit_app_error(&s, e).await;
                 return;
             }
-            emit_team_data(&client, &s, turn_drinks.game_id).await;
+            emit_team_data(&client, &s, penalty.game_id).await;
         },
     );
 

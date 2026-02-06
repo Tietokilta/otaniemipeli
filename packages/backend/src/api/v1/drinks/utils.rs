@@ -1,5 +1,5 @@
 use crate::database::drinks::{delete_drink, get_drinks_ingredients, post_drink, update_drink};
-use crate::utils::errors::wrap_db_error;
+use crate::utils::errors::wrap_json;
 use crate::utils::ids::DrinkId;
 use crate::utils::remove_ingredients;
 use crate::utils::state::{AppError, AppState};
@@ -10,12 +10,7 @@ use deadpool_postgres::Client;
 
 pub async fn drinks_get(state: State<AppState>) -> Result<Json<DrinksIngredients>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        get_drinks_ingredients(&client)
-            .await
-            .map(remove_ingredients),
-        "Error getting drinks!",
-    )
+    wrap_json(get_drinks_ingredients(&client).await.map(remove_ingredients))
 }
 
 pub async fn drinks_post(
@@ -24,7 +19,7 @@ pub async fn drinks_post(
 ) -> Result<Json<u64>, AppError> {
     tracing::info!("{} {}", drink.name, drink.id);
     let client: Client = state.db.get().await?;
-    wrap_db_error(post_drink(&client, drink).await, "Error posting drink!")
+    wrap_json(post_drink(&client, drink).await)
 }
 
 pub async fn drink_delete(
@@ -32,11 +27,10 @@ pub async fn drink_delete(
     state: State<AppState>,
 ) -> Result<Json<ResultIntJson>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
+    wrap_json(
         delete_drink(&client, drink_id)
             .await
             .map(|_| ResultIntJson { int: drink_id.0 }),
-        "Error deleting drink!",
     )
 }
 
@@ -45,5 +39,5 @@ pub async fn drink_patch(
     Json(drink): Json<Drink>,
 ) -> Result<Json<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(update_drink(&client, drink).await, "Error updating drink!")
+    wrap_json(update_drink(&client, drink).await)
 }

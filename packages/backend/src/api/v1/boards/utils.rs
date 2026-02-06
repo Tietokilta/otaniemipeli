@@ -1,5 +1,5 @@
 use crate::database::boards::{add_board_place, get_board, get_boards, post_board};
-use crate::utils::errors::wrap_db_error;
+use crate::utils::errors::wrap_json;
 use crate::utils::ids::BoardId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{Board, BoardPlace, Boards};
@@ -9,7 +9,7 @@ use deadpool_postgres::Client;
 
 pub async fn boards_get(state: State<AppState>) -> Result<Json<Boards>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(get_boards(&client).await, "Error getting boards!")
+    wrap_json(get_boards(&client).await)
 }
 
 pub async fn boards_get_id(
@@ -17,7 +17,7 @@ pub async fn boards_get_id(
     state: State<AppState>,
 ) -> Result<Json<Board>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(get_board(&client, board_id).await, "Error getting board!")
+    wrap_json(get_board(&client, board_id).await)
 }
 
 pub async fn boards_post(
@@ -25,7 +25,7 @@ pub async fn boards_post(
     Json(board): Json<Board>,
 ) -> Result<Json<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(post_board(&client, board).await, "Error posting board!")
+    wrap_json(post_board(&client, board).await)
 }
 
 pub async fn board_place_post(
@@ -34,8 +34,5 @@ pub async fn board_place_post(
     Json(place): Json<BoardPlace>,
 ) -> Result<Json<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        add_board_place(&client, board_id, place).await,
-        "Error posting board place!",
-    )
+    wrap_json(add_board_place(&client, board_id, place).await)
 }

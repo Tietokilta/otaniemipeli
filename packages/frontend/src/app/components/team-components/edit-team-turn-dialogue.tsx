@@ -214,13 +214,15 @@ const AddTeamPenaltyForm = ({
     if (!socket) {
       return;
     }
-    // Filter out drinks with n=0
-    const drinksToSubmit: TurnDrinks = {
-      drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
-    };
-    const postPenalty: PostTurnDrinks = {
+    // Convert TurnDrinks to PenaltyDrinks (filter out n=0 and remove turn_id)
+    const postPenalty: PostPenalty = {
+      team_id: team.team.team_id,
       game_id: team.team.game_id,
-      turn_drinks: drinksToSubmit,
+      drinks: {
+        drinks: penaltyDrinks.drinks
+          .filter((d) => d.n > 0)
+          .map((d) => ({ drink: d.drink, n: d.n })),
+      },
     };
     socket.emit("add-penalties", postPenalty);
 

@@ -3,14 +3,17 @@ use crate::database::team::get_teams;
 use crate::database::turns::{build_turn, end_game_turns};
 use crate::utils::ids::{BoardId, GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
-use crate::utils::types::*;
+use crate::utils::types::{
+    Board, Drink, FirstTurnPost, Game, GameData, GameTeam, Games, PostGame, Turn, TurnDrink,
+    TurnDrinks,
+};
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Client;
 use futures::future::join_all;
 use tokio_postgres::Row;
 
 /// Retrieves all games from the database
-pub async fn get_games(client: &Client) -> Result<Games, PgError> {
+pub async fn get_games(client: &Client) -> Result<Games, AppError> {
     let rows = client
         .query(
             "
@@ -25,7 +28,7 @@ pub async fn get_games(client: &Client) -> Result<Games, PgError> {
 }
 
 /// Retrieves a game by its ID
-pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, PgError> {
+pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, AppError> {
     let row_opt = client
         .query_opt(
             "
@@ -42,7 +45,7 @@ pub async fn get_game_by_id(client: &Client, game_id: GameId) -> Result<Game, Pg
 }
 
 /// Creates a new game in the database
-pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, PgError> {
+pub async fn post_game(client: &Client, game: PostGame) -> Result<Game, AppError> {
     let row = client
         .query_one(
             "
@@ -64,7 +67,7 @@ pub async fn make_first_turns(
     client: &Client,
     first_turn: &FirstTurnPost,
     place_number: i32,
-) -> Result<(), PgError> {
+) -> Result<(), AppError> {
     let query_str = "\
     WITH ins_turns AS (
       INSERT INTO turns (team_id, game_id, place_number)
@@ -101,7 +104,7 @@ pub async fn make_first_turns(
 }
 
 /// Starts a game by setting its start time and creating initial turns.
-pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, PgError> {
+pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, AppError> {
     let row = client
         .query_one(
             "
@@ -126,7 +129,7 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
 }
 
 /// Ends a game by marking it finished and ending all active turns.
-pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, PgError> {
+pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, AppError> {
     let row = client
         .query_one(
             "
@@ -179,7 +182,7 @@ fn default_game() -> Game {
 }
 
 /// Retrieves full game data including teams, turns, and locations.
-pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData, PgError> {
+pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData, AppError> {
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
 
@@ -196,7 +199,7 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
             None => None,
         };
 
-        Ok(GameTeam {
+        Ok::<_, AppError>(GameTeam {
             team,
             turns,
             location,
@@ -210,7 +213,7 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
 }
 
 /// Retrieves game data for all games.
-pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, PgError> {
+pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, AppError> {
     let rows = client.query("SELECT game_id FROM games", &[]).await?;
     let game_ids: Vec<GameId> = rows.iter().map(|row| row.get(0)).collect();
 
@@ -237,20 +240,12 @@ pub async fn get_team_turns_with_drinks(
             "SELECT * FROM turns WHERE team_id = $1 AND game_id = $2 ORDER BY turn_id ASC",
             &[&team_id, &game_id],
         )
-        .await
-        .map_err(|e| AppError::Database(e.to_string()))?;
+        .await?;
 
     let mut turns: Vec<Turn> = rows.into_iter().map(|row| build_turn(row)).collect();
 
     for turn in turns.iter_mut() {
-        turn.drinks = get_turn_drinks(client, turn.turn_id).await.map_err(|e| {
-            tracing::error!(
-                "Error getting turn drinks for turn_id {}: {}",
-                turn.turn_id,
-                e
-            );
-            AppError::Database(e.to_string())
-        })?;
+        turn.drinks = get_turn_drinks(client, turn.turn_id).await?;
     }
     Ok(turns)
 }
@@ -267,7 +262,7 @@ pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
 }
 
 /// Retrieves drinks associated with a turn
-pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDrinks, PgError> {
+pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDrinks, AppError> {
     let rows = client
         .query(
             "SELECT td.drink_id, d.name, d.favorite, d.no_mix_required, td.n
@@ -305,12 +300,8 @@ pub async fn place_visited(
 ) -> Result<bool, AppError> {
     let query_str = "\
     SELECT * FROM turns WHERE game_id = $1 AND place_number = $2 LIMIT 1";
-    match client
+    Ok(client
         .query_opt(query_str, &[&game_id, &place_number])
-        .await
-    {
-        Ok(Some(_row)) => Ok(true),
-        Ok(None) => Ok(false),
-        Err(e) => Err(AppError::Database(e.to_string())),
-    }
+        .await?
+        .is_some())
 }

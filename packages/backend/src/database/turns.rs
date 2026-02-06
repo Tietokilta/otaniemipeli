@@ -1,6 +1,6 @@
-use crate::utils::ids::{GameId, TurnId};
+use crate::utils::ids::{GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
-use crate::utils::types::{EndTurn, PgError, PostStartTurn, Turn, TurnDrinks};
+use crate::utils::types::{EndTurn, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
@@ -36,7 +36,7 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
 }
 
 /// Marks all active turns in a game as ended
-pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn>, PgError> {
+pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn>, AppError> {
     let rows = client
         .query(
             "UPDATE turns
@@ -45,8 +45,7 @@ pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn
              RETURNING *",
             &[&game_id],
         )
-        .await
-        .map_err(PgError::from)?;
+        .await?;
 
     let turns: Vec<Turn> = rows.into_iter().map(|row| build_turn(row)).collect();
 
@@ -54,7 +53,7 @@ pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn
 }
 
 /// Starts a new turn for a team in a game by throwing dice
-pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, PgError> {
+pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, AppError> {
     // insert new turn
     let row = client
         .query_one(
@@ -63,8 +62,25 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Pg
              RETURNING *",
             &[&turn.team_id, &turn.game_id, &turn.dice1, &turn.dice2],
         )
-        .await
-        .map_err(PgError::from)?;
+        .await?;
+
+    Ok(build_turn(row))
+}
+
+/// Creates a penalty turn with thrown_at and confirmed_at set immediately
+pub async fn create_penalty_turn(
+    client: &Client,
+    team_id: TeamId,
+    game_id: GameId,
+) -> Result<Turn, AppError> {
+    let row = client
+        .query_one(
+            "INSERT INTO turns (team_id, game_id, penalty, thrown_at, confirmed_at)
+             VALUES ($1, $2, TRUE, NOW(), NOW())
+             RETURNING *",
+            &[&team_id, &game_id],
+        )
+        .await?;
 
     Ok(build_turn(row))
 }
@@ -95,18 +111,17 @@ pub async fn add_visited_place(
     client: &Client,
     place_number: i32,
     turn_id: TurnId,
-) -> Result<u64, PgError> {
-    client
+) -> Result<u64, AppError> {
+    Ok(client
         .execute(
             "UPDATE turns SET place_number = $1 WHERE turn_id = $2",
             &[&place_number, &turn_id],
         )
-        .await
-        .map_err(PgError::from)
+        .await?)
 }
 
 /// Adds or updates drinks associated with a turn.
-pub async fn add_drinks_to_turn(client: &Client, drinks: TurnDrinks) -> Result<u64, PgError> {
+pub async fn add_drinks_to_turn(client: &Client, drinks: TurnDrinks) -> Result<u64, AppError> {
     let mut total_added = 0;
     for drink in drinks.drinks {
         client

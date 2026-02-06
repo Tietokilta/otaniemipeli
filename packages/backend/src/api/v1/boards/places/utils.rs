@@ -1,5 +1,5 @@
 use crate::database::boards::{add_place, get_board_places, get_places, update_coordinates};
-use crate::utils::errors::wrap_db_error;
+use crate::utils::errors::wrap_json;
 use crate::utils::ids::BoardId;
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{BoardPlace, BoardPlaces, Place, Places};
@@ -12,10 +12,7 @@ pub async fn board_places_get(
     state: State<AppState>,
 ) -> Result<AxumJson<BoardPlaces>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        get_board_places(&client, board_id).await,
-        "Error getting board places!",
-    )
+    wrap_json(get_board_places(&client, board_id).await)
 }
 
 pub async fn places_post(
@@ -23,12 +20,12 @@ pub async fn places_post(
     AxumJson(place): AxumJson<Place>,
 ) -> Result<AxumJson<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(add_place(&client, place).await, "Error posting place!")
+    wrap_json(add_place(&client, place).await)
 }
 
 pub async fn places_get(state: State<AppState>) -> Result<AxumJson<Places>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(get_places(&client).await, "Error getting places!")
+    wrap_json(get_places(&client).await)
 }
 
 pub async fn coordinate_patch(
@@ -37,8 +34,5 @@ pub async fn coordinate_patch(
     AxumJson(place): AxumJson<BoardPlace>,
 ) -> Result<AxumJson<u64>, AppError> {
     let client: Client = state.db.get().await?;
-    wrap_db_error(
-        update_coordinates(&client, board_id, &place).await,
-        "Error updating coordinates!",
-    )
+    wrap_json(update_coordinates(&client, board_id, &place).await)
 }

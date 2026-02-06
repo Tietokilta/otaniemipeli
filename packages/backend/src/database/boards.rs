@@ -1,12 +1,15 @@
 use crate::utils::ids::BoardId;
 use crate::utils::state::AppError;
-use crate::utils::types::*;
+use crate::utils::types::{
+    Board, BoardPlace, BoardPlaces, Boards, Connection, Connections, Drink, Place, PlaceDrink,
+    PlaceDrinks, PlaceThrow, Places,
+};
 use deadpool_postgres::Client;
 use std::cmp::min;
 use tokio_postgres::Row;
 
 /// Retrieves all game boards.
-pub async fn get_boards(client: &Client) -> Result<Boards, PgError> {
+pub async fn get_boards(client: &Client) -> Result<Boards, AppError> {
     let query = client
         .query("SELECT board_id, name FROM boards;", &[])
         .await?;
@@ -23,7 +26,7 @@ pub async fn get_boards(client: &Client) -> Result<Boards, PgError> {
 }
 
 /// Retrieves all place definitions.
-pub async fn get_places(client: &Client) -> Result<Places, PgError> {
+pub async fn get_places(client: &Client) -> Result<Places, AppError> {
     let query = client
         .query(
             "SELECT place_id, place_name, place_type, rule FROM places;",
@@ -45,7 +48,7 @@ pub async fn get_places(client: &Client) -> Result<Places, PgError> {
 }
 
 /// Retrieves a single board by ID.
-pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, PgError> {
+pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, AppError> {
     let query = client
         .query_opt(
             "SELECT board_id, name FROM boards WHERE board_id = $1",
@@ -65,17 +68,17 @@ pub async fn get_board(client: &Client, board_id: BoardId) -> Result<Board, PgEr
 }
 
 /// Creates a new board.
-pub async fn post_board(client: &Client, board: Board) -> Result<u64, PgError> {
-    client
+pub async fn post_board(client: &Client, board: Board) -> Result<u64, AppError> {
+    Ok(client
         .execute("INSERT INTO boards (name) values ($1)", &[&board.name])
-        .await
+        .await?)
 }
 
 /// Builds a BoardPlace struct from a row and fetches its connections.
 async fn build_board_place_and_get_connections(
     client: &Client,
     row: &Row,
-) -> Result<BoardPlace, PgError> {
+) -> Result<BoardPlace, AppError> {
     let board_id = row.get("board_id");
     let place_number: i32 = row.get("place_number");
     Ok(BoardPlace {
@@ -100,7 +103,7 @@ async fn build_board_place_and_get_connections(
 }
 
 /// Retrieves all places on a board with their connections and drinks.
-pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<BoardPlaces, PgError> {
+pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<BoardPlaces, AppError> {
     let board: Board = get_board(client, board_id).await?;
     let query_str = "\
     SELECT
@@ -140,7 +143,7 @@ pub async fn get_board_place(
     client: &Client,
     board_id: BoardId,
     place_number: i32,
-) -> Result<BoardPlace, PgError> {
+) -> Result<BoardPlace, AppError> {
     let query_str = "\
     SELECT
         bp.board_id,
@@ -170,7 +173,7 @@ pub async fn get_place_drinks(
     client: &Client,
     place_number: i32,
     board_id: BoardId,
-) -> Result<PlaceDrinks, PgError> {
+) -> Result<PlaceDrinks, AppError> {
     let query_str = "\
     SELECT
         pd.place_number,
@@ -212,7 +215,7 @@ pub async fn get_place_drinks(
 }
 
 /// Adds drink assignments to a place on a board.
-pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, PgError> {
+pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, AppError> {
     let query_str = "\
     INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, n, n_update) \
     VALUES ($1, $2, $3, $4, $5, $6, $7)";
@@ -241,7 +244,7 @@ pub async fn get_board_place_connections(
     client: &Client,
     board_id: BoardId,
     place_number: i32,
-) -> Result<Vec<Connection>, PgError> {
+) -> Result<Vec<Connection>, AppError> {
     let query_str = "\
     SELECT board_id, origin, target, on_land, backwards, dashed
     FROM place_connections
@@ -263,17 +266,17 @@ pub async fn get_board_place_connections(
 }
 
 /// Creates a new place definition.
-pub async fn add_place(client: &Client, place: Place) -> Result<u64, PgError> {
+pub async fn add_place(client: &Client, place: Place) -> Result<u64, AppError> {
     let query_str = "\
     INSERT INTO places (place_name, rule, place_type) \
     VALUES ($1, $2, $3)";
 
-    client
+    Ok(client
         .execute(
             query_str,
             &[&place.place_name, &place.rule, &place.place_type],
         )
-        .await
+        .await?)
 }
 
 /// Adds a place to a board at a specific position.
@@ -281,12 +284,12 @@ pub async fn add_board_place(
     client: &Client,
     board_id: BoardId,
     place: BoardPlace,
-) -> Result<u64, PgError> {
+) -> Result<u64, AppError> {
     let query_str = "\
     INSERT INTO board_places (board_id, place_number, place_id, start, \"end\", x, y) \
     VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
-    client
+    Ok(client
         .execute(
             query_str,
             &[
@@ -299,7 +302,7 @@ pub async fn add_board_place(
                 &place.y,
             ],
         )
-        .await
+        .await?)
 }
 
 /// Updates the x,y coordinates of a place on a board.
@@ -307,24 +310,21 @@ pub async fn update_coordinates(
     client: &Client,
     board_id: BoardId,
     place: &BoardPlace,
-) -> Result<u64, PgError> {
+) -> Result<u64, AppError> {
     let query_str = "\
     UPDATE board_places SET x = $1, y = $2 WHERE board_id = $3 AND place_number = $4";
 
-    client
+    Ok(client
         .execute(
             query_str,
             &[&place.x, &place.y, &board_id, &place.place_number],
         )
-        .await
+        .await?)
 }
 
 /// Calculates the destination place for a team based on their dice throw.
 pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace, AppError> {
-    let board_places: BoardPlaces = match get_board_places(client, place.place.board_id).await {
-        Ok(bp) => bp,
-        Err(e) => return Err(AppError::Database(e.to_string())),
-    };
+    let board_places: BoardPlaces = get_board_places(client, place.place.board_id).await?;
     let throw: i8 = min(place.throw.0, place.throw.1);
 
     get_next_place(&place.place, &board_places, throw)
@@ -440,11 +440,9 @@ fn get_next_place<'a>(
 }
 
 /// Gets the starting place number for a board.
-pub async fn get_first_place(client: &Client, board_id: BoardId) -> Result<i32, PgError> {
+pub async fn get_first_place(client: &Client, board_id: BoardId) -> Result<i32, AppError> {
     let query_str = "\
     SELECT place_number FROM board_places WHERE board_id = $1 AND start = TRUE";
-    match client.query_one(query_str, &[&board_id]).await {
-        Ok(row) => Ok(row.get(0)),
-        Err(e) => Err(e),
-    }
+    let row = client.query_one(query_str, &[&board_id]).await?;
+    Ok(row.get(0))
 }
