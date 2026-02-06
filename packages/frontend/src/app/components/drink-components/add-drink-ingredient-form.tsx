@@ -71,19 +71,6 @@ export default function AddDrinkIngredientForm({
     [allIngredients, selectedIds],
   );
 
-  const remove = useCallback(
-    (id: number) => {
-      // block removing originals, or allow if you want
-      if (originalIds.has(id)) return;
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    },
-    [originalIds],
-  );
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);

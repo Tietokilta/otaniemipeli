@@ -71,7 +71,7 @@ export default function GameStartDialogue({
         className={`${className} button`}
         onClick={(e) => {
           e.stopPropagation();
-          open ? setOpen(false) : setOpen(true);
+          setOpen(!open);
         }}
       >
         Aloita peli
