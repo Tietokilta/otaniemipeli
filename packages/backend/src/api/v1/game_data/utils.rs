@@ -1,7 +1,7 @@
-use crate::database::games::{get_team_data, get_team_datas};
+use crate::database::games::{get_full_game_data, get_game_list};
 use crate::utils::ids::GameId;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::GameData;
+use crate::utils::types::{Game, GameData};
 use axum::extract::State;
 use axum::Json;
 use deadpool_postgres::Client;
@@ -11,7 +11,7 @@ pub async fn games_get(
     Json(game_id): Json<GameId>,
 ) -> Result<Json<GameData>, AppError> {
     let client: Client = state.db.get().await?;
-    match get_team_data(&client, game_id).await {
+    match get_full_game_data(&client, game_id).await {
         Ok(g) => Ok(Json(g)),
         Err(e) => {
             eprintln!("{}", e);
@@ -21,9 +21,10 @@ pub async fn games_get(
         }
     }
 }
-pub async fn games_get_all(state: State<AppState>) -> Result<Json<Vec<GameData>>, AppError> {
+
+pub async fn games_get_all(state: State<AppState>) -> Result<Json<Vec<Game>>, AppError> {
     let client: Client = state.db.get().await?;
-    match get_team_datas(&client).await {
+    match get_game_list(&client).await {
         Ok(drinks) => Ok(Json(drinks)),
         Err(e) => {
             eprintln!("{}", e);

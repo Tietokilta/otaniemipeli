@@ -137,13 +137,6 @@ pub struct TurnDrinks {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PostPenalty {
-    pub team_id: TeamId,
-    pub game_id: GameId,
-    pub drinks: TurnDrinks,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FirstTurnPost {
     pub game_id: GameId,
     pub drinks: Vec<TurnDrink>,
@@ -159,6 +152,14 @@ pub struct GameData {
 pub struct GameTeam {
     pub team: Team,
     pub turns: Vec<Turn>,
+    pub location: Option<BoardPlace>,
+}
+
+/// Lightweight version of GameTeam with only the latest turn
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TeamLatestTurn {
+    pub team: Team,
+    pub latest_turn: Option<Turn>,
     pub location: Option<BoardPlace>,
 }
 
@@ -196,8 +197,34 @@ pub struct Turn {
 pub struct PostStartTurn {
     pub team_id: TeamId,
     pub game_id: GameId,
+    /// If None, turn is started without dice (thrown_at not set)
+    pub dice1: Option<i32>,
+    /// If None, turn is started without dice (thrown_at not set)
+    pub dice2: Option<i32>,
+    /// Whether this is a penalty turn
+    #[serde(default)]
+    pub penalty: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ChangeDice {
+    pub turn_id: TurnId,
+    pub game_id: GameId,
     pub dice1: i32,
     pub dice2: i32,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct CancelTurn {
+    pub turn_id: TurnId,
+    pub game_id: GameId,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ConfirmTurn {
+    pub turn_id: TurnId,
+    pub game_id: GameId,
+    pub drinks: TurnDrinks,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

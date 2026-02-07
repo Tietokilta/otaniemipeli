@@ -127,6 +127,7 @@ const AddTeamTurnForm = ({
       game_id: team.team.game_id,
       dice1,
       dice2,
+      penalty: false,
     };
 
     // adjust event name to your backend

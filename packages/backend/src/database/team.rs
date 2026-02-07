@@ -33,6 +33,14 @@ pub async fn get_teams(client: &Client, game_id: GameId) -> Result<Vec<Team>, Ap
     Ok(rows.iter().map(|row| build_team_from_row(row)).collect())
 }
 
+/// Retrieves a single team by ID.
+pub async fn get_team_by_id(client: &Client, team_id: TeamId) -> Result<Team, AppError> {
+    let row = client
+        .query_one("SELECT * FROM teams WHERE team_id = $1", &[&team_id])
+        .await?;
+    Ok(build_team_from_row(&row))
+}
+
 /// Sets the double Tampere flag for a team.
 pub async fn set_team_double_tampere(
     client: &Client,

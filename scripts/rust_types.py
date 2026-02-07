@@ -187,15 +187,6 @@ class TurnDrinks:
 
 
 @dataclass
-class PostPenalty:
-    team_id: int
-    game_id: int
-    drinks: 'TurnDrinks'
-    @classmethod
-    def from_dict(cls, data: Any): return _from_dict(cls, data)
-
-
-@dataclass
 class FirstTurnPost:
     game_id: int
     drinks: list['TurnDrink'] = field(default_factory=list['TurnDrink'])
@@ -215,6 +206,15 @@ class GameData:
 class GameTeam:
     team: 'Team'
     turns: list['Turn'] = field(default_factory=list['Turn'])
+    location: Optional['BoardPlace'] = None
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class TeamLatestTurn:
+    team: 'Team'
+    latest_turn: Optional['Turn'] = None
     location: Optional['BoardPlace'] = None
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
@@ -245,8 +245,36 @@ class Turn:
 class PostStartTurn:
     team_id: int
     game_id: int
+    penalty: bool
+    dice1: Optional[int] = None
+    dice2: Optional[int] = None
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class ChangeDice:
+    turn_id: int
+    game_id: int
     dice1: int
     dice2: int
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class CancelTurn:
+    turn_id: int
+    game_id: int
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class ConfirmTurn:
+    turn_id: int
+    game_id: int
+    drinks: 'TurnDrinks'
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

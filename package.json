@@ -15,7 +15,7 @@
     "lint:fix": "pnpm --filter frontend lint:fix",
     "typecheck": "pnpm --filter frontend typecheck && python3 scripts/generateTStypes.py --check && python3 scripts/generatePYclasses.py --check",
     "format": "pnpm --filter frontend format && cargo fmt --manifest-path packages/backend/Cargo.toml --all --",
-    "format:check": "prettier --check .",
+    "format:check": "pnpm --filter frontend format:check && cargo fmt --manifest-path packages/backend/Cargo.toml --all --check --",
     "generate:types": "python3 scripts/generateTStypes.py && python3 scripts/generatePYclasses.py",
     "generate:turns": "python3 scripts/simulateTurns.py",
     "analyse": "python3 scripts/analysis.py"

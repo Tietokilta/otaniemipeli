@@ -68,12 +68,6 @@ declare global {
     drinks: TurnDrink[];
   }
 
-  interface PostPenalty {
-    team_id: number;
-    game_id: number;
-    drinks: TurnDrinks;
-  }
-
   interface FirstTurnPost {
     game_id: number;
     drinks: TurnDrink[];
@@ -87,6 +81,12 @@ declare global {
   interface GameTeam {
     team: Team;
     turns: Turn[];
+    location: BoardPlace | null;
+  }
+
+  interface TeamLatestTurn {
+    team: Team;
+    latest_turn: Turn | null;
     location: BoardPlace | null;
   }
 
@@ -111,8 +111,27 @@ declare global {
   interface PostStartTurn {
     team_id: number;
     game_id: number;
+    dice1: number | null;
+    dice2: number | null;
+    penalty: boolean;
+  }
+
+  interface ChangeDice {
+    turn_id: number;
+    game_id: number;
     dice1: number;
     dice2: number;
+  }
+
+  interface CancelTurn {
+    turn_id: number;
+    game_id: number;
+  }
+
+  interface ConfirmTurn {
+    turn_id: number;
+    game_id: number;
+    drinks: TurnDrinks;
   }
 
   interface EndTurn {

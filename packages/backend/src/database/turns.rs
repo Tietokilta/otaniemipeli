@@ -1,4 +1,4 @@
-use crate::utils::ids::{GameId, TeamId, TurnId};
+use crate::utils::ids::TurnId;
 use crate::utils::state::AppError;
 use crate::utils::types::{EndTurn, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
@@ -11,8 +11,12 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
     let rows = match client
         .query(
             "UPDATE turns
-             SET end_time = NOW()
-             WHERE team_id = $1 AND game_id = $2 returning *",
+             SET end_time = NOW(),
+                mixing_at = COALESCE(mixing_at, NOW()),
+                mixed_at = COALESCE(mixed_at, NOW()),
+                delivered_at = COALESCE(delivered_at, NOW())
+             WHERE team_id = $1 AND game_id = $2 AND end_time IS NULL
+             RETURNING *",
             &[&et.team_id, &et.game_id],
         )
         .await
@@ -35,54 +39,100 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
     Ok(build_turn(rows[0].clone()))
 }
 
-/// Marks all active turns in a game as ended
-pub async fn end_game_turns(client: &Client, game_id: GameId) -> Result<Vec<Turn>, AppError> {
-    let rows = client
-        .query(
-            "UPDATE turns
-             SET end_time = NOW()
-             WHERE game_id = $1 AND end_time IS NULL
-             RETURNING *",
-            &[&game_id],
-        )
-        .await?;
-
-    let turns: Vec<Turn> = rows.into_iter().map(|row| build_turn(row)).collect();
-
-    Ok(turns)
-}
-
-/// Starts a new turn for a team in a game by throwing dice
+/// Starts a new turn for a team in a game.
+/// If dice are provided, sets thrown_at. Otherwise, only start_time is set.
 pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, AppError> {
-    // insert new turn
-    let row = client
-        .query_one(
-            "INSERT INTO turns (team_id, game_id, dice1, dice2)
-             VALUES ($1, $2, $3, $4)
-             RETURNING *",
-            &[&turn.team_id, &turn.game_id, &turn.dice1, &turn.dice2],
-        )
-        .await?;
+    let has_dice = turn.dice1.is_some() && turn.dice2.is_some();
+    let row = if has_dice {
+        client
+            .query_one(
+                "INSERT INTO turns (team_id, game_id, dice1, dice2, thrown_at, penalty)
+                 VALUES ($1, $2, $3, $4, NOW(), $5)
+                 RETURNING *",
+                &[
+                    &turn.team_id,
+                    &turn.game_id,
+                    &turn.dice1,
+                    &turn.dice2,
+                    &turn.penalty,
+                ],
+            )
+            .await?
+    } else {
+        client
+            .query_one(
+                "INSERT INTO turns (team_id, game_id, penalty)
+                 VALUES ($1, $2, $3)
+                 RETURNING *",
+                &[&turn.team_id, &turn.game_id, &turn.penalty],
+            )
+            .await?
+    };
 
     Ok(build_turn(row))
 }
 
-/// Creates a penalty turn with thrown_at and confirmed_at set immediately
-pub async fn create_penalty_turn(
+/// Updates the dice values for an existing turn and sets thrown_at
+pub async fn update_turn_dice(
     client: &Client,
-    team_id: TeamId,
-    game_id: GameId,
+    turn_id: TurnId,
+    dice1: i32,
+    dice2: i32,
 ) -> Result<Turn, AppError> {
     let row = client
         .query_one(
-            "INSERT INTO turns (team_id, game_id, penalty, thrown_at, confirmed_at)
-             VALUES ($1, $2, TRUE, NOW(), NOW())
+            "UPDATE turns SET dice1 = $2, dice2 = $3, thrown_at = NOW()
+             WHERE turn_id = $1
              RETURNING *",
-            &[&team_id, &game_id],
+            &[&turn_id, &dice1, &dice2],
         )
         .await?;
 
     Ok(build_turn(row))
+}
+
+/// Sets confirmed_at for a turn
+pub async fn set_turn_confirmed(client: &Client, turn_id: TurnId) -> Result<Turn, AppError> {
+    let row = client
+        .query_one(
+            "UPDATE turns SET confirmed_at = NOW(),
+                thrown_at = COALESCE(thrown_at, NOW())
+             WHERE turn_id = $1
+             RETURNING *",
+            &[&turn_id],
+        )
+        .await?;
+
+    Ok(build_turn(row))
+}
+
+/// Retrieves a turn by ID with its drinks
+pub async fn get_turn_with_drinks(client: &Client, turn_id: TurnId) -> Result<Turn, AppError> {
+    let row = client
+        .query_one("SELECT * FROM turns WHERE turn_id = $1", &[&turn_id])
+        .await?;
+    let mut turn = build_turn(row);
+    turn.drinks = crate::database::games::get_turn_drinks(client, turn_id).await?;
+    Ok(turn)
+}
+
+/// Deletes a turn and its associated drinks. Only unconfirmed turns can be cancelled.
+pub async fn cancel_turn(client: &Client, turn_id: TurnId) -> Result<(), AppError> {
+    // Delete the turn (only if not confirmed)
+    let rows_affected = client
+        .execute(
+            "DELETE FROM turns WHERE turn_id = $1 AND confirmed_at IS NULL",
+            &[&turn_id],
+        )
+        .await?;
+
+    if rows_affected == 0 {
+        return Err(AppError::Validation(
+            "Cannot cancel a confirmed turn".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 /// Builds a Turn struct from a database row
@@ -107,7 +157,7 @@ pub fn build_turn(row: Row) -> Turn {
 }
 
 /// Updates a turn with the final location
-pub async fn add_visited_place(
+pub async fn set_end_place(
     client: &Client,
     place_number: i32,
     turn_id: TurnId,
@@ -120,22 +170,43 @@ pub async fn add_visited_place(
         .await?)
 }
 
-/// Adds or updates drinks associated with a turn.
-pub async fn add_drinks_to_turn(
+/// Replaces all drinks associated with a turn (deletes existing, inserts new).
+pub async fn set_turn_drinks(
     client: &Client,
     turn_id: TurnId,
     drinks: TurnDrinks,
-) -> Result<u64, AppError> {
-    let mut total_added = 0;
-    for drink in drinks.drinks {
+) -> Result<(), AppError> {
+    // Delete existing drinks for this turn
+    client
+        .execute("DELETE FROM turn_drinks WHERE turn_id = $1", &[&turn_id])
+        .await?;
+
+    // Insert new drinks
+    for drink in &drinks.drinks {
         client
             .execute(
-                "INSERT INTO turn_drinks (turn_id, drink_id, n) VALUES ($1, $2, $3)
-                 ON CONFLICT (turn_id, drink_id) DO UPDATE SET n = turn_drinks.n + EXCLUDED.n",
+                "INSERT INTO turn_drinks (turn_id, drink_id, n) VALUES ($1, $2, $3)",
                 &[&turn_id, &drink.drink.id, &drink.n],
             )
             .await?;
-        total_added += drink.n as u64;
     }
-    Ok(total_added)
+    Ok(())
+}
+
+/// Sets mixing_at and mixed_at to NOW() if no drinks require mixing
+pub async fn set_turn_mixed_if_no_mixing(
+    client: &Client,
+    turn_id: TurnId,
+    drinks: &TurnDrinks,
+) -> Result<(), AppError> {
+    let needs_mixing = drinks.drinks.iter().any(|d| !d.drink.no_mix_required);
+    if !needs_mixing {
+        client
+            .execute(
+                "UPDATE turns SET mixing_at = NOW(), mixed_at = NOW() WHERE turn_id = $1",
+                &[&turn_id],
+            )
+            .await?;
+    }
+    Ok(())
 }

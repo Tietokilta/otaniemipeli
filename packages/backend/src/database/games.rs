@@ -1,11 +1,11 @@
 use crate::database::boards::{get_board_place, get_first_place};
-use crate::database::team::get_teams;
-use crate::database::turns::{build_turn, end_game_turns};
+use crate::database::team::{get_team_by_id, get_teams};
+use crate::database::turns::build_turn;
 use crate::utils::ids::{BoardId, GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::{
-    Board, Drink, FirstTurnPost, Game, GameData, GameTeam, Games, PostGame, Turn, TurnDrink,
-    TurnDrinks,
+    Board, Drink, FirstTurnPost, Game, GameData, GameTeam, Games, PostGame, TeamLatestTurn, Turn,
+    TurnDrink, TurnDrinks,
 };
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Client;
@@ -70,8 +70,8 @@ pub async fn make_first_turns(
 ) -> Result<(), AppError> {
     let query_str = "\
     WITH ins_turns AS (
-      INSERT INTO turns (team_id, game_id, place_number)
-      SELECT team_id, $1::int, $2::int
+      INSERT INTO turns (team_id, game_id, place_number, thrown_at, confirmed_at)
+      SELECT team_id, $1::int, $2::int, NOW(), NOW()
       FROM teams
       WHERE game_id = $1
       RETURNING team_id, turn_id
@@ -145,7 +145,6 @@ pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, AppError
             &[&game_id],
         )
         .await?;
-    end_game_turns(client, game_id).await?;
     Ok(build_game_from_row(&row))
 }
 
@@ -181,8 +180,22 @@ fn default_game() -> Game {
     }
 }
 
+/// Retrieves basic game data for all games (without teams/turns).
+pub async fn get_game_list(client: &Client) -> Result<Vec<Game>, AppError> {
+    let rows = client
+        .query(
+            "
+            SELECT games.*, boards.name AS board_name
+            FROM games
+            INNER JOIN boards ON games.board_id = boards.board_id",
+            &[],
+        )
+        .await?;
+    Ok(rows.iter().map(build_game_from_row).collect())
+}
+
 /// Retrieves full game data including teams, turns, and locations.
-pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData, AppError> {
+pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<GameData, AppError> {
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
 
@@ -212,23 +225,6 @@ pub async fn get_team_data(client: &Client, game_id: GameId) -> Result<GameData,
     Ok(GameData { game, teams })
 }
 
-/// Retrieves game data for all games.
-pub async fn get_team_datas(client: &Client) -> Result<Vec<GameData>, AppError> {
-    let rows = client.query("SELECT game_id FROM games", &[]).await?;
-    let game_ids: Vec<GameId> = rows.iter().map(|row| row.get(0)).collect();
-
-    let game_datas: Vec<GameData> = join_all(
-        game_ids
-            .into_iter()
-            .map(|game_id| get_team_data(client, game_id)),
-    )
-    .await
-    .into_iter()
-    .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(game_datas)
-}
-
 /// Retrieves all turns taken by a team in a specific game, including associated drinks
 pub async fn get_team_turns_with_drinks(
     client: &Client,
@@ -242,7 +238,7 @@ pub async fn get_team_turns_with_drinks(
         )
         .await?;
 
-    let mut turns: Vec<Turn> = rows.into_iter().map(|row| build_turn(row)).collect();
+    let mut turns: Vec<Turn> = rows.into_iter().map(build_turn).collect();
 
     for turn in turns.iter_mut() {
         turn.drinks = get_turn_drinks(client, turn.turn_id).await?;
@@ -303,4 +299,41 @@ pub async fn place_visited(
         .query_opt(query_str, &[&game_id, &place_number])
         .await?
         .is_some())
+}
+
+/// Lightweight version of get_full_game_data that only fetches one team and their latest turn.
+/// Use this when you only need data for the involved team, not all teams.
+pub async fn get_team_latest_turn(
+    client: &Client,
+    game_id: GameId,
+    team_id: TeamId,
+) -> Result<TeamLatestTurn, AppError> {
+    let game = get_game_by_id(client, game_id).await?;
+    let team = get_team_by_id(client, team_id).await?;
+
+    // Get the latest confirmed turn with a location (excludes penalty turns)
+    let latest_turn = client
+        .query_opt(
+            "SELECT * FROM turns
+             WHERE team_id = $1 AND game_id = $2
+               AND confirmed_at IS NOT NULL AND place_number IS NOT NULL
+             ORDER BY turn_id DESC LIMIT 1",
+            &[&team_id, &game_id],
+        )
+        .await?
+        .map(build_turn);
+
+    // Get location from latest confirmed turn
+    let location = match latest_turn.as_ref().and_then(|t| t.location) {
+        Some(place_number) => get_board_place(client, game.board.id, place_number)
+            .await
+            .ok(),
+        None => None,
+    };
+
+    Ok(TeamLatestTurn {
+        team,
+        latest_turn,
+        location,
+    })
 }

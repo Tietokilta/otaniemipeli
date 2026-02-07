@@ -66,6 +66,8 @@ The generated types are globally available (no imports needed).
 
 - Rust: `cargo fmt` for formatting, `clippy` for linting
 - TypeScript: Prettier for formatting, ESLint for linting (with `eslint --fix` for auto-fixing)
+- Always include brief doc comments for each function and struct on the module root. Callbacks and inner functions can omit comments if obvious.
+- Use a blank line between functions and struct definitions for readability. When modifying code, insert these where missing, but don't touch unrelated code.
 
 ## Environment Setup
 
