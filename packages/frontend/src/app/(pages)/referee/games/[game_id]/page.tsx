@@ -53,7 +53,7 @@ export default function Page({
           className="button"
           href={`/referee/games/${gameData.game.id}/assistant`}
         >
-          Aputuomaritila
+          Aputuomaritilaan
         </Link>
         {gameData.game.started && (
           <Link

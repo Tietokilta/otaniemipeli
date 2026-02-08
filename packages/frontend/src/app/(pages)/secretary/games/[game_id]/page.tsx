@@ -31,13 +31,15 @@ export default function Page({
     return <GameLoadingSpinner />;
   }
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 min-h-0">
       <GameCard game={gameData.game} />
       <TeamList
         game={gameData.game}
         teams={gameData.teams}
         link
         linkPrefix="/teams"
+        canAdd={false}
+        className="overflow-y-auto"
       />
     </div>
   );

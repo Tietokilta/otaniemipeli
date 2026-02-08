@@ -221,8 +221,7 @@ export const AddTeamTurnButton = ({
     }, TurnStatus.Ended);
 
   const canDice =
-    currentStatus === TurnStatus.WaitingForDice ||
-    (currentStatus === TurnStatus.Ended && allowDice);
+    turnForDice != null || (currentStatus === TurnStatus.Ended && allowDice);
 
   /** Creates a new pending turn without dice values. */
   const handleStartTurn = async () => {
@@ -450,7 +449,7 @@ export const ToggleMoralVictoryButton = ({
     </button>
   ) : (
     <SimpleConfirmedButton
-      buttonClassName="button text-xl p-5"
+      buttonClassName={`button text-xl p-5 ${!team.team.moral_victory_eligible ? "bg-slime-600/20" : ""}`}
       buttonText={
         team.team.moral_victory_eligible
           ? "Merkitse laatta"

@@ -26,7 +26,11 @@ export default function GameTeamTurnsList({
         )
         .toSorted((a, b) => {
           if (collect) {
-            // In collect mode, sort teams by total drinks (most drinks first), then by total turn time (shortest time first)
+            // In collect mode, sort teams by drunk drinks (most drinks first),
+            // then total drinks awarded, then by total turn time (shortest time first)
+            if (b.total_drunk !== a.total_drunk) {
+              return b.total_drunk - a.total_drunk;
+            }
             if (b.total_drinks !== a.total_drinks) {
               return b.total_drinks - a.total_drinks;
             }

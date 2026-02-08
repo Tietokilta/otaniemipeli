@@ -123,6 +123,10 @@ export default function GeneralHeader({
               href={base_path + item.href}
             />
           ))}
+          <HeaderItemComponent
+            text="FS"
+            onClick={() => document.documentElement.requestFullscreen()}
+          />
           <HeaderItemComponent text="Vaihda roolia" href="/" />
           <HeaderItemComponent text="Kirjaudu ulos" onClick={handleLogout} />
         </nav>

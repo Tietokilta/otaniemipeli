@@ -10,6 +10,7 @@ export default function TeamList({
   link,
   linkPrefix,
   editTurn,
+  canAdd = true,
 }: {
   game: Game;
   teams: GameTeam[];
@@ -17,11 +18,12 @@ export default function TeamList({
   link?: boolean;
   linkPrefix?: string;
   editTurn?: boolean;
+  canAdd?: boolean;
 }) {
   return (
     <ItemList
       title="Joukkueet"
-      addDialog={!game.started && <AddTeamForm gameId={game.id} />}
+      addDialog={canAdd && !game.started && <AddTeamForm gameId={game.id} />}
       className={className}
     >
       {teams.map((team) => (

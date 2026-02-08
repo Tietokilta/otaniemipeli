@@ -15,6 +15,7 @@ export type GameTeamWithTotals = GameTeam & {
   penalties: number;
   total_drinks: number;
   total_active: number;
+  total_drunk: number;
   combined_time: number;
   // dice_throws: [number, number][];
   drinks: TurnDrink[];
@@ -47,11 +48,10 @@ function sumByDrinkId(rows: TurnDrink[]) {
 
 export function computeTotals(team: GameTeam): GameTeamWithTotals {
   // In non-collect mode, only show currently active turn(s). In collect mode, show all turns.
-  const activeTurns = team.turns.filter((t) => !t.end_time);
   const penalties = team.turns.filter((t) => t.penalty).length;
   const totalDrinks = sumByDrinkId(team.turns.flatMap((t) => t.drinks.drinks));
   const activeDrinks = sumByDrinkId(
-    activeTurns.flatMap((t) => t.drinks.drinks),
+    team.turns.filter((t) => !t.end_time).flatMap((t) => t.drinks.drinks),
   );
   return {
     ...team,
@@ -65,6 +65,7 @@ export function computeTotals(team: GameTeam): GameTeamWithTotals {
     ...totalDrinks,
     active_drinks: activeDrinks.drinks,
     total_active: activeDrinks.total_drinks,
+    total_drunk: totalDrinks.total_drinks - activeDrinks.total_drinks,
   };
 }
 
@@ -165,7 +166,9 @@ export default function TeamTurnCard({
           <p>
             {team.normal_turns} vuoroa, {team.penalties} sakkoa
           </p>
-          <p>Yhteensä {team.total_drinks} juomaa</p>
+          <p>
+            Yhteensä {team.total_drinks}, juotu {team.total_drunk}
+          </p>
           <p>Kokonaisaika: {formatShortDurationMs(team.combined_time)}</p>
         </>
       ) : (
@@ -175,7 +178,7 @@ export default function TeamTurnCard({
             <p>
               Heitot: {lastThrow.dice1} + {lastThrow.dice2}
             </p>
-          ) : singleTurn ? (
+          ) : singleTurn && teamTurns[0].confirmed_at ? (
             <p>Sakkovuoro, ei heittoja</p>
           ) : (
             <p>Ei vielä heittoja</p>
@@ -188,6 +191,7 @@ export default function TeamTurnCard({
         </p>
       )}
       {!collect &&
+        !(singleTurn && !lastThrow) &&
         (location ? (
           <PlaceCard place={location} showInfo={false} />
         ) : team.location ? (
@@ -195,7 +199,15 @@ export default function TeamTurnCard({
         ) : (
           <p>Place not found</p>
         ))}
-      <TurnDrinksList drinks={collect ? team.drinks : team.active_drinks} />
+      <TurnDrinksList
+        drinks={
+          singleTurn
+            ? teamTurns[0].drinks.drinks
+            : collect
+              ? team.drinks
+              : team.active_drinks
+        }
+      />
     </div>
   );
 }

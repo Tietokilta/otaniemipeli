@@ -50,7 +50,7 @@ export default function Page({
           <GameStartDialogue game={gameData.game} className="w-full" />
         )}
         <Link className="button" href={`/referee/games/${gameData.game.id}`}>
-          Päätuomaritila
+          Päätuomaritilaan
         </Link>
         {gameData.game.started && (
           <Link

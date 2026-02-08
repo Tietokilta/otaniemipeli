@@ -237,7 +237,7 @@ pub async fn process_confirm_turn(
         db_set_drink_prep_status(client, turn_id, DrinkPrepStatus::Delivered).await?;
 
         // Then, if we have any IE drinks, create a new turn for those to mix normally
-        if ie_drinks.drinks.is_empty() {
+        if !ie_drinks.drinks.is_empty() {
             let ie_turn_data = PostStartTurn {
                 team_id: turn.team_id,
                 game_id: turn.game_id,
