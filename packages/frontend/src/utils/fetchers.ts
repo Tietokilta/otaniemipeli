@@ -398,7 +398,19 @@ export async function confirmTurn(
 }
 
 export async function cancelTurn(turnId: number): Promise<void> {
-  return apiFetchVoid(`${API_URL}/turns/${turnId}`, { method: "DELETE" }, true);
+  try {
+    return await apiFetchVoid(
+      `${API_URL}/turns/${turnId}`,
+      { method: "DELETE" },
+      true,
+    );
+  } catch (error) {
+    // If the turn is already gone (404), treat it as success (idempotent)
+    if (error instanceof Error && error.message.includes("404")) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function endTurn(teamId: number): Promise<void> {

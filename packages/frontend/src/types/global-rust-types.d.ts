@@ -208,6 +208,7 @@ declare global {
     drink: Drink;
     refill: boolean;
     optional: boolean;
+    on_table: boolean;
     n: number;
     n_update: string;
   }

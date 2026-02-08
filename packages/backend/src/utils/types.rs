@@ -344,6 +344,7 @@ pub struct PlaceDrink {
     pub drink: Drink,
     pub refill: bool,
     pub optional: bool,
+    pub on_table: bool,
     pub n: i32,
     pub n_update: String,
 }

@@ -387,6 +387,7 @@ class PlaceDrink:
     drink: 'Drink'
     refill: bool
     optional: bool
+    on_table: bool
     n: int
     n_update: str
     @classmethod

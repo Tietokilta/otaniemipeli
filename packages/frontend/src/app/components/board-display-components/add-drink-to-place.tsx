@@ -66,6 +66,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
                             drink: drink.drink,
                             refill: false,
                             optional: false,
+                            on_table: false,
                             n: 0,
                             n_update: "",
                           })
@@ -121,6 +122,7 @@ export function DrinkSelectionCard({
   const [optional, setOptional] = useState<boolean>(
     placeDrink.optional || false,
   );
+  const [onTable, setOnTable] = useState<boolean>(placeDrink.on_table || false);
   const [n, setN] = useState<number>(placeDrink.n || 1);
   const [rule, setRule] = useState<string>(placeDrink.n_update || "1");
   const [showEverything, setShowEverything] = useState<boolean>(false);
@@ -156,13 +158,14 @@ export function DrinkSelectionCard({
             drink: pd.drink,
             refill: refill,
             optional: optional,
+            on_table: onTable,
             n: n,
             n_update: rule,
           },
         ],
       };
     });
-  }, [refill, optional, n, rule, updateDrinks]);
+  }, [refill, optional, onTable, n, rule, updateDrinks]);
 
   return (
     <div
@@ -204,6 +207,17 @@ export function DrinkSelectionCard({
               <p className="text-sm w-2/3">Valinnainen</p>
               <p
                 className={`w-min-1/3 box ${optional ? "bg-emerald-800 border-emerald-800" : ""}`}
+              ></p>
+            </div>
+          </div>
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`flex gap-2 w-1/2 box center`}
+              onClick={() => setOnTable(!onTable)}
+            >
+              <p className="text-sm w-2/3">Pöydällä</p>
+              <p
+                className={`w-min-1/3 box ${onTable ? "bg-emerald-800 border-emerald-800" : ""}`}
               ></p>
             </div>
           </div>

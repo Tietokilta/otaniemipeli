@@ -1,10 +1,12 @@
+use std::cmp::min;
+
 use crate::database::boards::{get_board_place, move_team, move_team_backwards};
 use crate::database::games::{
     check_dice, end_game, get_full_game_data, get_game_by_id, get_team_latest_turn, place_visited,
 };
 use crate::database::team::set_team_double_tampere;
 use crate::database::turns::{
-    cancel_turn as db_cancel_turn, end_active_turns as db_end_turn, get_turn_with_drinks,
+    cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks,
     set_drink_prep_status as db_set_drink_prep_status, set_end_place, set_turn_automixing,
     set_turn_confirmed, set_turn_drinks, start_turn as db_start_turn, update_turn_dice,
 };
@@ -12,8 +14,8 @@ use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TurnId};
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
-    BoardPlace, ChangeDiceBody, ConfirmTurnBody, GameData, PlaceThrow, PostStartTurn,
-    SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrinks,
+    BoardPlace, ChangeDiceBody, ConfirmTurnBody, DrinkPrepStatus, GameData, PlaceThrow,
+    PostStartTurn, SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrink, TurnDrinks,
 };
 use axum::extract::{Path, State};
 use axum::Json;
@@ -168,11 +170,45 @@ pub async fn process_confirm_turn(
         ));
     };
 
-    set_turn_confirmed(client, turn_id).await?;
-    set_turn_drinks(client, turn_id, drinks.clone()).await?;
-    set_turn_automixing(client, turn_id, &drinks).await?;
-
     let place_after = get_board_place(client, game.board.id, location).await?;
+
+    // Separate on_table drinks from regular drinks
+    let mut on_table_drinks = TurnDrinks { drinks: vec![] };
+    let mut ie_drinks = TurnDrinks { drinks: vec![] };
+
+    for turn_drink in drinks.drinks {
+        // Find the corresponding place_drink to check on_table status
+        let place_drink = place_after
+            .drinks
+            .drinks
+            .iter()
+            .find(|pd| pd.drink.id == turn_drink.drink.id);
+
+        if let Some(pd) = place_drink {
+            if pd.on_table {
+                // First set of on_table drinks goes to a delivered turn
+                on_table_drinks.drinks.push(TurnDrink {
+                    drink: turn_drink.drink.clone(),
+                    n: min(turn_drink.n, pd.n),
+                });
+                // Any extra sets (multiplier > 1) go to a penalty turn
+                if turn_drink.n > pd.n {
+                    ie_drinks.drinks.push(TurnDrink {
+                        drink: turn_drink.drink.clone(),
+                        n: turn_drink.n - pd.n,
+                    });
+                }
+            } else {
+                // If the drink is not on_table, it goes to the regular confirmed turn
+                ie_drinks.drinks.push(turn_drink.clone());
+            }
+        } else {
+            // If we can't find the place_drink, treat as regular
+            ie_drinks.drinks.push(turn_drink.clone());
+        }
+    }
+
+    set_turn_confirmed(client, turn_id).await?;
 
     let is_double = dice1 == dice2;
     if place_before.area == "normal" && place_after.area == "tampere" && is_double {
@@ -181,12 +217,40 @@ pub async fn process_confirm_turn(
         set_team_double_tampere(client, turn.team_id, false).await?;
     }
 
+    // If the turn ended on a place with end=true, end the game immediately
     if place_after.end {
         end_game(client, turn.game_id).await?;
     }
+    // Otherwise, end turn immediately if no drinks were awarded
+    else if on_table_drinks.drinks.is_empty() && ie_drinks.drinks.is_empty() {
+        db_end_turn(client, turn_id).await?;
+    }
+    // Otherwise, if all drinks were not on_table, insert them in this turn to be mixed
+    else if on_table_drinks.drinks.is_empty() {
+        set_turn_drinks(client, turn_id, ie_drinks.clone()).await?;
+        set_turn_automixing(client, turn_id, &ie_drinks).await?;
+    }
+    // Otherwise, we have some on_table drinks - put those in the current turn and mark as delivered
+    else {
+        set_turn_drinks(client, turn_id, on_table_drinks.clone()).await?;
+        set_turn_automixing(client, turn_id, &on_table_drinks).await?;
+        db_set_drink_prep_status(client, turn_id, DrinkPrepStatus::Delivered).await?;
 
-    if drinks.drinks.is_empty() && !place_after.end {
-        db_end_turn(client, turn.game_id, turn.team_id).await?;
+        // Then, if we have any IE drinks, create a new turn for those to mix normally
+        if ie_drinks.drinks.is_empty() {
+            let ie_turn_data = PostStartTurn {
+                team_id: turn.team_id,
+                game_id: turn.game_id,
+                dice1: None,
+                dice2: None,
+                dice_ayy: None,
+                penalty: true,
+            };
+            let ie_turn = db_start_turn(client, ie_turn_data).await?;
+            set_turn_confirmed(client, ie_turn.turn_id).await?;
+            set_turn_drinks(client, ie_turn.turn_id, ie_drinks.clone()).await?;
+            set_turn_automixing(client, ie_turn.turn_id, &ie_drinks).await?;
+        }
     }
 
     Ok(turn)

@@ -194,6 +194,7 @@ pub async fn get_place_drinks(
         d.no_mix_required,
         pd.refill,
         pd.optional,
+        pd.on_table,
         pd.n,
         pd.n_update
     FROM place_drinks AS pd
@@ -217,6 +218,7 @@ pub async fn get_place_drinks(
                 },
                 refill: row.get("refill"),
                 optional: row.get("optional"),
+                on_table: row.get("on_table"),
                 n: row.get("n"),
                 n_update: row.get("n_update"),
             })
@@ -227,8 +229,8 @@ pub async fn get_place_drinks(
 /// Adds drink assignments to a place on a board.
 pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, AppError> {
     let query_str = "\
-    INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, n, n_update) \
-    VALUES ($1, $2, $3, $4, $5, $6, $7)";
+    INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, on_table, n, n_update) \
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
 
     for drink in &drinks.drinks {
         client
@@ -240,6 +242,7 @@ pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
                     &drink.board_id,
                     &drink.refill,
                     &drink.optional,
+                    &drink.on_table,
                     &drink.n,
                     &drink.n_update,
                 ],

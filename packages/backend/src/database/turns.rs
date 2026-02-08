@@ -17,7 +17,11 @@ pub async fn end_active_turns(
                 mixing_at = COALESCE(mixing_at, NOW()),
                 mixed_at = COALESCE(mixed_at, NOW()),
                 delivered_at = COALESCE(delivered_at, NOW())
-             WHERE team_id = $1 AND game_id = $2 AND end_time IS NULL
+             WHERE team_id = $1
+                AND game_id = $2
+                AND confirmed_at IS NOT NULL
+                AND delivered_at IS NOT NULL
+                AND end_time IS NULL
              RETURNING *",
             &[&team_id, &game_id],
         )
@@ -39,6 +43,24 @@ pub async fn end_active_turns(
         .into());
     }
     Ok(build_turn(&rows[0]))
+}
+
+/// Ends a specific turn by turn_id
+pub async fn end_turn(client: &Client, turn_id: TurnId) -> Result<Turn, AppError> {
+    let row = client
+        .query_one(
+            "UPDATE turns
+             SET end_time = NOW(),
+                mixing_at = COALESCE(mixing_at, NOW()),
+                mixed_at = COALESCE(mixed_at, NOW()),
+                delivered_at = COALESCE(delivered_at, NOW())
+             WHERE turn_id = $1
+             RETURNING *",
+            &[&turn_id],
+        )
+        .await?;
+
+    Ok(build_turn(&row))
 }
 
 /// Starts a new turn for a team in a game.

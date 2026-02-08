@@ -12,7 +12,7 @@ function SecretaryTurnCard({ turn }: { turn: Turn }) {
       <TurnDrinksList drinks={turn.drinks.drinks} className="flex-1" />
       {turn.mixed_at && !turn.delivered_at && (
         <button type="button" className="button" onClick={handleDelivered}>
-          Saapui
+          Tuli
         </button>
       )}
     </div>

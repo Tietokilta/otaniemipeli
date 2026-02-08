@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS place_drinks
     place_number INTEGER NOT NULL,
     refill       BOOLEAN NOT NULL DEFAULT FALSE,
     optional     BOOLEAN NOT NULL DEFAULT FALSE,
+    on_table     BOOLEAN NOT NULL DEFAULT FALSE,
     n            INTEGER NOT NULL DEFAULT 1,
     n_update     TEXT    NOT NULL DEFAULT '',
     PRIMARY KEY (drink_id, board_id, place_number),
