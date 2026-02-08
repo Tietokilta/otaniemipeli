@@ -1,11 +1,9 @@
 "use client";
 
-import { useSocket } from "@/app/template";
 import SimpleAddForm from "@/app/components/simple-add-form";
+import { createTeam } from "@/utils/fetchers";
 
 export default function AddTeamForm({ gameId }: { gameId: number }) {
-  const socket = useSocket();
-
   async function handleSubmit(name: string) {
     const team: Team = {
       team_id: -1,
@@ -15,9 +13,7 @@ export default function AddTeamForm({ gameId }: { gameId: number }) {
       double_tampere: false,
     };
     console.log(team);
-    if (socket) {
-      socket.emit("create-team", team);
-    }
+    await createTeam(gameId, team);
   }
 
   return (

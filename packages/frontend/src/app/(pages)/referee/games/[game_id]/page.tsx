@@ -20,9 +20,7 @@ export default function Page({
 }) {
   const { game_id } = use(params);
   const socket = useSocket();
-  const { gameData, error, isLoading } = useGameData(socket, Number(game_id), {
-    pollingInterval: 1000,
-  });
+  const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
 
   if (isLoading) {
     return <GameLoadingSpinner />;

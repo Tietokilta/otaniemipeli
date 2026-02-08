@@ -1,8 +1,7 @@
 import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
-import { useSocket } from "@/app/template";
 import PopUpDialogue from "../pop-up-dialogue";
 import DropdownMenu from "@/app/components/dropdown-menu";
-import { getDrinks } from "@/utils/fetchers";
+import { getDrinks, endTurn, startTurn, addPenalty } from "@/utils/fetchers";
 
 export const EditTeamTurnDialogue = ({
   team,
@@ -14,7 +13,6 @@ export const EditTeamTurnDialogue = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   const [choice, setChoice] = useState<"penalty" | "turn" | null>(null);
-  const socket = useSocket();
 
   if (!open) return null;
 
@@ -48,16 +46,12 @@ export const EditTeamTurnDialogue = ({
             ) : (
               <button
                 className="button text-xl p-5"
-                onClick={() => {
-                  if (!socket) {
-                    return;
-                  }
+                onClick={async () => {
                   const params: EndTurn = {
                     team_id: team.team.team_id,
                     game_id: team.team.game_id,
                   };
-                  socket.emit("end-turn", params);
-                  socket.emit("game-data", team.team.game_id);
+                  await endTurn(params);
                   setChoice(null);
                 }}
               >
@@ -113,15 +107,10 @@ const AddTeamTurnForm = ({
   controller: Dispatch<SetStateAction<"penalty" | "turn" | null>>;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const socket = useSocket();
-
   const [dice1, setDice1] = useState<number>(0);
   const [dice2, setDice2] = useState<number>(0);
 
-  const submitTurn = () => {
-    if (!socket) {
-      return;
-    }
+  const submitTurn = async () => {
     const postTurn: PostStartTurn = {
       team_id: team.team.team_id,
       game_id: team.team.game_id,
@@ -130,9 +119,7 @@ const AddTeamTurnForm = ({
       penalty: false,
     };
 
-    // adjust event name to your backend
-    socket.emit("start-turn", postTurn);
-    socket.emit("game-data", team.team.game_id);
+    await startTurn(postTurn);
     setOpen(false);
     controller(null);
   };
@@ -190,7 +177,6 @@ const AddTeamPenaltyForm = ({
   const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
     drinks: [],
   });
-  const socket = useSocket();
 
   useEffect(() => {
     getDrinks().then((drinks) => {
@@ -210,19 +196,11 @@ const AddTeamPenaltyForm = ({
     });
   }, []);
 
-  const handleSubmit = () => {
-    if (!socket) {
-      return;
-    }
-    const postPenalty: PostPenalty = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-      drinks: {
-        drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
-      },
+  const handleSubmit = async () => {
+    const drinks: TurnDrinks = {
+      drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
     };
-    socket.emit("add-penalties", postPenalty);
-
+    await addPenalty(team.team.team_id, team.team.game_id, drinks);
     setOpen(false);
     controller(null);
   };

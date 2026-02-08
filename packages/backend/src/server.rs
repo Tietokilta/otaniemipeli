@@ -49,12 +49,12 @@ pub async fn start() -> anyhow::Result<()> {
     let bind = format!("0.0.0.0:{}", port);
     println!("\nServer started at port {}", port);
 
-    let state = AppState::new(pool);
-
-    let (layer, io) = SocketIo::builder().with_state(state.clone()).build_layer();
+    let (layer, io) = SocketIo::builder().build_layer();
     tracing::info!("Socket.IO layer built");
+
+    let state = AppState::new(pool, io.clone());
+
     io.ns("/referee", websocket::referee::referee_on_connect);
-    io.ns("/secretary", websocket::secretary::secretary_on_connect);
 
     let app = Router::new()
         .route(

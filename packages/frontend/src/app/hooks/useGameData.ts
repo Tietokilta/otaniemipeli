@@ -3,53 +3,27 @@
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
-export interface UseGameDataOptions {
-  /**
-   * Maximum number of retry attempts
-   * @default 5
-   */
-  maxRetries?: number;
-  /**
-   * Timeout between retries in milliseconds
-   * @default 500
-   */
-  retryTimeout?: number;
-  /**
-   * Polling interval in milliseconds. If set, the game data will be
-   * re-requested at this interval. Set to 0 or undefined to disable polling.
-   * @default undefined (no polling)
-   */
-  pollingInterval?: number;
-}
-
 export interface UseGameDataResult {
   gameData: GameData | undefined;
   error: string | null;
   isLoading: boolean;
-  /**
-   * Update the game data manually (useful for real-time updates)
-   */
   setGameData: React.Dispatch<React.SetStateAction<GameData | undefined>>;
 }
 
 /**
- * Custom hook to fetch game data via socket.io with retry logic and error handling
+ * Custom hook to subscribe to game data updates via websocket.
+ *
+ * On mount, subscribes to the game room. The server sends initial game data
+ * immediately upon subscription, and broadcasts updates when actions occur.
  *
  * @param socket - The socket.io socket instance
- * @param gameId - The game ID to fetch data for
- * @param options - Optional configuration
+ * @param gameId - The game ID to subscribe to
  * @returns Game data, error state, loading state, and setter
- *
- * @example
- * const { game_data, error, isLoading } = useGameData(socket, gameId);
  */
 export function useGameData(
   socket: Socket | null,
   gameId: number,
-  options: UseGameDataOptions = {},
 ): UseGameDataResult {
-  const { maxRetries = 5, retryTimeout = 1000, pollingInterval } = options;
-
   const [gameData, setGameData] = useState<GameData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -60,79 +34,47 @@ export function useGameData(
       return;
     }
 
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let pollingId: ReturnType<typeof setInterval> | null = null;
-    let resolved = false;
-    let attempts = 0;
-
-    const request = () => {
-      if (attempts >= maxRetries) {
-        setError("Too many connect attempts, please try reloading the page.");
-        setIsLoading(false);
+    const onGameUpdate = (data: GameData) => {
+      if (!data?.game) {
+        setError("Invalid game data received.");
         return;
       }
-      if (resolved || attempts >= maxRetries) return;
 
-      attempts++;
-      console.log("Requesting game data for id:", gameId);
-      socket.emit("game-data", gameId);
-
-      timeoutId = setTimeout(() => {
-        if (!resolved) {
-          console.warn("No response, retrying…");
-          request();
-        }
-      }, retryTimeout);
-    };
-
-    const pollRequest = () => {
-      console.log("Polling game data for id:", gameId);
-      socket.emit("game-data", gameId);
-    };
-
-    const onReply = (data: GameData) => {
-      if (!data) {
-        return;
-      }
-      if (!data.game) {
-        setError("Game not found.");
-        setIsLoading(false);
-        return;
-      }
-      // Validate that the received game ID matches the requested one
+      // Validate that the received game ID matches the subscribed one
       if (data.game.id !== gameId) {
         return;
       }
 
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-
-      console.log("Received game data:", data);
       setGameData(data);
       setIsLoading(false);
       setError(null);
-
-      // Start polling after initial data is received
-      if (pollingInterval && pollingInterval > 0 && !pollingId) {
-        pollingId = setInterval(pollRequest, pollingInterval);
-      }
     };
 
-    socket.on("reply-game", onReply);
+    const onError = (errorMsg: string) => {
+      setError(errorMsg);
+      setIsLoading(false);
+    };
 
+    const subscribe = () => {
+      socket.emit("subscribe", { game_id: gameId });
+    };
+
+    // Listen for game updates and errors
+    socket.on("game-update", onGameUpdate);
+    socket.on("response-error", onError);
+
+    // Subscribe when connected
     if (socket.connected) {
-      request();
+      subscribe();
     } else {
-      socket.once("connect", request);
+      socket.once("connect", subscribe);
     }
 
     return () => {
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      if (pollingId) clearInterval(pollingId);
-      socket.off("reply-game", onReply);
+      socket.off("game-update", onGameUpdate);
+      socket.off("response-error", onError);
     };
-  }, [socket, gameId, maxRetries, retryTimeout, pollingInterval]);
+  }, [socket, gameId]);
 
   return { gameData, error, isLoading, setGameData };
 }

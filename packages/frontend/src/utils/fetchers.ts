@@ -1,7 +1,14 @@
-"use server";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+function getToken(): string {
+  return typeof window !== "undefined"
+    ? (localStorage.getItem("auth_token") ?? "")
+    : "";
+}
 
 export async function getIngredients(): Promise<Ingredients> {
-  const res = await fetch(process.env.API_URL + "/ingredients", {
+  const res = await fetch(API_URL + "/ingredients", {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -16,11 +23,11 @@ export async function addIngredient(
   ingredient: Ingredient,
   token: string | null,
 ) {
-  const res: Response = await fetch(`${process.env.API_URL}/ingredients`, {
+  const res: Response = await fetch(`${API_URL}/ingredients`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ?? "",
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(ingredient),
   });
@@ -28,11 +35,11 @@ export async function addIngredient(
 }
 
 export async function addDrink(drink: Drink, token: string | null) {
-  const res = await fetch(`${process.env.API_URL}/drinks`, {
+  const res = await fetch(`${API_URL}/drinks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ?? "",
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(drink),
   });
@@ -45,26 +52,24 @@ export async function deleteIngredient(
   token: string | null,
 ) {
   const res: Response = await fetch(
-    `${process.env.API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
+    `${API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
     {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `${token ?? ""}`,
+        Authorization: token ?? getToken(),
       },
     },
   );
   return res.status;
 }
+
 export async function getDrinkIngredients(
   drink_id: number,
 ): Promise<DrinkIngredients> {
-  const res = await fetch(
-    `${process.env.API_URL}/drinks/ingredients/${drink_id}`,
-    {
-      headers: { "Content-Type": "application/json" },
-    },
-  );
+  const res = await fetch(`${API_URL}/drinks/ingredients/${drink_id}`, {
+    headers: { "Content-Type": "application/json" },
+  });
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -75,11 +80,11 @@ export async function addDrinkIngredient(
   toPost: DrinkIngredientsPost,
   token: string | null,
 ) {
-  const res = await fetch(`${process.env.API_URL}/drinks/ingredients`, {
+  const res = await fetch(`${API_URL}/drinks/ingredients`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${token ?? ""}`,
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(toPost),
   });
@@ -93,9 +98,9 @@ export async function deleteDrink(
   drink_id: number,
   token: string,
 ): Promise<{ number: number } | undefined> {
-  const res = await fetch(`${process.env.API_URL}/drinks/${drink_id}`, {
+  const res = await fetch(`${API_URL}/drinks/${drink_id}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json", Authorization: `${token}` },
+    headers: { "Content-Type": "application/json", Authorization: token },
   });
 
   if (res.ok) {
@@ -105,7 +110,7 @@ export async function deleteDrink(
 }
 
 export async function getDrinks(): Promise<DrinksIngredients> {
-  const res = await fetch(`${process.env.API_URL}/drinks`, {
+  const res = await fetch(`${API_URL}/drinks`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -118,11 +123,11 @@ export async function updateDrink(
   drink: Drink,
   token: string | null,
 ): Promise<number> {
-  const res = await fetch(`${process.env.API_URL}/drinks`, {
+  const res = await fetch(`${API_URL}/drinks`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ?? "",
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(drink),
   });
@@ -133,7 +138,7 @@ export async function updateDrink(
 }
 
 export async function getBoards(): Promise<Boards> {
-  const res = await fetch(`${process.env.API_URL}/boards`, {
+  const res = await fetch(`${API_URL}/boards`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -143,11 +148,11 @@ export async function getBoards(): Promise<Boards> {
 }
 
 export async function addBoard(board: Board, token: string | null) {
-  const res = await fetch(`${process.env.API_URL}/boards`, {
+  const res = await fetch(`${API_URL}/boards`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${token ?? ""}`,
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(board),
   });
@@ -157,7 +162,7 @@ export async function addBoard(board: Board, token: string | null) {
 }
 
 export async function getGames(): Promise<Games> {
-  const res = await fetch(`${process.env.API_URL}/games`, {
+  const res = await fetch(`${API_URL}/games`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -167,7 +172,7 @@ export async function getGames(): Promise<Games> {
 }
 
 export async function getBoard(id: string): Promise<Board> {
-  const res = await fetch(`${process.env.API_URL}/boards/${id}`, {
+  const res = await fetch(`${API_URL}/boards/${id}`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -180,11 +185,11 @@ export async function postPlace(
   place: Place,
   token: string | null,
 ): Promise<number> {
-  const res = await fetch(`${process.env.API_URL}/boards/places`, {
+  const res = await fetch(`${API_URL}/boards/places`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${token ?? ""}`,
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(place),
   });
@@ -197,17 +202,14 @@ export async function postBoardPlace(
   boardPlace: BoardPlace,
   token: string | null,
 ): Promise<number> {
-  const res = await fetch(
-    `${process.env.API_URL}/boards/places/${boardPlace.board_id}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${token ?? ""}`,
-      },
-      body: JSON.stringify(boardPlace),
+  const res = await fetch(`${API_URL}/boards/places/${boardPlace.board_id}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ?? getToken(),
     },
-  );
+    body: JSON.stringify(boardPlace),
+  });
   if (!res.ok) console.error(`HTTP ${res.status}`);
 
   return res.status;
@@ -216,14 +218,14 @@ export async function postBoardPlace(
 export async function getPlacesNotInBoard(
   boardId: number,
 ): Promise<{ p: Places; bp: BoardPlaces }> {
-  const res = await fetch(`${process.env.API_URL}/boards/places/${boardId}`, {
+  const res = await fetch(`${API_URL}/boards/places/${boardId}`, {
     headers: { "Content-Type": "application/json" },
   });
 
   if (!res.ok) console.error(`HTTP ${res.status} not in board`);
 
   const data: BoardPlaces = await res.json();
-  const resp = await fetch(`${process.env.API_URL}/boards/places`, {
+  const resp = await fetch(`${API_URL}/boards/places`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!resp.ok) console.error(`HTTP ${resp.status}`);
@@ -244,7 +246,7 @@ export async function getPlacesNotInBoard(
 }
 
 export async function getBoardPlaces(boardId: number): Promise<BoardPlaces> {
-  const res = await fetch(`${process.env.API_URL}/boards/places/${boardId}`, {
+  const res = await fetch(`${API_URL}/boards/places/${boardId}`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -258,17 +260,14 @@ export async function updateCoordinates(
   place: BoardPlace,
   token: string,
 ): Promise<number> {
-  const res = await fetch(
-    `${process.env.API_URL}/boards/places/${boardId}/coordinate`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${token}`,
-      },
-      body: JSON.stringify(place),
+  const res = await fetch(`${API_URL}/boards/places/${boardId}/coordinate`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
     },
-  );
+    body: JSON.stringify(place),
+  });
 
   if (!res.ok) console.error(`HTTP ${res.status}`);
 
@@ -279,17 +278,14 @@ export async function updatePlace(
   place: Place,
   token: string | null,
 ): Promise<number> {
-  const res = await fetch(
-    `${process.env.API_URL}/boards/places/update/${place.place_id}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${token ?? ""}`,
-      },
-      body: JSON.stringify(place),
+  const res = await fetch(`${API_URL}/boards/places/update/${place.place_id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ?? getToken(),
     },
-  );
+    body: JSON.stringify(place),
+  });
 
   if (!res.ok) console.error(`HTTP ${res.status}`);
 
@@ -300,11 +296,11 @@ export async function addDrinksToPlace(
   drinks: PlaceDrinks,
   token: string | null,
 ): Promise<number> {
-  const res = await fetch(`${process.env.API_URL}/boards/places/drinks`, {
+  const res = await fetch(`${API_URL}/boards/places/drinks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${token ?? ""}`,
+      Authorization: token ?? getToken(),
     },
     body: JSON.stringify(drinks),
   });
@@ -317,7 +313,7 @@ export async function addDrinksToPlace(
 export async function postToLogin(
   login: LoginInfo,
 ): Promise<UserSessionInfo | undefined> {
-  const res = await fetch(`${process.env.API_URL_BASE}/login`, {
+  const res = await fetch(`${API_URL_BASE}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(login),
@@ -333,11 +329,11 @@ export async function postToLogin(
 export async function verifyUserTypes(
   sessionToken: string,
 ): Promise<SessionInfo | undefined> {
-  const res = await fetch(`${process.env.API_URL_BASE}/login`, {
+  const res = await fetch(`${API_URL_BASE}/login`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${sessionToken}`,
+      Authorization: sessionToken,
     },
   });
   const body = await res.json();
@@ -357,11 +353,11 @@ export async function create_user(
   user: UserCreateInfo,
   auth_token: string = "",
 ): Promise<UserSessionInfo> {
-  const res = await fetch(`${process.env.API_URL_BASE}/login/create_user`, {
+  const res = await fetch(`${API_URL_BASE}/login/create_user`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `${auth_token}`,
+      Authorization: auth_token,
     },
     body: JSON.stringify(user),
   });
@@ -377,7 +373,7 @@ export async function create_user(
 }
 
 export async function users_exist(): Promise<boolean> {
-  const res = await fetch(`${process.env.API_URL_BASE}/login`, {
+  const res = await fetch(`${API_URL_BASE}/login`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -386,4 +382,215 @@ export async function users_exist(): Promise<boolean> {
   if (!res.ok) throw new Error(`HTTP ${res.status} users exist`);
 
   return await res.json();
+}
+
+// Game actions
+
+export async function createGame(game: PostGame): Promise<Game> {
+  const res = await fetch(`${API_URL}/games`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(game),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+
+  return await res.json();
+}
+
+export async function startGame(
+  gameId: number,
+  data: FirstTurnPost,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/games/${gameId}/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function createTeam(gameId: number, team: Team): Promise<void> {
+  const res = await fetch(`${API_URL}/games/${gameId}/teams`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(team),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+// Turn actions
+
+export async function startTurn(data: PostStartTurn): Promise<Turn> {
+  const res = await fetch(`${API_URL}/turns`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+
+  return await res.json();
+}
+
+export async function changeDice(
+  turnId: number,
+  data: ChangeDice,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/turns/${turnId}/dice`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function confirmTurn(
+  turnId: number,
+  data: ConfirmTurn,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/turns/${turnId}/confirm`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function cancelTurn(
+  turnId: number,
+  data: CancelTurn,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/turns/${turnId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function endTurn(data: EndTurn): Promise<void> {
+  const res = await fetch(`${API_URL}/turns/end`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+export async function confirmPenalty(
+  turnId: number,
+  data: ConfirmTurn,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/turns/${turnId}/penalty`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: getToken(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res
+      .json()
+      .catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error ?? `HTTP ${res.status}`);
+  }
+}
+
+/**
+ * Adds a penalty turn for a team in one call.
+ * Combines startTurn (with penalty=true) and confirmPenalty.
+ */
+export async function addPenalty(
+  teamId: number,
+  gameId: number,
+  drinks: TurnDrinks,
+): Promise<void> {
+  // Start a penalty turn - returns the created Turn directly
+  const turn = await startTurn({
+    team_id: teamId,
+    game_id: gameId,
+    dice1: null,
+    dice2: null,
+    penalty: true,
+  });
+
+  // Confirm the penalty with drinks
+  await confirmPenalty(turn.turn_id, {
+    turn_id: turn.turn_id,
+    game_id: gameId,
+    drinks,
+  });
 }

@@ -11,15 +11,17 @@ use axum::{
 use deadpool_postgres::Pool;
 use http::{Method, Request};
 use serde::Serialize;
+use socketioxide::SocketIo;
 use thiserror::Error;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Pool,
+    pub io: SocketIo,
 }
 impl AppState {
-    pub fn new(db: Pool) -> Self {
-        Self { db }
+    pub fn new(db: Pool, io: SocketIo) -> Self {
+        Self { db, io }
     }
 }
 

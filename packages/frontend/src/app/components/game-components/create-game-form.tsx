@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSocket } from "@/app/template";
-import { getBoards } from "@/utils/fetchers";
+import { getBoards, createGame } from "@/utils/fetchers";
 import DropdownMenu from "@/app/components/dropdown-menu";
 
 export default function CreateGameForm({ className }: { className?: string }) {
@@ -10,30 +9,27 @@ export default function CreateGameForm({ className }: { className?: string }) {
     undefined,
   );
   const [active, setActive] = useState(false);
-  const socket = useSocket();
 
   useEffect(() => {
     getBoards().then((data) => setBoards(data));
   }, []);
 
-  const handleSend = () => {
-    if (socket) {
-      if (name === "" && !selectedBoard) {
-        setActive(false);
-        return;
-      } else if (name === "" || !selectedBoard) {
-        alert("Please fill in all fields");
-        return;
-      }
-      const game: PostGame = {
-        name: name,
-        board: selectedBoard.id,
-      };
-      socket.emit("create-game", game);
+  const handleSend = async () => {
+    if (name === "" && !selectedBoard) {
       setActive(false);
-      setName("");
-      setSelectedBoard(undefined);
+      return;
+    } else if (name === "" || !selectedBoard) {
+      alert("Please fill in all fields");
+      return;
     }
+    const game: PostGame = {
+      name: name,
+      board: selectedBoard.id,
+    };
+    await createGame(game);
+    setActive(false);
+    setName("");
+    setSelectedBoard(undefined);
   };
 
   return (
