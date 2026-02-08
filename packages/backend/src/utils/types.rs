@@ -123,6 +123,7 @@ pub struct Team {
     pub team_hash: String,
     // TODO: store elsewhere?
     pub double_tampere: bool,
+    pub moral_victory_eligible: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -217,12 +218,6 @@ pub struct ChangeDiceBody {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ConfirmTurnBody {
     pub drinks: TurnDrinks,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct EndTurn {
-    pub team_id: TeamId,
-    pub game_id: GameId,
 }
 
 /// Status of drink preparation for a turn

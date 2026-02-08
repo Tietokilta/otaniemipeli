@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { UserTypeEnum } from "@/utils/helpers";
 import Link from "next/link";
 
@@ -26,6 +26,7 @@ function HeaderItemComponent({
     center
     hover:bg-primary-500
     hover:text-tertiary-900
+    cursor-pointer
     px-4
     rounded-sm`;
   if (href) {
@@ -49,6 +50,9 @@ export default function GeneralHeader({
   base_path: string;
   items?: HeaderItem[];
 }) {
+  const minimal =
+    useSelectedLayoutSegments().length === 4 && base_path === "/secretary";
+
   const router = useRouter();
 
   const handleLogout = (all?: string) => {
@@ -78,7 +82,9 @@ export default function GeneralHeader({
 
   return (
     <div className="flex items-end justify-right w-full h-min-content px-4 bg-quaternary-500">
-      <div className="flex center h-full mr-auto md:pt-4">
+      <div
+        className={`flex center h-full mr-auto ${minimal ? "py-4 md:pb-0" : "pt-4"}`}
+      >
         <Link
           className="
           ml-6
@@ -98,7 +104,9 @@ export default function GeneralHeader({
           Otaniemipeli {role}
         </Link>
       </div>
-      <div className="flex h-full items-center md:pt-6">
+      <div
+        className={`flex h-full items-center md:pt-6 ${minimal ? "hidden md:flex" : ""}`}
+      >
         <nav className="flex flex-col md:flex-row cursor-default h-full py-3 rounded-md bottom">
           {items.map((item) => (
             <HeaderItemComponent

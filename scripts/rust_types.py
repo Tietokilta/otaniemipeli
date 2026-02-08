@@ -169,6 +169,7 @@ class Team:
     team_name: str
     team_hash: str
     double_tampere: bool
+    moral_victory_eligible: bool
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

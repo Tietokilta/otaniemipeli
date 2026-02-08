@@ -56,7 +56,9 @@ export default function IeTurnCard({
         ${onStateChange && turn.mixed_at ? "animate-[ieturn-fade_5s_linear_1_forwards]" : ""}`}
     >
       <h2 className="text-xl font-bold mb-1">{turn.team.team.team_name}</h2>
-      {turn.mixed_at ? (
+      {turn.delivered_at ? (
+        <p>Toimitettu!</p>
+      ) : turn.mixed_at ? (
         <p>
           Toimituksessa:{" "}
           <TimeSince timestamp={turn.mixed_at} warnSec={DELIVERY_WARNING_SEC} />
@@ -88,7 +90,7 @@ export default function IeTurnCard({
           </RadioButton>
         </div>
       )}
-      <TurnDrinksList drinks={turn.drinks.drinks} />
+      <TurnDrinksList drinks={turn.drinks.drinks} className="flex-1" />
       {onStateChange && (
         <div
           className={`h-2 -mx-3 -mb-2 rounded-b ${turn.mixed_at ? "animate-[ieturn-progressbar_5s_linear_1_forwards] bg-primary-900" : ""}`}

@@ -11,6 +11,7 @@ export default function AddTeamForm({ gameId }: { gameId: number }) {
       team_name: name,
       team_hash: "",
       double_tampere: false,
+      moral_victory_eligible: false,
     };
     console.log(team);
     await createTeam(gameId, team);

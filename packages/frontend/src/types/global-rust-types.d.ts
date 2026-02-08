@@ -59,6 +59,7 @@ declare global {
     team_name: string;
     team_hash: string;
     double_tampere: boolean;
+    moral_victory_eligible: boolean;
   }
 
   interface TurnDrink {
@@ -275,7 +276,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};

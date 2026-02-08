@@ -8,12 +8,14 @@ export default function TeamList({
   teams,
   className,
   link,
+  linkPrefix,
   editTurn,
 }: {
   game: Game;
   teams: GameTeam[];
   className?: string;
   link?: boolean;
+  linkPrefix?: string;
   editTurn?: boolean;
 }) {
   return (
@@ -28,6 +30,7 @@ export default function TeamList({
           key={team.team.team_id}
           className="w-full"
           link={link}
+          linkPrefix={linkPrefix}
           editTurn={editTurn}
         />
       ))}

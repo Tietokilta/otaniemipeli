@@ -8,8 +8,10 @@ import {
   cancelTurn,
   getDrinks,
   confirmPenalty,
+  setMoralVictoryEligible,
 } from "@/utils/fetchers";
-import { TurnStatus, turnStatus, turnStatusText } from "@/utils/turns";
+import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
+import SimpleConfirmedButton from "../simple-confirmed-button";
 
 /** Set to true to show the dice selection dialog when creating turns. */
 const REFEREE_ENTERS_DICE = false;
@@ -37,25 +39,6 @@ export const EditTeamTurnDialogue = ({
   if (!open) return null;
 
   const unconfirmedPenalty = getUnconfirmedPenalty(team);
-  const ongoingTurn =
-    team.turns.find((turn) => !turn.penalty && !turn.end_time) ??
-    team.turns.find((turn) => !turn.end_time);
-  const currentStatus = ongoingTurn ? turnStatus(ongoingTurn) : null;
-
-  /** Creates a new pending turn without dice values. */
-  const handleStartTurn = async () => {
-    setPending(true);
-    const postTurn: PostStartTurn = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-      dice1: null,
-      dice2: null,
-      penalty: false,
-    };
-    await startTurn(postTurn);
-    setPending(false);
-    setOpen(false);
-  };
 
   /** Creates a new pending penalty turn or takes over an existing one. */
   const handleAddPenalty = async () => {
@@ -80,14 +63,6 @@ export const EditTeamTurnDialogue = ({
     setChoice("penalty");
   };
 
-  /** Ends all active turns for a team. */
-  const handleEndTurn = async () => {
-    setPending(true);
-    await endTurn(ongoingTurn!.turn_id);
-    setPending(false);
-    setOpen(false);
-  };
-
   if (choice === "penalty" && pendingPenaltyTurnId) {
     return (
       <AddTeamPenaltyDialogue
@@ -101,18 +76,10 @@ export const EditTeamTurnDialogue = ({
     );
   }
 
-  if (choice === "turn") {
-    return (
-      <AddTeamTurnDialogue
-        team={team}
-        ongoingTurn={ongoingTurn}
-        onClose={() => {
-          setChoice(null);
-          setOpen(false);
-        }}
-      />
-    );
-  }
+  const addTurnSetOpen = (open: boolean) => {
+    setChoice(open ? "turn" : null);
+    setOpen(open);
+  };
 
   return (
     <PopUpDialogue
@@ -125,36 +92,13 @@ export const EditTeamTurnDialogue = ({
           Joukkue:{" "}
           <span className="text-primary-900">{team.team.team_name}</span>
         </h3>
-        {currentStatus === TurnStatus.Drinking ? (
-          <button
-            className="button text-xl p-5"
-            onClick={handleEndTurn}
-            disabled={pending}
-          >
-            Juomat juotu!
-          </button>
-        ) : REFEREE_ENTERS_DICE ||
-          currentStatus === TurnStatus.WaitingForDice ? (
-          <button
-            className="button text-xl p-5"
-            onClick={() => setChoice("turn")}
-            disabled={pending}
-          >
-            Kirjaa nopanheitto
-          </button>
-        ) : !currentStatus ? (
-          <button
-            className="button text-xl p-5"
-            onClick={handleStartTurn}
-            disabled={pending}
-          >
-            Uusi vuoro (anna nopat)
-          </button>
-        ) : (
-          <button className="button text-xl p-5" disabled>
-            {turnStatusText(ongoingTurn!)}
-          </button>
-        )}
+        <AddTeamTurnButton
+          team={team}
+          referee
+          allowDice={REFEREE_ENTERS_DICE}
+          open={choice === "turn"}
+          setOpen={addTurnSetOpen}
+        />
         <button
           className="button text-xl p-5"
           onClick={handleAddPenalty}
@@ -162,6 +106,7 @@ export const EditTeamTurnDialogue = ({
         >
           {unconfirmedPenalty ? "Jatka sakon luontia" : "Lisää sakko"}
         </button>
+        <ToggleMoralVictoryButton team={team} referee />
         {unconfirmedPenalty && (
           <p className="text-lg text-center">
             <em>HUOM!</em> Joukkueelle ollaan jo lisäämässä sakkoa!
@@ -180,19 +125,176 @@ export const Dice = ({
   setValue: React.Dispatch<React.SetStateAction<number>>;
 }) => {
   return (
-    <div className="flex gap-2 justify-center">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <button
-          key={i}
-          type="button"
-          className={`rounded cursor-pointer border-2 text-3xl w-[12vw] max-w-24 aspect-square ${value === i ? "bg-primary-900 border-primary-500 text-white" : ""}`}
-          onClick={() => setValue(i)}
-        >
-          {i}
-        </button>
-      ))}
+    <div className="flex flex-wrap mb-4 gap-x-2 gap-y-1 justify-center">
+      {[1, 2, 3, 0, 4, 5, 6].map((i) =>
+        i ? (
+          <button
+            key={i}
+            type="button"
+            className={`
+            rounded
+            cursor-pointer
+            border-2
+            text-3xl
+            w-[24vw]
+            md:w-[12vw]
+            max-w-24
+            aspect-square
+            ${value === i ? "bg-primary-900 border-primary-500 text-white" : ""}`}
+            onClick={() => setValue(i)}
+          >
+            {i}
+          </button>
+        ) : (
+          <div key="0" className="w-full md:hidden" />
+        ),
+      )}
     </div>
   );
+};
+
+const statusPriority: Record<TurnStatus, number> = {
+  [TurnStatus.WaitingForAssistantReferee]: 1,
+  [TurnStatus.WaitingForPenalty]: 2,
+  [TurnStatus.WaitingForIE]: 3,
+  [TurnStatus.Mixing]: 4,
+  [TurnStatus.Delivering]: 5,
+  [TurnStatus.Drinking]: 6,
+  [TurnStatus.WaitingForDice]: 7,
+  [TurnStatus.Ended]: 8,
+};
+
+export const AddTeamTurnButton = ({
+  team,
+  open,
+  setOpen,
+  pending: externalPending,
+  setPending: setExternalPending,
+  referee,
+  allowDice,
+}: {
+  team: GameTeam;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  pending?: boolean;
+  setPending?: (pending: boolean) => void;
+  referee?: boolean;
+  allowDice?: boolean;
+}) => {
+  const [localPending, setLocalPending] = useState(false);
+  const pending = externalPending || localPending;
+
+  const turnForDice = team.turns.find(
+    (turn) => !turn.thrown_at && !turn.penalty,
+  );
+  const currentStatus = team.turns
+    .filter((turn) => !turn.end_time)
+    .reduce((latest, turn) => {
+      const status = turnStatus(turn);
+      return statusPriority[status] < statusPriority[latest] ? status : latest;
+    }, TurnStatus.Ended);
+
+  const canDice =
+    currentStatus === TurnStatus.WaitingForDice ||
+    (currentStatus === TurnStatus.Ended && allowDice);
+
+  /** Creates a new pending turn without dice values. */
+  const handleStartTurn = async () => {
+    setLocalPending(true);
+    setExternalPending?.(true);
+    const postTurn: PostStartTurn = {
+      team_id: team.team.team_id,
+      game_id: team.team.game_id,
+      dice1: null,
+      dice2: null,
+      penalty: false,
+    };
+    await startTurn(postTurn);
+    setLocalPending(false);
+    setExternalPending?.(false);
+    setOpen(false);
+  };
+
+  /** Ends all active turns for a team. */
+  const handleEndTurn = async () => {
+    setLocalPending(true);
+    setExternalPending?.(true);
+    await endTurn(team.team.team_id);
+    setLocalPending(false);
+    setExternalPending?.(false);
+    setOpen(false);
+  };
+
+  return (
+    <>
+      {currentStatus === TurnStatus.Drinking ? (
+        referee ? (
+          <button
+            className="button text-xl p-5"
+            onClick={handleEndTurn}
+            disabled={pending}
+          >
+            Juomat juotu!
+          </button>
+        ) : (
+          <SimpleConfirmedButton
+            buttonClassName="button text-xl p-5"
+            buttonText="Juomat juotu!"
+            dialogTitle="Vahvista vuoron päättyminen"
+            dialogText="Oletko varma, että kaikki joukkueen juomat on juotu?"
+            onAccept={handleEndTurn}
+          />
+        )
+      ) : canDice ? (
+        <button
+          className="button text-xl p-5"
+          onClick={() => setOpen(true)}
+          disabled={pending}
+        >
+          Kirjaa nopanheitto
+        </button>
+      ) : currentStatus === TurnStatus.Ended && referee ? (
+        <button
+          className="button text-xl p-5"
+          onClick={handleStartTurn}
+          disabled={pending}
+        >
+          Uusi vuoro (anna nopat)
+        </button>
+      ) : (
+        <button className="button text-xl p-5" disabled>
+          {currentStatus === TurnStatus.Ended
+            ? "Odotetaan päätuomaria"
+            : turnStatusTexts[currentStatus]}
+        </button>
+      )}
+      {open && canDice && (
+        <AddTeamTurnDialogue
+          team={team}
+          ongoingTurn={turnForDice}
+          onClose={() => setOpen(false)}
+        />
+      )}
+      {!referee && (
+        <p className="text-lg text-center h-[3.5em]">
+          {secretaryInstructions[currentStatus]}
+        </p>
+      )}
+    </>
+  );
+};
+
+const secretaryInstructions: Record<TurnStatus, string> = {
+  [TurnStatus.WaitingForDice]:
+    "Kirjaa joukkueen nopanheitto kun noppia on heitetty.",
+  [TurnStatus.WaitingForPenalty]: "Odota että sakot on kirjattu.",
+  [TurnStatus.WaitingForAssistantReferee]:
+    "Odota että aputuomari on vahvistanut vuoron.",
+  [TurnStatus.WaitingForIE]: "Odota että IE kokkailee.",
+  [TurnStatus.Mixing]: "Odota että IE kokkailee.",
+  [TurnStatus.Delivering]: "Kuittaa alta, kun juomat toimitetaan joukkueelle.",
+  [TurnStatus.Drinking]: "Kuittaa yltä, kun kaikki joukkueen juomat on juotu.",
+  [TurnStatus.Ended]: "Odotetaan päätuomaria aloittamaan joukkueen vuoro.",
 };
 
 const AddTeamTurnDialogue = ({
@@ -270,6 +372,46 @@ const AddTeamTurnDialogue = ({
         </div>
       </div>
     </PopUpDialogue>
+  );
+};
+
+export const ToggleMoralVictoryButton = ({
+  team,
+  referee,
+}: {
+  team: GameTeam;
+  referee: boolean;
+}) => {
+  const [pending, setPending] = useState(false);
+
+  const toggleMoralVictory = async () => {
+    setPending(true);
+    await setMoralVictoryEligible(
+      team.team.team_id,
+      !team.team.moral_victory_eligible,
+    );
+    setPending(false);
+  };
+
+  return referee ? (
+    <button className="button text-xl p-5" onClick={toggleMoralVictory}>
+      {team.team.moral_victory_eligible
+        ? "Merkitse laatta"
+        : "Kumoa laattamerkintä"}
+    </button>
+  ) : (
+    <SimpleConfirmedButton
+      buttonClassName="button text-xl p-5"
+      buttonText={
+        team.team.moral_victory_eligible
+          ? "Merkitse laatta"
+          : "Joukkue on laatannut"
+      }
+      dialogTitle="Vahvista laattamerkintä"
+      dialogText="Oletko varma, että haluat merkitä joukkueen laatanneeksi?"
+      onAccept={toggleMoralVictory}
+      disabled={pending || !team.team.moral_victory_eligible}
+    />
   );
 };
 

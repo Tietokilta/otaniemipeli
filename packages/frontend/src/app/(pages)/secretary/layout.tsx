@@ -1,6 +1,6 @@
+import GeneralHeader from "@/app/components/headers/general-header";
 import type { Metadata } from "next";
 import "../../globals.css";
-import GeneralHeader from "@/app/components/headers/general-header";
 
 export const metadata: Metadata = {
   title: "Otaniemipeli: Sihteeri",
@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <>
       <GeneralHeader base_path="/secretary" />
-      <div className="p-2 h-[90dvh] min-h-0">{children}</div>
+      <div className="flex flex-col flex-1 min-h-0 p-4">{children}</div>
     </>
   );
 }

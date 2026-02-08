@@ -29,7 +29,7 @@ const PopUpDialogue = ({
     >
       {/* stop clicks inside from reaching backdrop */}
       <div
-        className="flex flex-col gap-2 bg-white rounded shadow-lg"
+        className="flex flex-col gap-2 bg-white rounded shadow-lg max-w-[95vw]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex bg-primary-500 w-full p-2">

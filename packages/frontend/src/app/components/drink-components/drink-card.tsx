@@ -227,11 +227,15 @@ export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
 
 export function TurnDrinksList({
   drinks,
+  className,
 }: {
   drinks: TurnDrink[];
+  className?: string;
 }): JSX.Element {
   return (
-    <VerticalList className="gap-2 px-2 py-4 overflow-y-auto">
+    <VerticalList
+      className={`gap-2 px-2 py-4 min-h-0 overflow-y-auto ${className ?? ""}`}
+    >
       {drinks
         .sort((da, db) => db.n - da.n)
         .map((drink) => (

@@ -4,7 +4,7 @@ use crate::database::games::{
 };
 use crate::database::team::set_team_double_tampere;
 use crate::database::turns::{
-    cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks,
+    cancel_turn as db_cancel_turn, end_active_turns as db_end_turn, get_turn_with_drinks,
     set_drink_prep_status as db_set_drink_prep_status, set_end_place, set_turn_automixing,
     set_turn_confirmed, set_turn_drinks, start_turn as db_start_turn, update_turn_dice,
 };
@@ -12,7 +12,7 @@ use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TurnId};
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
-    BoardPlace, ChangeDiceBody, ConfirmTurnBody, EndTurn, GameData, PlaceThrow, PostStartTurn,
+    BoardPlace, ChangeDiceBody, ConfirmTurnBody, GameData, PlaceThrow, PostStartTurn,
     SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrinks,
 };
 use axum::extract::{Path, State};
@@ -165,14 +165,7 @@ pub async fn process_confirm_turn(
     }
 
     if drinks.drinks.is_empty() && !place_after.end {
-        db_end_turn(
-            client,
-            &EndTurn {
-                team_id: turn.team_id,
-                game_id: turn.game_id,
-            },
-        )
-        .await?;
+        db_end_turn(client, turn.game_id, turn.team_id).await?;
     }
 
     Ok(turn)
@@ -254,26 +247,6 @@ pub async fn cancel_turn(
     let client = state.db.get().await?;
     let turn = get_turn_with_drinks(&client, turn_id).await?;
     db_cancel_turn(&client, turn_id).await?;
-    let game_data = get_full_game_data(&client, turn.game_id).await?;
-    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
-    Ok(())
-}
-
-/// POST /turns/{turn_id}/end - End a turn.
-pub async fn end_turn(
-    State(state): State<AppState>,
-    Path(turn_id): Path<TurnId>,
-) -> Result<(), AppError> {
-    let client = state.db.get().await?;
-    let turn = get_turn_with_drinks(&client, turn_id).await?;
-    db_end_turn(
-        &client,
-        &EndTurn {
-            team_id: turn.team_id,
-            game_id: turn.game_id,
-        },
-    )
-    .await?;
     let game_data = get_full_game_data(&client, turn.game_id).await?;
     broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())

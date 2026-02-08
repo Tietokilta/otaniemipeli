@@ -338,6 +338,20 @@ export async function createTeam(gameId: number, team: Team): Promise<void> {
   );
 }
 
+export async function setMoralVictoryEligible(
+  teamId: number,
+  moralVictoryEligible: boolean,
+): Promise<void> {
+  return apiFetchVoid(
+    `${API_URL}/teams/${teamId}/moral-victory-eligible`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ moral_victory_eligible: moralVictoryEligible }),
+    },
+    true,
+  );
+}
+
 // Turn operations
 
 export async function startTurn(data: PostStartTurn): Promise<Turn> {
@@ -381,16 +395,12 @@ export async function confirmTurn(
 }
 
 export async function cancelTurn(turnId: number): Promise<void> {
-  return apiFetchVoid(
-    `${API_URL}/turns/${turnId}`,
-    { method: "DELETE" },
-    true,
-  );
+  return apiFetchVoid(`${API_URL}/turns/${turnId}`, { method: "DELETE" }, true);
 }
 
-export async function endTurn(turnId: number): Promise<void> {
+export async function endTurn(teamId: number): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/end`,
+    `${API_URL}/teams/${teamId}/end-turn`,
     { method: "POST" },
     true,
   );

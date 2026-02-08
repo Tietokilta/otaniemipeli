@@ -7,11 +7,13 @@ export default function TeamCard({
   team,
   className,
   link,
+  linkPrefix = "",
   editTurn,
 }: {
   team: GameTeam;
   className?: string;
   link?: boolean;
+  linkPrefix?: string;
   editTurn?: boolean;
 }) {
   const path = usePathname();
@@ -19,7 +21,7 @@ export default function TeamCard({
   return link ? (
     <Link
       className={`${className} flex-wrap box-hover list-none center`}
-      href={`${path}/${team.team.team_id}`}
+      href={`${path}${linkPrefix}/${team.team.team_id}`}
     >
       {team.team.team_name}
     </Link>

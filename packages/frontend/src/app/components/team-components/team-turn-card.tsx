@@ -129,6 +129,11 @@ export default function TeamTurnCard({
           )}
         </>
       )}
+      {collect && !team.team.moral_victory_eligible && (
+        <p>
+          <em>Laatannut</em>
+        </p>
+      )}
       {!collect &&
         (location ? (
           <PlaceCard place={location} showInfo={false} />

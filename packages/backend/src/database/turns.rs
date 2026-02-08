@@ -1,13 +1,15 @@
-use crate::utils::ids::TurnId;
+use crate::utils::ids::{GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
-use crate::utils::types::{DrinkPrepStatus, EndTurn, PostStartTurn, Turn, TurnDrinks};
+use crate::utils::types::{DrinkPrepStatus, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
 /// Ends the active turns for a given team in a game
-///
-/// TODO: allow ending specific turn (depending on what has been drunk)
-pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
+pub async fn end_active_turns(
+    client: &Client,
+    game_id: GameId,
+    team_id: TeamId,
+) -> Result<Turn, AppError> {
     let rows = match client
         .query(
             "UPDATE turns
@@ -17,7 +19,7 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
                 delivered_at = COALESCE(delivered_at, NOW())
              WHERE team_id = $1 AND game_id = $2 AND end_time IS NULL
              RETURNING *",
-            &[&et.team_id, &et.game_id],
+            &[&team_id, &game_id],
         )
         .await
     {
@@ -25,7 +27,7 @@ pub async fn end_turn(client: &Client, et: &EndTurn) -> Result<Turn, AppError> {
         Err(e) => {
             return Err(AppError::Database(format!(
                 "Failed to end turn for team {} in game {}: {}",
-                et.team_id, et.game_id, e
+                team_id, game_id, e
             )));
         }
     };

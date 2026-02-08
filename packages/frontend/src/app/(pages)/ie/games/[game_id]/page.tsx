@@ -1,6 +1,5 @@
 "use client";
 
-import { TurnWithTeam } from "@/app/components/drink-components/ie-turn-card";
 import IeTurnsList from "@/app/components/drink-components/ie-turns-list";
 import GameCard from "@/app/components/game-components/game-card";
 import {
@@ -28,30 +27,11 @@ export default function Page({
     [gameData],
   );
 
-  const activeDeliveries = useMemo(
-    () =>
-      gameData?.teams
-        .flatMap((team) => team.turns)
-        .filter((turn) => turn.mixed_at && !turn.delivered_at)
-        .toSorted((a, b) => {
-          // Sort by mixed time, oldest first
-          return (
-            new Date(a.mixed_at ?? 0).getTime() -
-            new Date(b.mixed_at ?? 0).getTime()
-          );
-        }) || [],
-    [gameData],
-  );
-
-  if (isLoading) {
-    return <GameLoadingSpinner />;
-  }
-
   if (error) {
     return <GameErrorDisplay error={error} />;
   }
 
-  if (!gameData || !preppedTeams) {
+  if (isLoading || !gameData || !preppedTeams) {
     return <GameLoadingSpinner />;
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { HorizontalList } from "../generic-list-components";
 import IeTurnCard, { DELIVERY_WARNING_SEC, TurnWithTeam } from "./ie-turn-card";
 import { setDrinkPrepStatus } from "@/utils/fetchers";
@@ -64,11 +64,13 @@ export default function IeTurnsList({
         .toSorted((a, b) => {
           // If a delivery is delayed, prioritize it in the ready list
           const aDelayed =
+            !a.delivered_at &&
             Date.now() - new Date(a.mixed_at!).getTime() >
-            DELIVERY_WARNING_SEC * 1000;
+              DELIVERY_WARNING_SEC * 1000;
           const bDelayed =
+            !b.delivered_at &&
             Date.now() - new Date(b.mixed_at!).getTime() >
-            DELIVERY_WARNING_SEC * 1000;
+              DELIVERY_WARNING_SEC * 1000;
           if (aDelayed !== bDelayed) return aDelayed ? -1 : 1;
 
           // Sort by finishing time, newest first

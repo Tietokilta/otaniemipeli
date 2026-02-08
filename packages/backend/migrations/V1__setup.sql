@@ -115,7 +115,8 @@ CREATE TABLE IF NOT EXISTS teams
     game_id         INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
     team_name       TEXT NOT NULL,
     team_hash       TEXT NOT NULL,
-    double_tampere  BOOLEAN NOT NULL DEFAULT FALSE
+    double_tampere  BOOLEAN NOT NULL DEFAULT FALSE,
+    moral_victory_eligible BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- turns taken by teams in a game
