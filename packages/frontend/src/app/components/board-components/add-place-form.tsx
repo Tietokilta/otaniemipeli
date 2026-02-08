@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { postPlace } from "@/utils/fetchers";
+import { createPlace } from "@/utils/fetchers";
 import { getPlaceColor } from "@/utils/colors";
 import { useRouter } from "next/navigation";
 
@@ -22,7 +22,7 @@ export default function AddPlaceForm({
   const [selected, setSelected] = useState<PlaceType>("Normal");
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    postPlace(place, localStorage.getItem("auth_token") ?? "").then();
+    createPlace(place);
     updatePlace(defaultPlace);
     setSelected("Normal");
     e.currentTarget.reset(); // Reset the form fields

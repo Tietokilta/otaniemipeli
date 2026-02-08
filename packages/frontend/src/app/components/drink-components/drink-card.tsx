@@ -30,18 +30,16 @@ export default function DrinkCard({
 
   const handleFavoriteChange = async (checked: boolean) => {
     setFavorite(checked);
-    await updateDrink(
-      { ...drink.drink, favorite: checked, no_mix_required: noMixRequired },
-      localStorage.getItem("auth_token"),
-    );
+    await updateDrink({
+      ...drink.drink,
+      favorite: checked,
+      no_mix_required: noMixRequired,
+    });
   };
 
   const handleNoMixRequiredChange = async (checked: boolean) => {
     setNoMixRequired(checked);
-    await updateDrink(
-      { ...drink.drink, favorite, no_mix_required: checked },
-      localStorage.getItem("auth_token"),
-    );
+    await updateDrink({ ...drink.drink, favorite, no_mix_required: checked });
   };
 
   const onClickHandle = async () => {
@@ -105,10 +103,7 @@ export default function DrinkCard({
               className="rounded cursor-pointer w-full my-1 text-sm bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
               onClick={(e) => {
                 e.stopPropagation();
-                deleteDrink(
-                  drink.drink.id,
-                  localStorage.getItem("auth_token") ?? "",
-                ).then();
+                deleteDrink(drink.drink.id).then();
                 refreshListAction?.();
               }}
             >

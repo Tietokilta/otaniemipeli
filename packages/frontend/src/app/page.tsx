@@ -2,7 +2,7 @@
 import LoginComponent from "@/app/components/login-component";
 import { useEffect, useState } from "react";
 import SelectMode from "@/app/components/select-mode";
-import { users_exist } from "@/utils/fetchers";
+import { usersExist } from "@/utils/fetchers";
 import CreateFirstUser from "@/app/components/create-user-form";
 
 export default function Home() {
@@ -24,7 +24,7 @@ export default function Home() {
 
   // Check if users exist - only on mount
   useEffect(() => {
-    users_exist()
+    usersExist()
       .then((data: boolean) => {
         setFirstUserExists(data);
       })

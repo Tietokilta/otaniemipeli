@@ -20,7 +20,7 @@ export default function AddIngredientForm() {
       carbonated: data.get("carbonated") === "on",
     };
 
-    addIngredient(ingredient, localStorage.getItem("auth_token")).then();
+    addIngredient(ingredient);
 
     setOpen(false);
     router.refresh();

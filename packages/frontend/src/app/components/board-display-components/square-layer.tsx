@@ -37,11 +37,7 @@ export default function SquareLayer({
     else if (e.key === "d") moveFocused(l, 0);
     else if (e.key === "Enter") {
       // Handle Enter key if needed
-      updateCoordinates(
-        place.board_id,
-        place,
-        localStorage.getItem("auth_token") ?? "",
-      ).then();
+      updateCoordinates(place.board_id, place);
     }
   };
 

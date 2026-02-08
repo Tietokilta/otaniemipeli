@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { postToLogin } from "@/utils/fetchers";
+import { login } from "@/utils/fetchers";
 import Link from "next/link";
 
 export default function LoginComponent({
@@ -14,7 +14,7 @@ export default function LoginComponent({
   });
 
   function handleLogin() {
-    postToLogin(loginInfo).then((body) => {
+    login(loginInfo).then((body) => {
       if (!body) {
         console.error("Login failed: No response body");
         return;

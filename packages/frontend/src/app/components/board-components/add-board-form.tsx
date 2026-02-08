@@ -14,7 +14,7 @@ export default function AddBoardForm({
       name: name,
     };
 
-    await addBoard(board, localStorage.getItem("auth_token"));
+    await addBoard(board);
     await refreshAction();
   }
 

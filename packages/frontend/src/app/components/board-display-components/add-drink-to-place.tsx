@@ -97,10 +97,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
           <div
             className="flex button"
             onClick={() => {
-              addDrinksToPlace(
-                placeDrinks,
-                localStorage.getItem("auth_token") ?? "",
-              ).then();
+              addDrinksToPlace(placeDrinks);
               router.refresh();
             }}
           >

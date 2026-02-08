@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { create_user, verifyUserTypes } from "@/utils/fetchers";
+import { createUser, verifySession } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
 import { UserTypeEnum, UserTypes } from "@/utils/helpers";
 import DropdownMenu from "@/app/components/dropdown-menu";
@@ -51,7 +51,7 @@ export default function CreateUserForm({
   useEffect(() => {
     if (firstUser) return;
     const token = localStorage.getItem("auth_token");
-    verifyUserTypes(token ?? "").then((ses) => {
+    verifySession(token ?? "").then((ses) => {
       if (ses) setSession(ses);
     });
   }, [firstUser]);
@@ -68,23 +68,17 @@ export default function CreateUserForm({
       console.log("Passwords do not match");
       return;
     }
-    if (!firstUser || !setLoginAction) {
-      const token = localStorage.getItem("auth_token");
-      console.log(user);
-      create_user(user, token ?? "").then();
-    } else {
-      console.log(user);
-      create_user(user).then((res) => {
-        if (res && setLoginAction) {
-          localStorage.setItem("auth_token", res.session.session_hash);
-          setLoginAction(true);
-        }
-      });
-    }
+    console.log(user);
+    createUser(user).then((res) => {
+      if (res && setLoginAction) {
+        localStorage.setItem("auth_token", res.session.session_hash);
+        setLoginAction(true);
+      }
+    });
     formRef.current?.reset();
     setPasswordConfirm({ pw: "", pw_confirm: "" });
     setUser((u) => ({ ...u, username: "", email: "", password: "" }));
-  }, [firstUser, setLoginAction, user, pwsMatch]);
+  }, [setLoginAction, user, pwsMatch]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -98,7 +92,7 @@ export default function CreateUserForm({
     const token = localStorage.getItem("auth_token");
     if (!token) return;
 
-    verifyUserTypes(token).then((session) => {
+    verifySession(token).then((session) => {
       if (session) {
         setLoginAction(true);
         router.refresh();

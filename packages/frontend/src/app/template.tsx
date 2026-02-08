@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { verifyUserTypes } from "@/utils/fetchers";
+import { verifySession } from "@/utils/fetchers";
 import { usePathname, useRouter } from "next/navigation";
 import { UserTypes } from "@/utils/helpers";
 import { io, Socket } from "socket.io-client";
@@ -63,7 +63,7 @@ export default function AdminTemplate({
         router.push("/");
         return;
       }
-      verifyUserTypes(sessionToken)
+      verifySession(sessionToken)
         .then((data: SessionInfo | undefined) => {
           if (data) {
             if (!authorisationCheck(data, pathname)) {

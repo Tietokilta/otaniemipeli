@@ -16,7 +16,7 @@ export default function AddDrinkForm({
       no_mix_required: false,
     };
 
-    await addDrink(drink, localStorage.getItem("auth_token"));
+    await addDrink(drink);
     await refreshAction();
   }
 

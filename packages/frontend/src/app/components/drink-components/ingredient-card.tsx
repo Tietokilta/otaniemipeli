@@ -19,11 +19,7 @@ export default function IngredientCard({
   const handleDelete = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (drink_id) {
-      await deleteIngredient(
-        drink_id,
-        ingredient.id,
-        localStorage.getItem("auth_token") || "",
-      );
+      await deleteIngredient(drink_id, ingredient.id);
     }
     onDelete?.(e);
     router.refresh();

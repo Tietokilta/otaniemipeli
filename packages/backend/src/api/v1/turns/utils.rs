@@ -133,7 +133,10 @@ pub async fn process_change_dice(client: &Client, change_dice: ChangeDice) -> Re
 }
 
 /// Confirms a turn: sets confirmed_at, replaces drinks, and applies side effects.
-pub async fn process_confirm_turn(client: &Client, confirm_data: ConfirmTurn) -> Result<(), AppError> {
+pub async fn process_confirm_turn(
+    client: &Client,
+    confirm_data: ConfirmTurn,
+) -> Result<(), AppError> {
     let turn = get_turn_with_drinks(client, confirm_data.turn_id).await?;
 
     let (Some(location), Some(dice1), Some(dice2)) = (turn.location, turn.dice1, turn.dice2) else {
@@ -183,7 +186,10 @@ pub async fn process_confirm_turn(client: &Client, confirm_data: ConfirmTurn) ->
 }
 
 /// Confirms a penalty turn: sets confirmed_at, sets drinks, and applies mixing logic.
-pub async fn process_confirm_penalty(client: &Client, confirm_data: ConfirmTurn) -> Result<(), AppError> {
+pub async fn process_confirm_penalty(
+    client: &Client,
+    confirm_data: ConfirmTurn,
+) -> Result<(), AppError> {
     let turn = get_turn_with_drinks(client, confirm_data.turn_id).await?;
 
     if !turn.penalty {

@@ -90,7 +90,7 @@ export default function AddDrinkIngredientForm({
       return;
     }
 
-    await addDrinkIngredient(toPost, localStorage.getItem("auth_token"));
+    await addDrinkIngredient(toPost);
 
     onUpdateAction?.();
     setOpen(false);

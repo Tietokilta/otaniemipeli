@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getPlacesNotInBoard, postBoardPlace } from "@/utils/fetchers";
+import { getPlacesNotInBoard, addBoardPlace } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
 
 // Mocked data (replace with real fetch if needed)
@@ -84,10 +84,7 @@ export default function AddPlaceToBoard({
     }
     setPlaceNumber(placeNumber + 1);
     try {
-      await postBoardPlace(
-        boardPlace,
-        localStorage.getItem("auth_token") ?? "",
-      );
+      await addBoardPlace(boardPlace);
     } catch (err) {
       console.error("Post error:", err);
     }

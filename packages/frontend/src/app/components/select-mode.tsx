@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { verifyUserTypes } from "@/utils/fetchers";
+import { verifySession } from "@/utils/fetchers";
 import React, { useEffect } from "react";
 import { UserTypeEnum } from "@/utils/helpers";
 
@@ -18,7 +18,7 @@ export default function SelectMode({
     const token = localStorage.getItem("auth_token");
     console.log(token);
     if (token) {
-      verifyUserTypes(token)
+      verifySession(token)
         .then((response) => {
           console.log("Response: ", response);
           if (response) {
