@@ -271,14 +271,6 @@ class ConfirmTurnBody:
 
 
 @dataclass
-class EndTurn:
-    team_id: int
-    game_id: int
-    @classmethod
-    def from_dict(cls, data: Any): return _from_dict(cls, data)
-
-
-@dataclass
 class SetDrinkPrepStatusBody:
     status: DrinkPrepStatus
     @classmethod

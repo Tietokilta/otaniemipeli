@@ -128,11 +128,6 @@ declare global {
     drinks: TurnDrinks;
   }
 
-  interface EndTurn {
-    team_id: number;
-    game_id: number;
-  }
-
   interface SetDrinkPrepStatusBody {
     status: DrinkPrepStatus;
   }
@@ -276,6 +271,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};
