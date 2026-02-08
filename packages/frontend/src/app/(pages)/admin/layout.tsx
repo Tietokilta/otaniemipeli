@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "../../globals.css";
 import GeneralHeader from "@/app/components/headers/general-header";
-import FontProvider from "@/app/components/font-provider";
 
 export const metadata: Metadata = {
   title: "Otaniemipeli: Admin",
@@ -18,9 +17,9 @@ export default function RootLayout({
     { text: "Juomat", href: "/drinks" },
   ];
   return (
-    <FontProvider>
+    <>
       <GeneralHeader base_path="/admin" items={headerItems} />
       <div className="p-2 h-[90dvh] min-h-0">{children}</div>
-    </FontProvider>
+    </>
   );
 }

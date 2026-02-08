@@ -44,7 +44,7 @@ docker compose -f docker-compose-prod.yml up --build   # Production
 
 ### Backend (`packages/backend/`)
 - **Framework**: Axum with async Rust
-- **Real-time**: socketioxide for WebSocket with namespaces `/referee` and `/secretary`
+- **Real-time**: socketioxide for WebSocket with namespace `/referee`
 - **Database**: PostgreSQL via deadpool-postgres
 - **Migrations**: Flyway (in `migrations/`)
 - **API routes**: `/login`, `/api/v1/{boards,drinks,games,game_data,ingredients}`

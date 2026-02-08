@@ -1,7 +1,23 @@
 import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
 import PopUpDialogue from "../pop-up-dialogue";
 import DropdownMenu from "@/app/components/dropdown-menu";
-import { getDrinks, endTurn, startTurn, addPenalty } from "@/utils/fetchers";
+import {
+  endTurn,
+  startTurn,
+  changeDice,
+  cancelTurn,
+  getDrinks,
+  confirmPenalty,
+} from "@/utils/fetchers";
+import { TurnStatus, turnStatus, turnStatusText } from "@/utils/turns";
+
+/** Set to true to show the dice selection dialog when creating turns. */
+const REFEREE_ENTERS_DICE = false;
+
+/** Returns the unconfirmed penalty turn if one exists. */
+function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
+  return team.turns.find((turn) => turn.penalty && !turn.confirmed_at);
+}
 
 export const EditTeamTurnDialogue = ({
   team,
@@ -13,69 +29,155 @@ export const EditTeamTurnDialogue = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   const [choice, setChoice] = useState<"penalty" | "turn" | null>(null);
+  const [pendingPenaltyTurnId, setPendingPenaltyTurnId] = useState<
+    number | null
+  >(null);
+  const [pending, setPending] = useState(false);
 
   if (!open) return null;
+
+  const unconfirmedPenalty = getUnconfirmedPenalty(team);
+  const ongoingTurn =
+    team.turns.find((turn) => !turn.penalty && !turn.end_time) ??
+    team.turns.find((turn) => !turn.end_time);
+  const currentStatus = ongoingTurn ? turnStatus(ongoingTurn) : null;
+
+  /** Creates a new pending turn without dice values. */
+  const handleStartTurn = async () => {
+    setPending(true);
+    const postTurn: PostStartTurn = {
+      team_id: team.team.team_id,
+      game_id: team.team.game_id,
+      dice1: null,
+      dice2: null,
+      penalty: false,
+    };
+    await startTurn(postTurn);
+    setPending(false);
+    setOpen(false);
+  };
+
+  /** Creates a new pending penalty turn or takes over an existing one. */
+  const handleAddPenalty = async () => {
+    if (unconfirmedPenalty) {
+      // Take over existing unconfirmed penalty
+      setPendingPenaltyTurnId(unconfirmedPenalty.turn_id);
+      setChoice("penalty");
+      return;
+    }
+
+    setPending(true);
+    const postTurn: PostStartTurn = {
+      team_id: team.team.team_id,
+      game_id: team.team.game_id,
+      dice1: null,
+      dice2: null,
+      penalty: true,
+    };
+    const turn = await startTurn(postTurn);
+    setPendingPenaltyTurnId(turn.turn_id);
+    setPending(false);
+    setChoice("penalty");
+  };
+
+  /** Ends the current turn. */
+  const handleEndTurn = async () => {
+    setPending(true);
+    const params: EndTurn = {
+      team_id: team.team.team_id,
+      game_id: team.team.game_id,
+    };
+    // TODO: This should end all turns; there can be penalty and non-penalty turns active at the same time.
+    await endTurn(ongoingTurn!.turn_id, params);
+    setPending(false);
+    setOpen(false);
+  };
+
+  if (choice === "penalty" && pendingPenaltyTurnId) {
+    return (
+      <AddTeamPenaltyDialogue
+        team={team}
+        turnId={pendingPenaltyTurnId}
+        onClose={() => {
+          setChoice(null);
+          setOpen(false);
+        }}
+      />
+    );
+  }
+
+  if (choice === "turn") {
+    return (
+      <AddTeamTurnDialogue
+        team={team}
+        ongoingTurn={ongoingTurn}
+        onClose={() => {
+          setChoice(null);
+          setOpen(false);
+        }}
+      />
+    );
+  }
 
   return (
     <PopUpDialogue
       setOpen={setOpen}
       title={`Vuoro joukkueelle ${team.team.team_name}`}
+      disabled={pending}
     >
-      {!choice && (
-        <div className="flex flex-col gap-6 p-4">
-          <h3>
-            Joukkue:{" "}
-            <span className="text-juvu-sini-800">{team.team.team_name}</span>
-          </h3>
+      <div className="w-100 flex flex-col gap-6 p-4">
+        <h3>
+          Joukkue:{" "}
+          <span className="text-primary-900">{team.team.team_name}</span>
+        </h3>
+        {currentStatus === TurnStatus.Drinking ? (
           <button
             className="button text-xl p-5"
-            onClick={() => setChoice("penalty")}
+            onClick={handleEndTurn}
+            disabled={pending}
           >
-            Sakko
+            Juomat juotu
           </button>
-          {
-            // if last turn of the team is finished show start turn if not show end turn option
-            team.turns.length === 0 ||
-            team.turns[team.turns.length - 1].end_time ? (
-              <button
-                className="button text-xl p-5"
-                onClick={() => setChoice("turn")}
-              >
-                Uusi vuoro (nopanheitto)
-              </button>
-            ) : (
-              <button
-                className="button text-xl p-5"
-                onClick={async () => {
-                  const params: EndTurn = {
-                    team_id: team.team.team_id,
-                    game_id: team.team.game_id,
-                  };
-                  await endTurn(params);
-                  setChoice(null);
-                }}
-              >
-                Juomat juotu
-              </button>
-            )
-          }
-        </div>
-      )}
-      {choice === "penalty" && (
-        <AddTeamPenaltyForm
-          team={team}
-          controller={setChoice}
-          setOpen={setOpen}
-        />
-      )}
-      {choice === "turn" && (
-        <AddTeamTurnForm team={team} controller={setChoice} setOpen={setOpen} />
-      )}
+        ) : REFEREE_ENTERS_DICE ||
+          currentStatus === TurnStatus.WaitingForDice ? (
+          <button
+            className="button text-xl p-5"
+            onClick={() => setChoice("turn")}
+            disabled={pending}
+          >
+            Kirjaa nopanheitto
+          </button>
+        ) : !currentStatus ? (
+          <button
+            className="button text-xl p-5"
+            onClick={handleStartTurn}
+            disabled={pending}
+          >
+            Uusi vuoro (anna nopat)
+          </button>
+        ) : (
+          <button className="button text-xl p-5" disabled>
+            {turnStatusText(ongoingTurn!)}
+          </button>
+        )}
+        <button
+          className="button text-xl p-5"
+          onClick={handleAddPenalty}
+          disabled={pending}
+        >
+          {unconfirmedPenalty ? "Jatka sakon luontia" : "Lisää sakko"}
+        </button>
+        {unconfirmedPenalty && (
+          <p className="text-lg text-center">
+            <em>HUOM!</em> Joukkueelle ollaan jo lisäämässä sakkoa!
+          </p>
+        )}
+      </div>
     </PopUpDialogue>
   );
 };
 
-const Dice = ({
+export const Dice = ({
   value,
   setValue,
 }: {
@@ -88,7 +190,7 @@ const Dice = ({
         <button
           key={i}
           type="button"
-          className={`rounded cursor-pointer border-2 text-3xl w-[12vw] max-w-24 aspect-square ${value === i ? "bg-juvu-sini-800 border-juvu-sini-600 text-white" : ""}`}
+          className={`rounded cursor-pointer border-2 text-3xl w-[12vw] max-w-24 aspect-square ${value === i ? "bg-primary-900 border-primary-500 text-white" : ""}`}
           onClick={() => setValue(i)}
         >
           {i}
@@ -98,85 +200,104 @@ const Dice = ({
   );
 };
 
-const AddTeamTurnForm = ({
+const AddTeamTurnDialogue = ({
   team,
-  controller,
-  setOpen,
+  ongoingTurn,
+  onClose,
 }: {
   team: GameTeam;
-  controller: Dispatch<SetStateAction<"penalty" | "turn" | null>>;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  ongoingTurn?: Turn;
+  onClose: () => void;
 }) => {
   const [dice1, setDice1] = useState<number>(0);
   const [dice2, setDice2] = useState<number>(0);
+  const [pending, setPending] = useState(false);
 
   const submitTurn = async () => {
-    const postTurn: PostStartTurn = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-      dice1,
-      dice2,
-      penalty: false,
-    };
+    setPending(true);
 
-    await startTurn(postTurn);
-    setOpen(false);
-    controller(null);
+    if (ongoingTurn) {
+      // Update existing turn with dice values
+      const data: ChangeDice = {
+        turn_id: ongoingTurn.turn_id,
+        game_id: team.team.game_id,
+        dice1,
+        dice2,
+      };
+      await changeDice(ongoingTurn.turn_id, data);
+    } else {
+      // Create new turn with dice values
+      const postTurn: PostStartTurn = {
+        team_id: team.team.team_id,
+        game_id: team.team.game_id,
+        dice1,
+        dice2,
+        penalty: false,
+      };
+      await startTurn(postTurn);
+    }
+
+    setPending(false);
+    onClose();
   };
 
   return (
-    <div className="flex flex-col gap-2 bg-juvu-valko rounded shadow-lg px-4 py-2">
-      <p className="text-xl">
-        Lisätään vuoroa joukkueelle:{" "}
-        <span className="text-juvu-sini-800">{team.team.team_name}</span>
-      </p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submitTurn();
-        }}
-      >
-        <div className="flex flex-col w-full gap-2">
-          <h2>Noppa 1:</h2>
-          <Dice value={dice1} setValue={setDice1} />
-          <h2>Noppa 2:</h2>
-          <Dice value={dice2} setValue={setDice2} />
+    <PopUpDialogue
+      setOpen={() => onClose()}
+      title={`Nopanheitto: ${team.team.team_name}`}
+      disabled={pending}
+    >
+      <div className="flex flex-col gap-2 px-4 py-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitTurn();
+          }}
+        >
+          <div className="flex flex-col w-full gap-2">
+            <h2>Noppa 1:</h2>
+            <Dice value={dice1} setValue={setDice1} />
+            <h2>Noppa 2:</h2>
+            <Dice value={dice2} setValue={setDice2} />
+          </div>
+        </form>
+        <div className="flex justify-between px-4 py-4">
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Eiku
+          </button>
+          <button
+            className="button text-xl p-4"
+            type="button"
+            onClick={submitTurn}
+            disabled={dice1 === 0 || dice2 === 0 || pending}
+          >
+            Heitä
+          </button>
         </div>
-      </form>
-      <div className="flex justify-between px-4 py-4">
-        <button
-          type="button"
-          className="button text-xl p-4"
-          onClick={() => controller(null)}
-        >
-          Eiku
-        </button>
-        <button
-          className="button text-xl p-4"
-          type="button"
-          onClick={submitTurn}
-          disabled={dice1 === 0 || dice2 === 0}
-        >
-          Heitä
-        </button>
       </div>
-    </div>
+    </PopUpDialogue>
   );
 };
 
-const AddTeamPenaltyForm = ({
+const AddTeamPenaltyDialogue = ({
   team,
-  controller,
-  setOpen,
+  turnId,
+  onClose,
 }: {
   team: GameTeam;
-  controller: Dispatch<SetStateAction<"penalty" | "turn" | null>>;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  turnId: number;
+  onClose: () => void;
 }) => {
   const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
   const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
     drinks: [],
   });
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     getDrinks().then((drinks) => {
@@ -197,50 +318,68 @@ const AddTeamPenaltyForm = ({
   }, []);
 
   const handleSubmit = async () => {
+    setPending(true);
     const drinks: TurnDrinks = {
       drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
     };
-    await addPenalty(team.team.team_id, team.team.game_id, drinks);
-    setOpen(false);
-    controller(null);
+    await confirmPenalty(turnId, {
+      turn_id: turnId,
+      game_id: team.team.game_id,
+      drinks,
+    });
+    setPending(false);
+    onClose();
+  };
+
+  const handleCancel = async () => {
+    setPending(true);
+    await cancelTurn(turnId, {
+      turn_id: turnId,
+      game_id: team.team.game_id,
+    });
+    setPending(false);
+    onClose();
   };
 
   const hasSelectedDrinks = penaltyDrinks.drinks.some((d) => d.n > 0);
 
   return (
-    <form
-      className="w-xl flex flex-col gap-2 bg-juvu-valko h-[80dvh] max-h-200 px-4 py-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
+    <PopUpDialogue
+      setOpen={() => handleCancel()}
+      title={`Sakko: ${team.team.team_name}`}
+      disabled={pending}
     >
-      <p className="text-xl">
-        Lisätään rangaistus joukkueelle:{" "}
-        <span className="text-juvu-sini-800">{team.team.team_name}</span>
-      </p>
-      <DrinkSelectionList
-        availableDrinks={availableDrinks}
-        selectedDrinks={penaltyDrinks}
-        setSelectedDrinks={setPenaltyDrinks}
-      />
-      <div className="flex justify-between px-4 py-4">
-        <button
-          type="button"
-          className="button text-xl p-4"
-          onClick={() => controller(null)}
-        >
-          Eiku
-        </button>
-        <button
-          type="button"
-          className="button text-xl p-4"
-          onClick={handleSubmit}
-          disabled={!hasSelectedDrinks}
-        >
-          Sakkoa
-        </button>
-      </div>
-    </form>
+      <form
+        className="w-xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <DrinkSelectionList
+          availableDrinks={availableDrinks}
+          selectedDrinks={penaltyDrinks}
+          setSelectedDrinks={setPenaltyDrinks}
+        />
+        <div className="flex justify-between px-4 py-4">
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={handleCancel}
+            disabled={pending}
+          >
+            Eiku
+          </button>
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={handleSubmit}
+            disabled={!hasSelectedDrinks || pending}
+          >
+            Sakkoa
+          </button>
+        </div>
+      </form>
+    </PopUpDialogue>
   );
 };
 

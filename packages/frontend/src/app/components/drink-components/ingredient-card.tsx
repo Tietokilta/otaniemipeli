@@ -26,18 +26,18 @@ export default function IngredientCard({
   };
 
   const className = quantity
-    ? "text-xl font-mono px-1 text-right border-juvu-sini-800 border-"
+    ? "text-xl font-mono px-1 text-right border-primary-900 border-"
     : "text-xl font-mono px-1 text-left";
 
   return (
     <li className="box-hover center w-full">
-      <div className="flex border-juvu-sini-800 items-center">
+      <div className="flex border-primary-900 items-center">
         <p className={className + "r w-[35%] font-bold text-right"}>
           {ingredient.name}
         </p>
         <p className={className + "r text-right w-3/12"}>{ingredient.abv}%</p>
         {quantity ? (
-          <p className="text-left px-2 border-juvu-sini-800 border-r text-xl font-mono w-[12%]">
+          <p className="text-left px-2 border-primary-900 border-r text-xl font-mono w-[12%]">
             {Math.round(quantity)}cl
           </p>
         ) : null}
@@ -46,7 +46,7 @@ export default function IngredientCard({
         </p>
         {deleteFromDrink && drink_id ? (
           <button
-            className="rounded cursor-pointer text-sm ml-auto bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
+            className="rounded cursor-pointer text-sm ml-auto bg-primary-900 hover:bg-primary-500 px-4 py-1 text-white center"
             onClick={handleDelete}
           >
             Poista

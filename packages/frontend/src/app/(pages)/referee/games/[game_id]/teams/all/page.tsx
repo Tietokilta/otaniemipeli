@@ -7,11 +7,14 @@ import {
   HorizontalList,
   VerticalList,
 } from "@/app/components/generic-list-components";
-import TeamTurnCard from "@/app/components/team-components/team-turn-card";
+import TeamTurnCard, {
+  computeTotals,
+} from "@/app/components/team-components/team-turn-card";
 import { useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
 import { getBoardPlaces } from "@/utils/fetchers";
-import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { use, useEffect, useMemo, useState } from "react";
 
 export default function Page({
   params,
@@ -29,7 +32,12 @@ export default function Page({
   }, [gameData]);
   console.log("BOARD IS", board);
 
-  if (isLoading) {
+  const preppedTeams = useMemo(
+    () => gameData && gameData.teams.map((team) => computeTotals(team)),
+    [gameData],
+  );
+
+  if (isLoading || !preppedTeams) {
     return <GameLoadingSpinner />;
   }
 
@@ -38,10 +46,18 @@ export default function Page({
   }
 
   return (
-    <div className="p-4 max-h-[80dvh] overflow-scroll">
-      {gameData?.teams && (
+    <>
+      <nav className="flex items-center gap-4 mb-4">
+        <Link href={`/referee/games/${game_id}`} className="button">
+          Takaisin peliin
+        </Link>
+        <h1 className="text-2xl font-bold mb-0 pb-0">
+          Kaikkien joukkueiden vuorot
+        </h1>
+      </nav>
+      <div className="flex-1 overflow-scroll">
         <VerticalList className="gap-4">
-          {gameData.teams.map((team: GameTeam) => (
+          {preppedTeams.map((team) => (
             <div className="flex h-[30dvh]" key={team.team.team_id}>
               <div className="pr-4 mr-4 border-r-2 border-tertiary-500">
                 <TeamTurnCard
@@ -55,7 +71,7 @@ export default function Page({
                   team.turns.map((turn) => (
                     <TeamTurnCard
                       team={team}
-                      teamTurns={[turn]}
+                      teamTurns={turn}
                       key={turn.turn_id}
                       board={board}
                     />
@@ -64,7 +80,7 @@ export default function Page({
             </div>
           ))}
         </VerticalList>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

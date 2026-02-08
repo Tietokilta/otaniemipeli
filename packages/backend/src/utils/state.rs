@@ -14,14 +14,29 @@ use serde::Serialize;
 use socketioxide::SocketIo;
 use thiserror::Error;
 
+/// State for Axum routes - includes SocketIo for emitting from REST endpoints.
 #[derive(Clone)]
 pub struct AppState {
     pub db: Pool,
     pub io: SocketIo,
 }
+
 impl AppState {
     pub fn new(db: Pool, io: SocketIo) -> Self {
         Self { db, io }
+    }
+}
+
+/// State for socketioxide handlers - only includes what websocket handlers need.
+/// This avoids circular dependency since SocketIo is built with this state.
+#[derive(Clone)]
+pub struct SocketState {
+    pub db: Pool,
+}
+
+impl SocketState {
+    pub fn new(db: Pool) -> Self {
+        Self { db }
     }
 }
 

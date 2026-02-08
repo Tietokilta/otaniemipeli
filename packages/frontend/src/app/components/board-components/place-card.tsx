@@ -34,7 +34,7 @@ export default function PlaceCard({
         </div>
         {showInfo && (
           <div className="flex gap-1 w-full h-full">
-            <div className="w-full flex-3 center p-2 border-r-1 border-juvu-sini-800">
+            <div className="w-full flex-3 center p-2 border-r-1 border-primary-900">
               <p className="text-justify text-xl pr-1">{place.place.rule}</p>
             </div>
             <div className="flex flex-col gap-1 p-2 flex-2">

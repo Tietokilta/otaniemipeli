@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo } from "react";
 import GameCard from "@/app/components/game-components/game-card";
 import { useSocket } from "@/app/template";
 import TeamList from "@/app/components/team-components/team-list";
@@ -12,6 +12,7 @@ import {
   GameErrorDisplay,
 } from "@/app/components/game-components/game-loading-states";
 import Link from "next/link";
+import { computeTotals } from "@/app/components/team-components/team-turn-card";
 
 export default function Page({
   params,
@@ -22,6 +23,11 @@ export default function Page({
   const socket = useSocket();
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
 
+  const preppedTeams = useMemo(
+    () => gameData && gameData.teams.map((team) => computeTotals(team)),
+    [gameData],
+  );
+
   if (isLoading) {
     return <GameLoadingSpinner />;
   }
@@ -30,17 +36,18 @@ export default function Page({
     return <GameErrorDisplay error={error} />;
   }
 
-  if (!gameData) {
+  if (!gameData || !preppedTeams) {
     return <GameLoadingSpinner />;
   }
   return (
-    <div className="flex gap-4 4 h-[80dvh]">
+    <div className="flex-1 flex gap-4">
       <div className="flex flex-col gap-2 flex-1">
         <GameCard game={gameData.game} className="w-full" />
         <TeamList
           game={gameData.game}
           teams={gameData.teams}
           className="w-full"
+          editTurn={gameData.game.started}
         />
         {!gameData.game.started && gameData.teams.length > 0 && (
           <GameStartDialogue game={gameData.game} className="w-full" />
@@ -48,16 +55,16 @@ export default function Page({
         {gameData.game.started && (
           <Link
             className="button"
-            href={`/referee/teams/${gameData.game.id}/all`}
+            href={`/referee/games/${gameData.game.id}/teams/all`}
           >
             Näytä kaikki vuorot
           </Link>
         )}
       </div>
       <div className="flex flex-col gap-2 flex-3 max-h-[80dvh] w-1/2">
-        <GameTeamTurnsList gameData={gameData} className="max-h-1/2" />
+        <GameTeamTurnsList teams={preppedTeams} className="max-h-1/2" />
         <GameTeamTurnsList
-          gameData={gameData}
+          teams={preppedTeams}
           collect
           className="flex-grow-2"
         />

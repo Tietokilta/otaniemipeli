@@ -1,6 +1,6 @@
-use crate::utils::socket::check_auth;
-use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{SocketAuth, UserType};
+use crate::utils::socket::check_auth_any;
+use crate::utils::state::{AppError, SocketState};
+use crate::utils::types::{GameData, SocketAuth, UserType};
 use deadpool_postgres::Client;
 use serde::Serialize;
 use socketioxide::adapter::{Adapter, Emitter};
@@ -13,6 +13,7 @@ use socketioxide_core::adapter::CoreAdapter;
 pub enum ServerResponse {
     Error(String),
     Verification(bool),
+    GameUpdate(GameData),
 }
 
 impl ServerResponse {
@@ -20,11 +21,20 @@ impl ServerResponse {
         match self {
             ServerResponse::Error(_) => "response-error",
             ServerResponse::Verification(_) => "verification-reply",
+            ServerResponse::GameUpdate(_) => "game-update",
         }
     }
 }
 
-pub(crate) async fn get_db_client(state: &AppState) -> Result<Client, AppError> {
+/// Allowed user types for the /referee namespace (used by all authenticated clients).
+const ALLOWED_TYPES: &[UserType] = &[
+    UserType::Admin,
+    UserType::Referee,
+    UserType::Ie,
+    UserType::Secretary,
+];
+
+pub(crate) async fn get_db_client(state: &SocketState) -> Result<Client, AppError> {
     Ok(state.db.get().await?)
 }
 
@@ -40,26 +50,15 @@ pub fn emit_msg(s: &SocketRef<impl Adapter>, response: ServerResponse) {
     };
 }
 
+/// Handles verify-login events.
 pub async fn verify_login_handler<A: CoreAdapter<Emitter>>(
     s: SocketRef<A>,
     Data(auth): Data<SocketAuth>,
-    State(state): State<AppState>,
+    State(state): State<SocketState>,
 ) {
-    tracing::info!("Socket namespace: {}", s.ns());
-    let u_type: UserType = match s.ns() {
-        "/admin" => UserType::Admin,
-        "/referee" => UserType::Referee,
-        "/secretary" => UserType::Secretary,
-        "/ie" => UserType::Ie,
-        _ => {
-            let _ = s.disconnect();
-            return;
-        }
-    };
-    let auth = check_auth(&auth.token, &s, &state, u_type).await;
-    tracing::info!("{}: Connection verified: {}", s.ns(), auth);
-    emit_msg(&s, ServerResponse::Verification(auth));
-    if !auth {
+    let auth_result = check_auth_any(&auth.token, &s, &state, ALLOWED_TYPES).await;
+    emit_msg(&s, ServerResponse::Verification(auth_result));
+    if !auth_result {
         let _ = s.disconnect();
     }
 }

@@ -73,20 +73,20 @@ export default function DrinkCard({
           {drink.drink.name}
         </p>
         {drink.abv > 0 ? (
-          <p className="text-2xl font-mono w-1/4 px-1 text-right border-juvu-sini-800 border-l">
+          <p className="text-2xl font-mono w-1/4 px-1 text-right border-primary-900 border-l">
             {drink.abv}%
           </p>
         ) : (
-          <p className="text-2xl font-mono w-1/4 px-1 text-right border-juvu-sini-800 border-l">
+          <p className="text-2xl font-mono w-1/4 px-1 text-right border-primary-900 border-l">
             0.0%
           </p>
         )}
         {drink.quantity > 0 ? (
-          <p className="text-2xl font-mono w-2/12 px-2 text-right border-juvu-sini-800 border-l">
+          <p className="text-2xl font-mono w-2/12 px-2 text-right border-primary-900 border-l">
             {Math.round(drink.quantity)}cl
           </p>
         ) : (
-          <p className="text-2xl font-mono w-2/12 px-2 text-right border-juvu-sini-800 border-l">
+          <p className="text-2xl font-mono w-2/12 px-2 text-right border-primary-900 border-l">
             0cl
           </p>
         )}
@@ -100,7 +100,7 @@ export default function DrinkCard({
         >
           {state && functional ? (
             <button
-              className="rounded cursor-pointer w-full my-1 text-sm bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center"
+              className="rounded cursor-pointer w-full my-1 text-sm bg-primary-900 hover:bg-primary-500 px-4 py-1 text-white center"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteDrink(drink.drink.id).then();
@@ -114,7 +114,7 @@ export default function DrinkCard({
       </div>
       {state ? (
         <>
-          <hr className="my-2 -mx-3 border-juvu-sini-600" />
+          <hr className="my-2 -mx-3 border-primary-500" />
           {functional && (
             <div
               className="flex gap-4 mb-2"
@@ -176,7 +176,7 @@ export function DrinkCardNoIngredients({
 }): JSX.Element {
   return (
     <div className={className}>
-      <li className="shadow-md rounded-2xl border-2 border-juvu-sini-800 px-6 py-2 items-center">
+      <li className="shadow-md rounded-2xl border-2 border-primary-900 px-6 py-2 items-center">
         <div className="flex items-center justify-items-start w-100">
           <h3 className="text-lg font-bold text-left px-1 w-3/7">
             {drink.name}
@@ -188,7 +188,7 @@ export function DrinkCardNoIngredients({
 }
 export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
   return (
-    <div className="flex flex-col justify-items-start w-full border-b-1 border-juvu-sini-800">
+    <div className="flex flex-col justify-items-start w-full border-b-1 border-primary-900">
       <h2 className="font-redaction-i-50 text-2xl text-left px-1 w-full">
         {drink.drink.name}
       </h2>

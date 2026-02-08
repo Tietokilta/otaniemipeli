@@ -8,11 +8,13 @@ export default function TeamList({
   teams,
   className,
   link,
+  editTurn,
 }: {
   game: Game;
   teams: GameTeam[];
   className?: string;
   link?: boolean;
+  editTurn?: boolean;
 }) {
   return (
     <ItemList
@@ -22,10 +24,11 @@ export default function TeamList({
     >
       {teams.map((team) => (
         <TeamCard
-          team={team.team}
+          team={team}
           key={team.team.team_id}
           className="w-full"
           link={link}
+          editTurn={editTurn}
         />
       ))}
     </ItemList>

@@ -29,7 +29,7 @@ export default function AddIngredientForm() {
   return (
     <>
       <button
-        className="rounded text-lg bg-juvu-sini-800 px-2 py-1 text-white center ml-auto"
+        className="rounded text-lg bg-primary-900 px-2 py-1 text-white center ml-auto"
         onClick={() => setOpen(true)}
       >
         Lisää ainesosa
@@ -75,7 +75,7 @@ export default function AddIngredientForm() {
               </button>
               <button
                 type="submit"
-                className="rounded bg-juvu-sini-800 px-3 py-1 text-white"
+                className="rounded bg-primary-900 px-3 py-1 text-white"
               >
                 Save
               </button>

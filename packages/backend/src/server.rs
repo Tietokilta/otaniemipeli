@@ -11,7 +11,7 @@ use axum::{middleware, routing::get, Router};
 use socketioxide::SocketIo;
 use tracing_subscriber::FmtSubscriber;
 
-use crate::utils::state::{all_middleware, AppState};
+use crate::utils::state::{all_middleware, AppState, SocketState};
 
 pub async fn start() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
@@ -49,11 +49,19 @@ pub async fn start() -> anyhow::Result<()> {
     let bind = format!("0.0.0.0:{}", port);
     println!("\nServer started at port {}", port);
 
-    let (layer, io) = SocketIo::builder().build_layer();
-    tracing::info!("Socket.IO layer built");
+    // Create SocketState for websocket handlers (avoids circular dependency)
+    let socket_state = SocketState::new(pool);
 
-    let state = AppState::new(pool, io.clone());
+    // Build SocketIo with SocketState
+    let (layer, io) = SocketIo::builder().with_state(socket_state).build_layer();
 
+    // Create AppState for Axum routes (includes SocketIo for emitting from REST endpoints)
+    let state = AppState::new(
+        make_pool(&db_url).expect("Failed to create pool for app state"),
+        io.clone(),
+    );
+
+    // Register websocket namespace
     io.ns("/referee", websocket::referee::referee_on_connect);
 
     let app = Router::new()

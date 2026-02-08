@@ -25,7 +25,7 @@ export default function AddDrinkForm({
       buttonText="Lisää juoma"
       dialogTitle="Uusi juoma"
       inputPlaceholder="Nimi"
-      buttonClassName="rounded cursor-pointer text-lg bg-juvu-sini-800 hover:bg-juvu-sini-600 px-2 py-1 text-white center ml-auto text-nowrap"
+      buttonClassName="rounded cursor-pointer text-lg bg-primary-900 hover:bg-primary-500 px-2 py-1 text-white center ml-auto text-nowrap"
       onSubmit={handleSubmit}
     />
   );

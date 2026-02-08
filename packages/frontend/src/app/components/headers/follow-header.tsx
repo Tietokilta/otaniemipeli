@@ -10,7 +10,7 @@ export default function FollowHeader() {
   const className =
     "flex items-end justify-center pb-4 px-4 border-l-1 text-4xl border-juvu-kulta text-juvu-sini-500 h-full hover:bg-juvu-sini-900";
   return (
-    <div className="flex items-end justify-right w-full h-[12dvh] px-4 mb-4 bg-juvu-sini-800 border-juvu-kulta border-b-1">
+    <div className="flex items-end justify-right w-full h-[12dvh] px-4 mb-4 bg-primary-900 border-juvu-kulta border-b-1">
       <div className="flex center h-full py-1 mr-auto">
         <Image
           src={TiKLogo}

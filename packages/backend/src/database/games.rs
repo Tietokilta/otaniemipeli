@@ -70,8 +70,8 @@ pub async fn make_first_turns(
 ) -> Result<(), AppError> {
     let query_str = "\
     WITH ins_turns AS (
-      INSERT INTO turns (team_id, game_id, place_number, thrown_at, confirmed_at)
-      SELECT team_id, $1::int, $2::int, NOW(), NOW()
+      INSERT INTO turns (team_id, game_id, place_number, thrown_at, confirmed_at, mixing_at, mixed_at, delivered_at)
+      SELECT team_id, $1::int, $2::int, NOW(), NOW(), NOW(), NOW(), NOW()
       FROM teams
       WHERE game_id = $1
       RETURNING team_id, turn_id

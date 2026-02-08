@@ -40,7 +40,7 @@ export default function LoginComponent({
       className="flex flex-col center gap-4"
     >
       <div className="flex flex-col gap-2">
-        <h1 className="font-bold text-2xl text-center border-b-1 border-juvu-sini-800">
+        <h1 className="font-bold text-2xl text-center border-b-1 border-primary-900">
           Kirjautuminen
         </h1>
         <input

@@ -1,8 +1,9 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { verifySession } from "@/utils/fetchers";
-import React, { useEffect } from "react";
 import { UserTypeEnum } from "@/utils/helpers";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 
 export default function SelectMode({
   setLoginAction,
@@ -73,13 +74,13 @@ export default function SelectMode({
       <div className="flex flex-col items-center gap-3.5 w-56">
         {session &&
           session.user_types.user_types.map((user_type) => (
-            <a
+            <Link
               className="button w-full center select-none"
               key={user_type}
               href={`/${user_type.toLowerCase()}`}
             >
               {UserTypeEnum[user_type]}
-            </a>
+            </Link>
           ))}
         <h1 className="text-tertiary-900 text-2xl font-bold">...tai...</h1>
         <button
@@ -88,7 +89,7 @@ export default function SelectMode({
         >
           Kirjaudu ulos
         </button>
-        <a href="/websocket">websocket</a>
+        <Link href="/websocket">websocket</Link>
       </div>
     </div>
   );

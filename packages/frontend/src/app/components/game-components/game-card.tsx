@@ -6,12 +6,12 @@ export default function GameCard({
   game,
   link = false,
   className,
-  go_to_games,
+  relativePath = false,
 }: {
   game: Game;
   link?: boolean;
   className?: string;
-  go_to_games?: boolean;
+  relativePath?: boolean;
 }) {
   const path = usePathname();
   const content = (
@@ -36,9 +36,9 @@ export default function GameCard({
     <Link
       className={`${className} box-hover`}
       href={
-        go_to_games
-          ? `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`
-          : `${path}/${game.id}`
+        relativePath
+          ? `${path}/${game.id}`
+          : `/${getUserTypeFromPath(window.location.href)?.toLowerCase()}/games/${game.id}`
       }
     >
       {content}

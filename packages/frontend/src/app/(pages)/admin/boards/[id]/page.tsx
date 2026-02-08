@@ -1,16 +1,17 @@
-import BoardCard from "@/app/components/board-components/board-card";
-import { getBoard } from "@/utils/fetchers";
-import BoardPlacesList from "@/app/components/board-components/board-places-list";
 import AddPlaceForm from "@/app/components/board-components/add-place-form";
-import PlacesList from "@/app/components/board-components/places-list";
 import AddPlaceToBoard from "@/app/components/board-components/add-place-to-board";
+import BoardCard from "@/app/components/board-components/board-card";
+import BoardPlacesList from "@/app/components/board-components/board-places-list";
+import PlacesList from "@/app/components/board-components/places-list";
+import { getBoard } from "@/utils/fetchers";
+import { use } from "react";
 
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id } = use(params);
   const board: Board = await getBoard(id);
   return (
     <div className="flex flex-col h-[85vh] w-full px-2">

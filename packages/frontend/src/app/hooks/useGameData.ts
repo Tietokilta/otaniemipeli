@@ -63,14 +63,14 @@ export function useGameData(
     socket.on("game-update", onGameUpdate);
     socket.on("response-error", onError);
 
-    // Subscribe when connected
+    // Subscribe when connected, and on reconnection
+    socket.on("connect", subscribe);
     if (socket.connected) {
       subscribe();
-    } else {
-      socket.once("connect", subscribe);
     }
 
     return () => {
+      socket.off("connect", subscribe);
       socket.off("game-update", onGameUpdate);
       socket.off("response-error", onError);
     };

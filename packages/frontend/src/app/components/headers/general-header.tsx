@@ -3,14 +3,52 @@ import { useRouter } from "next/navigation";
 import { UserTypeEnum } from "@/utils/helpers";
 import Link from "next/link";
 
+/** A single navigation item in the header. */
+function HeaderItemComponent({
+  text,
+  href,
+  onClick,
+}: {
+  text: string;
+  href?: string;
+  onClick?: () => void;
+}) {
+  const className = `
+    flex
+    center
+    py-2
+    text-tertiary-500
+    text-2xl
+    font-bold
+    flex
+    center
+    hover:bg-primary-500
+    hover:text-tertiary-900
+    px-4
+    rounded-sm`;
+  if (href) {
+    return (
+      <Link className={className} href={href}>
+        {text}
+      </Link>
+    );
+  }
+  return (
+    <span className={className} onClick={onClick}>
+      {text}
+    </span>
+  );
+}
+
 export default function GeneralHeader({
   base_path,
-  items,
+  items = [],
 }: {
   base_path: string;
-  items: HeaderItem[];
+  items?: HeaderItem[];
 }) {
   const router = useRouter();
+
   const handleLogout = (all?: string) => {
     let url = "/login";
     if (all) {
@@ -32,15 +70,14 @@ export default function GeneralHeader({
       });
     router.push("/");
   };
+
   const role =
     UserTypeEnum[base_path.replace("/", "") as keyof typeof UserTypeEnum];
-  const className = "flex center py-2 text-tertiary-500 h-full font-bold";
-  const hoverClass =
-    "flex center w-full h-full hover:bg-primary-500 hover:text-tertiary-900 px-4 rounded-sm";
+
   return (
-    <div className="flex items-end justify-right w-full h-[15dvh] px-4 mb-4 bg-quaternary-500">
+    <div className="flex items-end justify-right w-full h-min-content px-4 bg-quaternary-500">
       <div className="flex center h-full mr-auto pt-4">
-        <h2
+        <Link
           className="
           ml-6
           center
@@ -50,38 +87,25 @@ export default function GeneralHeader({
           text-shadow-lg
           text-shadow-tertiary-900
           hover:text-shadow-secondary-900
-          text-4xl
+          text-2xl
+          2xl:text-4xl
           font-pixel-b"
-          onClick={() => router.push("/")}
+          href={base_path}
         >
           Otaniemipeli {role}
-        </h2>
+        </Link>
       </div>
       <div className="flex h-full items-center pt-6">
         <nav className="flex cursor-default h-full py-3 rounded-md bottom">
-          <Link href="/">
-            <div className={`${className} ${hoverClass}`}>
-              <h3>Alkuun</h3>
-            </div>
-          </Link>
-          <Link href={base_path}>
-            <div className={`${className} ${hoverClass}`}>
-              <h3>{role}</h3>
-            </div>
-          </Link>
           {items.map((item) => (
-            <Link key={item.text} href={base_path + item.href}>
-              <div className={`${className} ${hoverClass}`}>
-                <h3>{item.text}</h3>
-              </div>
-            </Link>
+            <HeaderItemComponent
+              key={item.text}
+              text={item.text}
+              href={base_path + item.href}
+            />
           ))}
-          <div
-            className={`${className} ${hoverClass}`}
-            onClick={() => handleLogout()}
-          >
-            <h3>Kirjaudu ulos</h3>
-          </div>
+          <HeaderItemComponent text="Vaihda roolia" href="/" />
+          <HeaderItemComponent text="Kirjaudu ulos" onClick={handleLogout} />
         </nav>
       </div>
     </div>

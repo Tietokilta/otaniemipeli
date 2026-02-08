@@ -1,4 +1,5 @@
 "use client";
+import { turnStatus, turnStatusText } from "@/utils/turns";
 import { useEffect, useState } from "react";
 
 export function dateFromDb(iso: string): Date {
@@ -20,15 +21,20 @@ export function formatClockTimeMs(ts: number) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-export function formatTurnLabel(
-  startIso: string,
-  endIso?: string | null,
-): JSX.Element {
-  const startTs = dateFromDb(startIso).getTime();
+export function TurnStatus({ turn }: { turn: Turn }): JSX.Element {
+  const [, rerender] = useState<unknown>({});
+
+  // Force re-render every second
+  useEffect(() => {
+    const id = window.setInterval(() => rerender({}), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const startTs = dateFromDb(turn.start_time).getTime();
   if (Number.isNaN(startTs)) return <p>Virheellistä dataa</p>;
 
-  if (endIso) {
-    const endTs = dateFromDb(endIso).getTime();
+  if (turn.end_time) {
+    const endTs = dateFromDb(turn.end_time).getTime();
     if (Number.isNaN(endTs)) return <p>Virheellistä dataa</p>;
 
     const elapsed = formatShortDurationMs(Date.now() - endTs);
@@ -41,28 +47,11 @@ export function formatTurnLabel(
     );
   }
   const elapsed = formatShortDurationMs(Date.now() - startTs);
+
   return (
     <>
-      <p>Suoritus käynnissä</p>
+      <p>{turnStatusText(turn)}</p>
       <p>Vuoro alkoi {elapsed} sitten</p>
     </>
   );
-}
-
-export function TurnElapsed({
-  start,
-  end,
-}: {
-  start: string;
-  end?: string | null;
-}): JSX.Element {
-  const [, rerender] = useState<unknown>({});
-
-  // Force re-render every second
-  useEffect(() => {
-    const id = window.setInterval(() => rerender({}), 1000);
-    return () => clearInterval(id);
-  }, [start, end]);
-
-  return <span>{formatTurnLabel(start, end)}</span>;
 }

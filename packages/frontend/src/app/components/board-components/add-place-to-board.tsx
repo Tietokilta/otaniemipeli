@@ -132,7 +132,7 @@ export default function AddPlaceToBoard({
           <input
             type="checkbox"
             checked={start}
-            className="!focus:bg-juvu-sini-800"
+            className="!focus:bg-primary-900"
             onChange={() => (!end ? setStart(!start) : {})}
           />
           Start

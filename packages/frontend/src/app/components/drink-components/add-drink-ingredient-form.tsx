@@ -99,7 +99,7 @@ export default function AddDrinkIngredientForm({
   return (
     <>
       <div
-        className="rounded cursor-pointer text-sm bg-juvu-sini-800 hover:bg-juvu-sini-600 px-4 py-1 text-white center text-nowrap"
+        className="rounded cursor-pointer text-sm bg-primary-900 hover:bg-primary-500 px-4 py-1 text-white center text-nowrap"
         onClick={(e) => {
           e.stopPropagation(); // extra safety if inside another clickable
           setOpen(true);
@@ -126,7 +126,7 @@ export default function AddDrinkIngredientForm({
               selectedOption={picked}
               setSelectedOption={setPicked}
             />
-            <div className="flex w-full mt-2 mb-4 border-2 border-juvu-sini-800 rounded-3xl p-2 h-80">
+            <div className="flex w-full mt-2 mb-4 border-2 border-primary-900 rounded-3xl p-2 h-80">
               <div className="flex flex-col items-center w-full h-full overflow-scroll mb-4">
                 {selected.length > 0 ? (
                   selected.map((ing) => {
@@ -138,17 +138,17 @@ export default function AddDrinkIngredientForm({
                     return (
                       <div
                         key={ing.id}
-                        className="flex border-juvu-sini-800 border-2 w-full rounded-2xl items-center px-3 py-1 my-1 hover:border-juvu-sini-600"
+                        className="flex border-primary-900 border-2 w-full rounded-2xl items-center px-3 py-1 my-1 hover:border-primary-500"
                       >
                         <p className="text-base px-2 py-2 text-left font-bold">
                           {ing.name}
                         </p>
                         {ing.abv > 0 ? (
-                          <p className="text-base px-2 border-juvu-sini-800 border-l">
+                          <p className="text-base px-2 border-primary-900 border-l">
                             {ing.abv}%
                           </p>
                         ) : (
-                          <p className="text-base px-2 border-juvu-sini-800 border-l">
+                          <p className="text-base px-2 border-primary-900 border-l">
                             0.0%
                           </p>
                         )}
@@ -190,7 +190,7 @@ export default function AddDrinkIngredientForm({
               </button>
               <button
                 type="submit"
-                className="rounded bg-juvu-sini-800 px-3 py-1 text-white"
+                className="rounded bg-primary-900 px-3 py-1 text-white"
               >
                 Tallenna
               </button>

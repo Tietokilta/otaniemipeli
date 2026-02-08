@@ -110,10 +110,14 @@ export async function getIngredients(): Promise<Ingredients> {
 export async function addIngredient(
   ingredient: Ingredient,
 ): Promise<Ingredient> {
-  return apiFetch<Ingredient>(`${API_URL}/ingredients`, {
-    method: "POST",
-    body: JSON.stringify(ingredient),
-  }, true);
+  return apiFetch<Ingredient>(
+    `${API_URL}/ingredients`,
+    {
+      method: "POST",
+      body: JSON.stringify(ingredient),
+    },
+    true,
+  );
 }
 
 export async function deleteIngredient(
@@ -136,7 +140,9 @@ export async function getDrinks(): Promise<DrinksIngredients> {
 export async function getDrinkIngredients(
   drink_id: number,
 ): Promise<DrinkIngredients> {
-  return apiFetch<DrinkIngredients>(`${API_URL}/drinks/ingredients/${drink_id}`);
+  return apiFetch<DrinkIngredients>(
+    `${API_URL}/drinks/ingredients/${drink_id}`,
+  );
 }
 
 export async function addDrink(drink: Drink): Promise<number> {
@@ -174,7 +180,9 @@ export async function updateDrink(drink: Drink): Promise<number> {
   );
 }
 
-export async function deleteDrink(drink_id: number): Promise<{ number: number }> {
+export async function deleteDrink(
+  drink_id: number,
+): Promise<{ number: number }> {
   return apiFetch<{ number: number }>(
     `${API_URL}/drinks/${drink_id}`,
     { method: "DELETE" },
@@ -385,9 +393,9 @@ export async function cancelTurn(
   );
 }
 
-export async function endTurn(data: EndTurn): Promise<void> {
+export async function endTurn(turnId: number, data: EndTurn): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/end`,
+    `${API_URL}/turns/${turnId}/end`,
     {
       method: "POST",
       body: JSON.stringify(data),
@@ -410,52 +418,22 @@ export async function confirmPenalty(
   );
 }
 
-/**
- * Adds a penalty turn for a team in one call.
- * Combines startTurn (with penalty=true) and confirmPenalty.
- */
-export async function addPenalty(
-  teamId: number,
-  gameId: number,
-  drinks: TurnDrinks,
-): Promise<void> {
-  const turn = await startTurn({
-    team_id: teamId,
-    game_id: gameId,
-    dice1: null,
-    dice2: null,
-    penalty: true,
-  });
-
-  await confirmPenalty(turn.turn_id, {
-    turn_id: turn.turn_id,
-    game_id: gameId,
-    drinks,
-  });
-}
-
 // Authentication operations
 
 export async function login(loginInfo: LoginInfo): Promise<UserSessionInfo> {
-  return apiFetch<UserSessionInfo>(
-    `${API_URL_BASE}/login`,
-    {
-      method: "POST",
-      body: JSON.stringify(loginInfo),
-    },
-  );
+  return apiFetch<UserSessionInfo>(`${API_URL_BASE}/login`, {
+    method: "POST",
+    body: JSON.stringify(loginInfo),
+  });
 }
 
 export async function verifySession(
   sessionToken: string,
 ): Promise<SessionInfo> {
-  const body = await apiFetch<SessionInfo>(
-    `${API_URL_BASE}/login`,
-    {
-      method: "PUT",
-      headers: { Authorization: sessionToken },
-    },
-  );
+  const body = await apiFetch<SessionInfo>(`${API_URL_BASE}/login`, {
+    method: "PUT",
+    headers: { Authorization: sessionToken },
+  });
 
   if (
     body.uid < 0 ||

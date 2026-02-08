@@ -15,7 +15,7 @@ export default function ItemList({
         <h1 className="text-center w-full">{title}</h1>
         {addDialog}
       </div>
-      <ul className="flex flex-col gap-2 px-4 py-2 overflow-y-auto flex-1 min-h-0">
+      <ul className="flex flex-col gap-2 px-2 py-2 overflow-y-auto flex-1 min-h-0">
         {children}
       </ul>
     </div>

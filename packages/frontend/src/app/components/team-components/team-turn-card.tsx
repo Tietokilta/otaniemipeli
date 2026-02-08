@@ -2,22 +2,20 @@ import PlaceCard from "@/app/components/board-components/place-card";
 import { TurnDrinkCard } from "@/app/components/drink-components/drink-card";
 import { VerticalList } from "@/app/components/generic-list-components";
 import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
-import {
-  formatShortDurationMs,
-  TurnElapsed,
-} from "@/app/components/time-since";
+import { formatShortDurationMs, TurnStatus } from "@/app/components/time-since";
 import { useMemo, useState } from "react";
 
-interface TurnCombined {
-  turn_ids: number[];
-  turns: number;
+export type GameTeamWithTotals = GameTeam & {
+  // turn_ids: number[];
+  normal_turns: number;
   penalties: number;
   total_drinks: number;
-  combined_time: string;
-  team_id: number;
-  dice_throws: [number, number][];
+  total_active: number;
+  combined_time: number;
+  // dice_throws: [number, number][];
   drinks: TurnDrink[];
-}
+  active_drinks: TurnDrink[];
+};
 
 const getTurnDuration = (turns: Turn[]): number[] => {
   return turns.map((turn: Turn) => {
@@ -27,7 +25,7 @@ const getTurnDuration = (turns: Turn[]): number[] => {
   });
 };
 
-export function sumByDrinkId(rows: TurnDrink[]) {
+function sumByDrinkId(rows: TurnDrink[]) {
   const byId = new Map<number, TurnDrink>();
   let total_drinks = 0;
 
@@ -43,41 +41,51 @@ export function sumByDrinkId(rows: TurnDrink[]) {
   return { drinks: Array.from(byId.values()), total_drinks };
 }
 
+export function computeTotals(team: GameTeam): GameTeamWithTotals {
+  // In non-collect mode, only show currently active turn(s). In collect mode, show all turns.
+  const activeTurns = team.turns.filter((t) => !t.end_time);
+  const penalties = team.turns.filter((t) => t.penalty).length;
+  const totalDrinks = sumByDrinkId(team.turns.flatMap((t) => t.drinks.drinks));
+  const activeDrinks = sumByDrinkId(
+    activeTurns.flatMap((t) => t.drinks.drinks),
+  );
+  return {
+    ...team,
+    // turn_ids: applicableTurns.map((t) => t.turn_id),
+    normal_turns: team.turns.length - penalties,
+    penalties,
+    combined_time: getTurnDuration(team.turns).reduce((a, b) => a + b, 0),
+    // dice_throws: applicableTurns.map(
+    //   (t) => [t.dice1, t.dice2] as [number, number],
+    // ),
+    ...totalDrinks,
+    active_drinks: activeDrinks.drinks,
+    total_active: activeDrinks.total_drinks,
+  };
+}
+
 export default function TeamTurnCard({
   team,
   collect,
   teamTurns,
   board,
 }: {
-  team: GameTeam;
+  team: GameTeamWithTotals;
   collect?: boolean;
-  teamTurns: Turn[];
+  teamTurns: Turn[] | Turn;
   board?: BoardPlaces;
 }): JSX.Element {
+  const singleTurn = !Array.isArray(teamTurns);
+  if (!Array.isArray(teamTurns)) teamTurns = [teamTurns];
+
   const lastTurn = teamTurns[teamTurns.length - 1];
+  const lastThrow = teamTurns.findLast((t) => t.dice1 != null);
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
 
   const location = useMemo<BoardPlace | undefined>(() => {
     if (!board || teamTurns.length === 0) return undefined;
     return board.places.find((p) => p.place_number === teamTurns[0].location);
   }, [board, teamTurns]);
-
-  // TODO: handle penalty turns
-  const combinedTurns = useMemo((): TurnCombined | null => {
-    if (!collect) return null;
-    const penalties = teamTurns.filter((t) => t.penalty).length;
-    return {
-      turn_ids: teamTurns.map((t) => t.turn_id),
-      turns: teamTurns.length - penalties,
-      penalties,
-      combined_time: formatShortDurationMs(
-        getTurnDuration(teamTurns).reduce((a, b) => a + b, 0),
-      ),
-      team_id: team.team.team_id,
-      dice_throws: teamTurns.map((t) => [t.dice1, t.dice2] as [number, number]),
-      ...sumByDrinkId(teamTurns.flatMap((t) => t.drinks.drinks)),
-    };
-  }, [collect, team, teamTurns]);
 
   const onClickAction = collect ? undefined : () => setShowDialogue(true);
 
@@ -97,28 +105,26 @@ export default function TeamTurnCard({
       onClick={onClickAction}
     >
       {showDialogue && (
-        <EditTeamTurnDialogue
-          team={team}
-          open={showDialogue}
-          setOpen={setShowDialogue}
-        />
+        <EditTeamTurnDialogue team={team} open setOpen={setShowDialogue} />
       )}
       <h2 className="text-xl font-bold mb-1">{team.team.team_name}</h2>
-      {combinedTurns ? (
+      {collect ? (
         <>
           <p>
-            {combinedTurns.turns} vuoroa, {combinedTurns.penalties} sakkoa
+            {team.normal_turns} vuoroa, {team.penalties} sakkoa
           </p>
-          <p>Yhteensä {combinedTurns.total_drinks} juomaa</p>
-          <p>Kokonaisaika: {combinedTurns.combined_time}</p>
+          <p>Yhteensä {team.total_drinks} juomaa</p>
+          <p>Kokonaisaika: {formatShortDurationMs(team.combined_time)}</p>
         </>
       ) : (
         <>
-          <TurnElapsed start={lastTurn.start_time} end={lastTurn.end_time} />
-          {lastTurn.dice1 != null ? (
+          <TurnStatus turn={lastTurn} />
+          {lastThrow?.dice1 != null ? (
             <p>
-              Heitot: {lastTurn.dice1} + {lastTurn.dice2}
+              Heitot: {lastThrow.dice1} + {lastThrow.dice2}
             </p>
+          ) : singleTurn ? (
+            <p>Sakkovuoro, ei heittoja</p>
           ) : (
             <p>Ei vielä heittoja</p>
           )}
@@ -133,7 +139,7 @@ export default function TeamTurnCard({
           <p className="text-juvu-puna">Place not found</p>
         ))}
       <VerticalList className="gap-2 px-2 py-4 overflow-y-auto">
-        {(combinedTurns?.drinks ?? lastTurn.drinks.drinks)
+        {(collect ? team.drinks : team.active_drinks)
           .sort((da, db) => db.n - da.n)
           .map((drink) => (
             <TurnDrinkCard key={`${drink.drink.id}`} drink={drink} />

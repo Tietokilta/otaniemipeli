@@ -33,13 +33,13 @@ export default function AdminTemplate({
   const router = useRouter();
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  const ns = ignoredPaths(pathname) ? null : pathname.split("/")[1];
+  // All authenticated pages use the /referee namespace for websocket
+  const needsSocket = !ignoredPaths(pathname);
 
   useEffect(() => {
-    if (!ns) return;
+    if (!needsSocket) return;
 
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${ns}`;
-    const s = io(url, {
+    const s = io(`${process.env.NEXT_PUBLIC_API_BASE_URL}/referee`, {
       transports: ["websocket", "polling"],
       auth: { token: localStorage.getItem("auth_token") || "" },
       withCredentials: true,
@@ -52,7 +52,7 @@ export default function AdminTemplate({
       s.close();
       setSocket(null);
     };
-  }, [ns]);
+  }, [needsSocket]);
 
   useEffect(() => {
     if (ignoredPaths(pathname)) {

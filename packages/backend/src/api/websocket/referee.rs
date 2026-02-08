@@ -1,8 +1,10 @@
-use crate::api::websocket::utils::{emit_app_error, get_db_client, verify_login_handler};
+use crate::api::websocket::utils::{
+    emit_app_error, emit_msg, get_db_client, verify_login_handler, ServerResponse,
+};
 use crate::database::games::get_full_game_data;
 use crate::utils::ids::GameId;
-use crate::utils::socket::check_auth;
-use crate::utils::state::AppState;
+use crate::utils::socket::check_auth_any;
+use crate::utils::state::SocketState;
 use crate::utils::types::{SocketAuth, UserType};
 use serde::Deserialize;
 use socketioxide::adapter::Adapter;
@@ -13,32 +15,30 @@ struct SubscribeRequest {
     game_id: GameId,
 }
 
-/// Handler for referee websocket connections.
+/// Allowed user types for websocket connections.
+const ALLOWED_TYPES: &[UserType] = &[
+    UserType::Admin,
+    UserType::Referee,
+    UserType::Ie,
+    UserType::Secretary,
+];
+
+/// Handler for websocket connections.
+/// Accepts Admin, Referee, Ie, and Secretary users.
 /// Only handles verify-login and subscribe events.
 /// All actions are now REST API calls.
 pub async fn referee_on_connect<A: Adapter>(
-    auth: Data<SocketAuth>,
     s: SocketRef<A>,
-    State(state): State<AppState>,
+    Data(auth): Data<SocketAuth>,
+    State(state): State<SocketState>,
 ) {
-    // Verify authentication first
-    let ok = check_auth(&auth.token, &s, &state, UserType::Referee).await;
-    tracing::info!("Referee: Connection verified: {}", ok);
-    if !ok {
-        let _ = s.disconnect();
-        return;
-    }
-
-    // Register event handlers
+    // Register event handlers FIRST (before async auth check) to avoid race conditions
+    // where client sends events before handlers are registered
     s.on("verify-login", verify_login_handler);
-
-    // Subscribe to game updates - joins room and sends initial game data
     s.on(
         "subscribe",
-        |s: SocketRef<A>, Data(req): Data<SubscribeRequest>, State(state): State<AppState>| async move {
+        |s: SocketRef<A>, Data(req): Data<SubscribeRequest>, State(state): State<SocketState>| async move {
             let room = format!("game:{}", req.game_id.0);
-            tracing::info!("Socket {} subscribing to room {}", s.id, room);
-
             s.join(room);
 
             // Send initial game data immediately
@@ -48,13 +48,14 @@ pub async fn referee_on_connect<A: Adapter>(
             };
 
             match get_full_game_data(&client, req.game_id).await {
-                Ok(data) => {
-                    if let Err(e) = s.emit("game-update", &data) {
-                        tracing::error!("Failed to emit initial game data: {e}");
-                    }
-                }
+                Ok(data) => emit_msg(&s, ServerResponse::GameUpdate(data)),
                 Err(e) => emit_app_error(&s, e),
             }
         },
     );
+
+    // Verify authentication - allow Admin, Referee, Ie, and Secretary
+    if !check_auth_any(&auth.token, &s, &state, ALLOWED_TYPES).await {
+        let _ = s.disconnect();
+    }
 }

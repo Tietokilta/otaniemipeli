@@ -51,10 +51,6 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  /* Legacy juvu-sini colors mapped to titeenit primary */
-  --color-juvu-sini-600: var(--color-primary-500);
-  --color-juvu-sini-800: var(--color-primary-900);
 }
 @utility font-pixel {
   font-family: var(--font-sans);
@@ -81,6 +77,9 @@
     --foreground: var(--color-tertiary-500);
   }
 }
+
+@layer base, theme, properties, components, utilities;
+
 @layer components {
   .debug {
     border: 2px solid #ff0502;
@@ -161,124 +160,130 @@
     background-color: unset;
   }
 }
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-mono);
-}
-input {
-  border: 2px solid var(--color-primary-500);
-  background-color: var(--color-primary-100);
-  color: var(--color-quaternary-900);
-  padding-inline: calc(var(--spacing) * 3);
-  padding-block: calc(var(--spacing) * 2);
-  border-radius: var(--radius-sm);
-  --shadow: var(--shadow-md);
-  text-align: center;
-}
-input::placeholder {
-  color: var(--color-tertiary-500);
-}
-input::-webkit-input-placeholder {
-  color: var(--color-tertiary-500);
-}
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+  }
+  em {
+    font-style: normal;
+    color: var(--color-primary-900);
+  }
+  input {
+    border: 2px solid var(--color-primary-500);
+    background-color: var(--color-primary-100);
+    color: var(--color-quaternary-900);
+    padding-inline: calc(var(--spacing) * 3);
+    padding-block: calc(var(--spacing) * 2);
+    border-radius: var(--radius-sm);
+    --shadow: var(--shadow-md);
+    text-align: center;
+  }
+  input::placeholder {
+    color: var(--color-tertiary-500);
+  }
+  input::-webkit-input-placeholder {
+    color: var(--color-tertiary-500);
+  }
 
-input:hover {
-  border: 2px solid var(--color-tertiary-100);
-}
-input:focus {
-  border: 2px solid var(--color-tertiary-500);
-}
-input[type="checkbox"] {
-  -webkit-appearance: none;
-  appearance: none;
+  input:hover {
+    border: 2px solid var(--color-tertiary-100);
+  }
+  input:focus {
+    border: 2px solid var(--color-tertiary-500);
+  }
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
 
-  /* box */
-  padding-inline: calc(var(--spacing) * 3);
-  padding-block: calc(var(--spacing) * 2);
-  border: 1px solid var(--color-quaternary-500);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-quaternary-100);
-  --shadow: var(--shadow-md);
-  display: inline-grid;
-  place-content: center;
-  cursor: pointer;
+    /* box */
+    padding-inline: calc(var(--spacing) * 3);
+    padding-block: calc(var(--spacing) * 2);
+    border: 1px solid var(--color-quaternary-500);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-quaternary-100);
+    --shadow: var(--shadow-md);
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
 
-  /* nice transitions */
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-input[type="checkbox"]::before {
-  content: "";
-  inline-size: 0.7rem;
-  block-size: 0.7rem;
-  transform: scale(0);
-  transition: transform 0.12s ease-in-out;
-  background: var(--color-quaternary-100);
-  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0, 43% 62%);
-}
+    /* nice transitions */
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  input[type="checkbox"]::before {
+    content: "";
+    inline-size: 0.7rem;
+    block-size: 0.7rem;
+    transform: scale(0);
+    transition: transform 0.12s ease-in-out;
+    background: var(--color-quaternary-100);
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0, 43% 62%);
+  }
 
-input[type="checkbox"]:checked {
-  background-color: var(--color-tertiary-500);
-  border-color: var(--color-quaternary-500);
-}
-input[type="checkbox"]:checked::before {
-  transform: scale(1);
-}
+  input[type="checkbox"]:checked {
+    background-color: var(--color-tertiary-500);
+    border-color: var(--color-quaternary-500);
+  }
+  input[type="checkbox"]:checked::before {
+    transform: scale(1);
+  }
 
-/* focus visible (accessibility, pls keep) */
-input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--color-secondary-500);
-  outline-offset: 2px;
-}
+  /* focus visible (accessibility, pls keep) */
+  input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--color-secondary-500);
+    outline-offset: 2px;
+  }
 
-/* disabled look */
-input[type="checkbox"]:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+  /* disabled look */
+  input[type="checkbox"]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 
-/* optional: indeterminate (for "select all" states) */
-input[type="checkbox"]:indeterminate {
-  background-color: var(--color-secondary-500);
-  border-color: var(--color-secondary-500);
-}
-input[type="checkbox"]:indeterminate::before {
-  transform: scale(1);
-  clip-path: inset(45% 10% 45% 10%); /* a small bar */
-}
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  box-shadow: none;
-}
+  /* optional: indeterminate (for "select all" states) */
+  input[type="checkbox"]:indeterminate {
+    background-color: var(--color-secondary-500);
+    border-color: var(--color-secondary-500);
+  }
+  input[type="checkbox"]:indeterminate::before {
+    transform: scale(1);
+    clip-path: inset(45% 10% 45% 10%); /* a small bar */
+  }
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    box-shadow: none;
+  }
 
-input,
-textarea,
-select {
-  -webkit-appearance: none;
-}
-div {
-  -webkit-appearance: none;
-}
-div:focus {
-  outline: none;
-  box-shadow: none;
-}
-h1 {
-  font-size: 2rem;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-}
-h3 {
-  font-size: 1.75rem;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: 0.2rem;
-  font-family: var(--font-mono), serif;
+  input,
+  textarea,
+  select {
+    -webkit-appearance: none;
+  }
+  div {
+    -webkit-appearance: none;
+  }
+  div:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  h1 {
+    font-size: 2rem;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+  h3 {
+    font-size: 1.75rem;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+    font-family: var(--font-mono), serif;
+  }
 }
