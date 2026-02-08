@@ -48,14 +48,15 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Ap
     let row = if has_dice {
         client
             .query_one(
-                "INSERT INTO turns (team_id, game_id, dice1, dice2, thrown_at, penalty)
-                 VALUES ($1, $2, $3, $4, NOW(), $5)
+                "INSERT INTO turns (team_id, game_id, dice1, dice2, dice_ayy, thrown_at, penalty)
+                 VALUES ($1, $2, $3, $4, $5, NOW(), $6)
                  RETURNING *",
                 &[
                     &turn.team_id,
                     &turn.game_id,
                     &turn.dice1,
                     &turn.dice2,
+                    &turn.dice_ayy,
                     &turn.penalty,
                 ],
             )
@@ -80,13 +81,14 @@ pub async fn update_turn_dice(
     turn_id: TurnId,
     dice1: i32,
     dice2: i32,
+    dice_ayy: Option<i32>,
 ) -> Result<Turn, AppError> {
     let row = client
         .query_one(
-            "UPDATE turns SET dice1 = $2, dice2 = $3, thrown_at = NOW()
+            "UPDATE turns SET dice1 = $2, dice2 = $3, dice_ayy = $4, thrown_at = NOW()
              WHERE turn_id = $1
              RETURNING *",
-            &[&turn_id, &dice1, &dice2],
+            &[&turn_id, &dice1, &dice2, &dice_ayy],
         )
         .await?;
 
@@ -152,6 +154,7 @@ pub fn build_turn(row: &Row) -> Turn {
         end_time: row.get("end_time"),
         dice1: row.get("dice1"),
         dice2: row.get("dice2"),
+        dice_ayy: row.get("dice_ayy"),
         location: row.get("place_number"),
         penalty: row.get("penalty"),
         drinks: TurnDrinks { drinks: vec![] },

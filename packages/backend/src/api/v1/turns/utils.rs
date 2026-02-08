@@ -1,4 +1,4 @@
-use crate::database::boards::{get_board_place, move_team};
+use crate::database::boards::{get_board_place, move_team, move_team_backwards};
 use crate::database::games::{
     check_dice, end_game, get_full_game_data, get_game_by_id, get_team_latest_turn, place_visited,
 };
@@ -44,6 +44,7 @@ pub async fn compute_turn_result(
     team: &TeamLatestTurn,
     dice1: i32,
     dice2: i32,
+    dice_ayy: Option<i32>,
 ) -> Result<TurnComputeResult, AppError> {
     check_dice(dice1, dice2)?;
 
@@ -65,7 +66,17 @@ pub async fn compute_turn_result(
         throw,
         team_id: team.team.team_id,
     };
-    let place_after = move_team(client, pl).await?;
+    let mut place_after = move_team(client, pl).await?;
+
+    // If dice_ayy is set, move backwards from current position
+    if let Some(ayy_dice) = dice_ayy {
+        if ayy_dice > 0 {
+            check_dice(ayy_dice, ayy_dice)?;
+            place_after =
+                move_team_backwards(client, &place_after, (double_multiplier * ayy_dice) as i8)
+                    .await?;
+        }
+    }
 
     let visited = place_visited(client, game_id, place_after.place_number).await?;
 
@@ -95,7 +106,15 @@ pub async fn process_start_turn(
     let turn = db_start_turn(client, turn_start_data.clone()).await?;
 
     if let (Some(dice1), Some(dice2)) = (turn_start_data.dice1, turn_start_data.dice2) {
-        let result = compute_turn_result(client, game_id, &team_data, dice1, dice2).await?;
+        let result = compute_turn_result(
+            client,
+            game_id,
+            &team_data,
+            dice1,
+            dice2,
+            turn_start_data.dice_ayy,
+        )
+        .await?;
         set_end_place(client, result.place_after.place_number, turn.turn_id).await?;
         set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
     }
@@ -109,14 +128,16 @@ pub async fn process_change_dice(
     turn_id: TurnId,
     dice1: i32,
     dice2: i32,
+    dice_ayy: Option<i32>,
 ) -> Result<Turn, AppError> {
     check_dice(dice1, dice2)?;
 
-    let turn = update_turn_dice(client, turn_id, dice1, dice2).await?;
+    let turn = update_turn_dice(client, turn_id, dice1, dice2, dice_ayy).await?;
 
     let team_data = get_team_latest_turn(client, turn.game_id, turn.team_id).await?;
 
-    let result = compute_turn_result(client, turn.game_id, &team_data, dice1, dice2).await?;
+    let result =
+        compute_turn_result(client, turn.game_id, &team_data, dice1, dice2, dice_ayy).await?;
 
     set_end_place(client, result.place_after.place_number, turn.turn_id).await?;
     set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
@@ -220,7 +241,7 @@ pub async fn change_dice(
     Json(data): Json<ChangeDiceBody>,
 ) -> Result<(), AppError> {
     let client = state.db.get().await?;
-    let turn = process_change_dice(&client, turn_id, data.dice1, data.dice2).await?;
+    let turn = process_change_dice(&client, turn_id, data.dice1, data.dice2, data.dice_ayy).await?;
     let game_data = get_full_game_data(&client, turn.game_id).await?;
     broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())

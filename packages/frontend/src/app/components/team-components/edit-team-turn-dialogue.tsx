@@ -67,6 +67,7 @@ export const EditTeamTurnDialogue = ({
       game_id: team.team.game_id,
       dice1: null,
       dice2: null,
+      dice_ayy: null,
       penalty: true,
     };
     const turn = await startTurn(postTurn);
@@ -232,6 +233,7 @@ export const AddTeamTurnButton = ({
       game_id: team.team.game_id,
       dice1: null,
       dice2: null,
+      dice_ayy: null,
       penalty: false,
     };
     await startTurn(postTurn);
@@ -340,16 +342,22 @@ const AddTeamTurnDialogue = ({
   ongoingTurn?: Turn;
   onClose: () => void;
 }) => {
-  const [dice1, setDice1] = useState<number>(0);
-  const [dice2, setDice2] = useState<number>(0);
+  const [dice1, setDice1] = useState<number>(ongoingTurn?.dice1 || 0);
+  const [dice2, setDice2] = useState<number>(ongoingTurn?.dice2 || 0);
+  const [dice_ayy, setDiceAyy] = useState<number>(ongoingTurn?.dice_ayy || 0);
   const [pending, setPending] = useState(false);
+
+  // TODO: unhardcode :D
+  const showAyy =
+    !!ongoingTurn?.dice_ayy ||
+    ongoingTurn?.place?.place.place_name === "Aalto-yliopiston Ylioppilaskunta";
 
   const submitTurn = async () => {
     setPending(true);
 
     if (ongoingTurn) {
       // Update existing turn with dice values
-      await changeDice(ongoingTurn.turn_id, dice1, dice2);
+      await changeDice(ongoingTurn.turn_id, { dice1, dice2, dice_ayy });
     } else {
       // Create new turn with dice values
       const postTurn: PostStartTurn = {
@@ -357,6 +365,7 @@ const AddTeamTurnDialogue = ({
         game_id: team.team.game_id,
         dice1,
         dice2,
+        dice_ayy,
         penalty: false,
       };
       await startTurn(postTurn);
@@ -384,6 +393,12 @@ const AddTeamTurnDialogue = ({
             <Dice value={dice1} setValue={setDice1} />
             <h2>Noppa 2:</h2>
             <Dice value={dice2} setValue={setDice2} />
+            {showAyy && (
+              <>
+                <h2>AYY ekstranoppa:</h2>
+                <Dice value={dice_ayy} setValue={setDiceAyy} />
+              </>
+            )}
           </div>
         </form>
         <div className="flex justify-between px-4 py-4">
@@ -579,9 +594,6 @@ const AssistantRefereeDialogue = ({
     getDrinks().then((drinks) => {
       const drinkList = drinks.drink_ingredients.map((d) => d.drink);
       setAvailableDrinks(drinkList);
-
-      // Add favorite drinks with n=0
-      setTurnDrinks((prev) => addFavorites(prev, drinkList));
     });
   }, []);
 
@@ -592,7 +604,7 @@ const AssistantRefereeDialogue = ({
         addFavorites({ drinks: turn.drinks.drinks }, availableDrinks),
       );
     }
-  }, [turn.drinks]);
+  }, [turn.drinks, availableDrinks]);
 
   const handleSubmit = async () => {
     setPending(true);
@@ -603,6 +615,11 @@ const AssistantRefereeDialogue = ({
     setPending(false);
     setOpen(false);
   };
+
+  // TODO: unhardcode :D
+  const showAyy =
+    !!turn.dice_ayy ||
+    turn.place?.place.place_name === "Aalto-yliopiston Ylioppilaskunta";
 
   return (
     <PopUpDialogue
@@ -626,6 +643,7 @@ const AssistantRefereeDialogue = ({
         <div className="flex items-center gap-2">
           <p>
             Heitot: {turn.dice1} + {turn.dice2}
+            {showAyy && <> - {turn.dice_ayy || <em>???</em>} (AYY)</>}
           </p>
           <button
             type="button"
@@ -642,7 +660,7 @@ const AssistantRefereeDialogue = ({
         )}
         {turn.place?.place.rule && (
           <p className="text-lg text-left border-l-2 border-primary-900 pl-4 ml-4 pr-8">
-            "{turn.place.place.rule}"
+            &quot;{turn.place.place.rule}&quot;
           </p>
         )}
         <DrinkSelectionList
@@ -663,7 +681,7 @@ const AssistantRefereeDialogue = ({
             type="button"
             className="button text-xl p-4"
             onClick={handleSubmit}
-            disabled={pending}
+            disabled={pending || (showAyy && !turn.dice_ayy)}
           >
             Vahvista vuoro
           </button>

@@ -187,6 +187,8 @@ pub struct Turn {
     pub dice1: Option<i32>,
     /// dice number 2 (if thrown)
     pub dice2: Option<i32>,
+    /// dice for backwards movement when landing on AYY
+    pub dice_ayy: Option<i32>,
     /// where the player ended up (if dice thrown) - this is place_number, not PlaceId
     pub location: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)
@@ -204,6 +206,8 @@ pub struct PostStartTurn {
     pub dice1: Option<i32>,
     /// If None, turn is started without dice (thrown_at not set)
     pub dice2: Option<i32>,
+    /// Dice for backwards movement when landing on AYY
+    pub dice_ayy: Option<i32>,
     /// Whether this is a penalty turn
     #[serde(default)]
     pub penalty: bool,
@@ -214,6 +218,7 @@ pub struct PostStartTurn {
 pub struct ChangeDiceBody {
     pub dice1: i32,
     pub dice2: i32,
+    pub dice_ayy: Option<i32>,
 }
 
 /// Request body for POST /turns/{turn_id}/confirm and /turns/{turn_id}/penalty
@@ -357,7 +362,20 @@ pub struct Connection {
     pub board_id: BoardId,
     pub origin: i32, // place_number, not PlaceId
     pub target: i32, // place_number, not PlaceId
+    /// Used for various purposes:
+    /// - !on_land && !backwards: normal connection
+    /// - on_land && !backwards:
+    ///     - connection that is automatically taken when landing on the origin
+    ///     - if only an on_land connection is available, it ends the movement (returning from Tampere)
+    /// - on_land && backwards
+    ///     - indicates that starting from the target, the player moves backwards by default
+    ///       (for moves starting from AYY, except we've effectively replaced this by dice_ayy)
+    ///     - this combo is also required for starting backwards moves
+    /// - !on_land && backwards
+    ///     - connection that is only taken when already moving backwards
+    ///     - may also be taken if no forward non-on-land connections are available
     pub on_land: bool,
+    /// Whether this connection goes backwards
     pub backwards: bool,
     pub dashed: bool,
 }

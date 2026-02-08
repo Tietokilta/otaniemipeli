@@ -239,6 +239,7 @@ class Turn:
     end_time: Optional[str] = None
     dice1: Optional[int] = None
     dice2: Optional[int] = None
+    dice_ayy: Optional[int] = None
     location: Optional[int] = None
     place: Optional['BoardPlace'] = None
     @classmethod
@@ -252,6 +253,7 @@ class PostStartTurn:
     penalty: bool
     dice1: Optional[int] = None
     dice2: Optional[int] = None
+    dice_ayy: Optional[int] = None
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 
@@ -260,6 +262,7 @@ class PostStartTurn:
 class ChangeDiceBody:
     dice1: int
     dice2: int
+    dice_ayy: Optional[int] = None
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

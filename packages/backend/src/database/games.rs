@@ -207,7 +207,7 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
             "SELECT
                 t.turn_id, t.team_id, t.game_id, t.start_time, t.thrown_at,
                 t.confirmed_at, t.mixing_at, t.mixed_at, t.delivered_at,
-                t.end_time, t.dice1, t.dice2, t.place_number, t.penalty,
+                t.end_time, t.dice1, t.dice2, t.dice_ayy, t.place_number, t.penalty,
                 bp.start, bp.area, bp.\"end\", bp.x, bp.y,
                 p.place_id, p.place_name, p.rule, p.place_type
              FROM turns t

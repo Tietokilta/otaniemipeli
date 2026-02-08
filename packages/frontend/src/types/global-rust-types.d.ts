@@ -106,6 +106,7 @@ declare global {
     end_time: string | null;
     dice1: number | null;
     dice2: number | null;
+    dice_ayy: number | null;
     location: number | null;
     penalty: boolean;
     drinks: TurnDrinks;
@@ -117,12 +118,14 @@ declare global {
     game_id: number;
     dice1: number | null;
     dice2: number | null;
+    dice_ayy: number | null;
     penalty: boolean;
   }
 
   interface ChangeDiceBody {
     dice1: number;
     dice2: number;
+    dice_ayy: number | null;
   }
 
   interface ConfirmTurnBody {
@@ -272,7 +275,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};

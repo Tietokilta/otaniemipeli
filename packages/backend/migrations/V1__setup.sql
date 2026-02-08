@@ -143,6 +143,8 @@ CREATE TABLE IF NOT EXISTS turns
     -- dice numbers (if thrown)
     dice1        INTEGER,
     dice2        INTEGER,
+    -- dice for backwards movement when landing on AYY
+    dice_ayy     INTEGER,
     -- where the player ended up (if dice thrown)
     place_number INTEGER,
     -- whether this is a penalty turn (no dice thrown)

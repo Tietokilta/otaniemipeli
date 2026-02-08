@@ -340,6 +340,16 @@ pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace,
     get_next_place(&place.place, &board_places, throw)
 }
 
+/// Moves a team backwards from their current position.
+pub async fn move_team_backwards(
+    client: &Client,
+    current_place: &BoardPlace,
+    throw: i8,
+) -> Result<BoardPlace, AppError> {
+    let board_places = get_board_places(client, current_place.board_id).await?;
+    move_backwards(current_place, &board_places, throw, false)
+}
+
 /// Selects a connection based on movement direction and terrain type.
 fn pick_connection(
     connections: &[Connection],
@@ -364,22 +374,19 @@ fn move_forwards<'a>(
             tracing::info!("No more connections, stopping movement.");
             break;
         }
-        let want_on_land = if conns.iter().len() == 1 {
-            conns[0].on_land
-        } else {
-            false
-        };
 
+        // If there's only one connection and it's backwards, reverse direction for the remaining steps
+        // Used at end of board
         if conns.len() == 1 && conns[0].backwards {
             return move_backwards(current_place, board_places, throw - step as i8, true);
         }
 
-        // Pick the connection
-        let chosen = pick_connection(conns, false, want_on_land)
-            .or_else(|| conns.iter().find(|c| c.on_land == want_on_land))
-            .or_else(|| conns.first());
-
-        let Some(chosen) = chosen else { break };
+        // Pick a forward, non-on-land connection if available
+        let chosen = pick_connection(conns, false, false)
+            // Otherwise pick a backward, non-on-land connection (when??)
+            .or_else(|| conns.iter().find(|c| !c.on_land))
+            // Fallback to an on-land connection if no other options (when??)
+            .unwrap_or_else(|| conns.first().unwrap());
 
         let next = board_places
             .find_place(chosen.target)
@@ -387,10 +394,13 @@ fn move_forwards<'a>(
 
         current_place = next;
         // If the only connection is on_land, stop after taking it
-        if conns.len() == 1 && conns[0].on_land {
+        // Used when returning from Tampere
+        if chosen.on_land {
             break;
         }
     }
+    // If there are any forward on_land connections in the final resting spot, take the first one
+    // Used to go to Tampere and Raide-Jokeri
     let conns = &current_place.connections.connections;
     if conns.iter().any(|c| c.on_land && !c.backwards) {
         let on_land_conn = pick_connection(conns, false, true);
@@ -402,19 +412,20 @@ fn move_forwards<'a>(
 }
 
 /// Moves a team backward on the board by the given throw amount.
-fn move_backwards<'a>(
+pub fn move_backwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
-    changed: bool,
+    bumped: bool,
 ) -> Result<BoardPlace, AppError> {
     let mut first = true;
 
     for _ in 0..throw {
         let conns = &current_place.connections.connections;
 
-        let conn = if first && !changed {
+        let conn = if first && !bumped {
             first = false;
+            // When taking the first backwards step, prefer on-land connections
             pick_connection(conns, true, true)
         } else {
             pick_connection(conns, true, false)
@@ -437,6 +448,7 @@ fn get_next_place<'a>(
     board_places: &'a BoardPlaces,
     throw: i8,
 ) -> Result<BoardPlace, AppError> {
+    // This condition only applies to AYY, but it's handled by dice_ayy now.
     if current_place
         .connections
         .connections

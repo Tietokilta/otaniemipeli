@@ -54,7 +54,11 @@ VALUES ('Kalja', true, true),
        ('Lonkero', false, false),
        ('Kokis', false, false),
        ('Varasto', false, false),
-       ('Hauki', false, false);
+       ('Hauki', false, false),
+       -- TODO: Add IE the ability to specify
+       ('Taikajuoma', false, false),
+       -- TODO: Store design factory drinks in the database
+       ('Design-juoma', false, false);
 INSERT INTO drink_ingredients (drink_id, ingredient_id, quantity)
 VALUES (1, 1, 33),
        (2, 1, 11),
@@ -537,6 +541,23 @@ COPY public.place_connections (board_id, origin, target, on_land, backwards, das
 1	31	79	t	f	t
 1	6	69	t	f	t
 1	91	45	t	f	t
+1	59	58	t	t	f
+1	58	57	f	t	f
+1	57	56	f	t	f
+1	56	55	f	t	f
+1	55	54	f	t	f
+1	54	53	f	t	f
+1	53	52	f	t	f
+1	52	51	f	t	f
+1	51	50	f	t	f
+1	50	49	f	t	f
+1	49	48	f	t	f
+1	48	47	f	t	f
+1	68	67	f	t	f
+1	67	66	f	t	f
+1	66	65	f	t	f
+1	65	64	f	t	f
+1	64	63	f	t	f
 \.
 
 COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n, n_update) FROM stdin;
@@ -544,6 +565,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 1	1	1	f	f	1	1
 1	1	2	f	f	1	1
 1	1	3	f	f	1	1
+1	1	5	f	f	1	1
 1	1	8	f	f	1	1
 1	1	9	f	f	1	1
 1	1	10	f	f	1	1
@@ -560,6 +582,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 3	1	18	t	f	1	1
 3	1	19	t	f	1	1
 1	1	20	f	f	1	1
+29	1	21	t	f	1	1
 1	1	22	f	f	1	1
 12	1	23	t	f	1	1
 1	1	24	t	f	1	N+1
@@ -579,6 +602,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 1	1	35	f	f	1	1
 1	1	37	f	f	1	1
 1	1	38	f	f	1	1
+28	1	40	t	f	1	t
 11	1	36	t	f	1	1
 6	1	41	t	f	1	1
 1	1	42	f	f	1	1

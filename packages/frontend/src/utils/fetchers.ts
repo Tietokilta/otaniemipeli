@@ -371,14 +371,13 @@ export async function startTurn(data: PostStartTurn): Promise<Turn> {
 
 export async function changeDice(
   turnId: number,
-  dice1: number,
-  dice2: number,
+  body: ChangeDiceBody,
 ): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}/dice`,
     {
       method: "PUT",
-      body: JSON.stringify({ dice1, dice2 }),
+      body: JSON.stringify(body),
     },
     true,
   );
