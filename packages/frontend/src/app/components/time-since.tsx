@@ -1,5 +1,4 @@
 "use client";
-import { turnStatusText } from "@/utils/turns";
 import { useEffect, useState } from "react";
 
 export function dateFromDb(iso: string): Date {
@@ -43,30 +42,4 @@ export function TimeSince({
   const warn = warnSec !== undefined && elapsedMs > warnSec * 1000;
 
   return warn ? <em>{elapsed}</em> : <>{elapsed}</>;
-}
-
-export function TurnStatus({ turn }: { turn: Turn }): JSX.Element {
-  if (turn.end_time) {
-    const startTs = dateFromDb(turn.start_time).getTime();
-    const endTs = dateFromDb(turn.end_time).getTime();
-
-    const dur = formatShortDurationMs(endTs - startTs);
-    return (
-      <>
-        <p className="text-quaternary-500">
-          Valmiina! (<TimeSince timestamp={turn.end_time} />)
-        </p>
-        <p>Vuoro kesti: {dur}</p>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <p>{turnStatusText(turn)}</p>
-      <p>
-        Vuoro alkoi <TimeSince timestamp={turn.start_time} /> sitten
-      </p>
-    </>
-  );
 }

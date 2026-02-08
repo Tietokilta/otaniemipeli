@@ -1,8 +1,13 @@
 import PlaceCard from "@/app/components/board-components/place-card";
 import { TurnDrinksList } from "@/app/components/drink-components/drink-card";
 import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
-import { formatShortDurationMs, TurnStatus } from "@/app/components/time-since";
-import { useMemo, useState } from "react";
+import {
+  dateFromDb,
+  formatShortDurationMs,
+  TimeSince,
+} from "@/app/components/time-since";
+import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
+import { useState } from "react";
 
 export type GameTeamWithTotals = GameTeam & {
   // turn_ids: number[];
@@ -63,14 +68,59 @@ export function computeTotals(team: GameTeam): GameTeamWithTotals {
   };
 }
 
+export function TurnState({ turn }: { turn: Turn }): JSX.Element {
+  if (turn.end_time) {
+    const startTs = dateFromDb(turn.start_time).getTime();
+    const endTs = dateFromDb(turn.end_time).getTime();
+
+    const dur = formatShortDurationMs(endTs - startTs);
+    return (
+      <>
+        <p className="text-quaternary-500">
+          Valmiina! (<TimeSince timestamp={turn.end_time} />)
+        </p>
+        <p>Vuoro kesti: {dur}</p>
+      </>
+    );
+  }
+
+  const status = turnStatus(turn);
+  const lastChange =
+    turn.delivered_at ??
+    turn.mixed_at ??
+    turn.mixing_at ??
+    turn.confirmed_at ??
+    turn.thrown_at ??
+    turn.start_time;
+
+  return (
+    <>
+      <p
+        className={
+          status === TurnStatus.WaitingForAssistantReferee
+            ? "text-primary-900"
+            : ""
+        }
+      >
+        {turnStatusTexts[status]} (<TimeSince timestamp={lastChange} />)
+      </p>
+      <p>
+        Vuoro alkoi <TimeSince timestamp={turn.start_time} /> sitten
+      </p>
+    </>
+  );
+}
+
 export default function TeamTurnCard({
   team,
   collect,
+  assistant,
   teamTurns,
   board,
 }: {
   team: GameTeamWithTotals;
   collect?: boolean;
+  assistant?: boolean;
   teamTurns: Turn[] | Turn;
   board?: BoardPlaces;
 }): JSX.Element {
@@ -80,13 +130,11 @@ export default function TeamTurnCard({
   const lastTurn = teamTurns[teamTurns.length - 1];
   const lastThrow = teamTurns.findLast((t) => t.dice1 != null);
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
-
-  const location = useMemo<BoardPlace | undefined>(() => {
-    if (!board || teamTurns.length === 0) return undefined;
-    return board.places.find((p) => p.place_number === teamTurns[0].location);
-  }, [board, teamTurns]);
-
   const onClickAction = collect ? undefined : () => setShowDialogue(true);
+
+  const location = singleTurn
+    ? board?.places.find((p) => p.place_number === teamTurns[0].location)
+    : undefined;
 
   if (!lastTurn) {
     return (
@@ -104,7 +152,12 @@ export default function TeamTurnCard({
       onClick={onClickAction}
     >
       {showDialogue && (
-        <EditTeamTurnDialogue team={team} open setOpen={setShowDialogue} />
+        <EditTeamTurnDialogue
+          team={team}
+          assistant={assistant}
+          open
+          setOpen={setShowDialogue}
+        />
       )}
       <h2 className="text-xl font-bold mb-1">{team.team.team_name}</h2>
       {collect ? (
@@ -117,7 +170,7 @@ export default function TeamTurnCard({
         </>
       ) : (
         <>
-          <TurnStatus turn={lastTurn} />
+          <TurnState turn={lastTurn} />
           {lastThrow?.dice1 != null ? (
             <p>
               Heitot: {lastThrow.dice1} + {lastThrow.dice2}
@@ -140,7 +193,7 @@ export default function TeamTurnCard({
         ) : team.location ? (
           <PlaceCard place={team.location} showInfo={false} />
         ) : (
-          <p className="text-juvu-puna">Place not found</p>
+          <p>Place not found</p>
         ))}
       <TurnDrinksList drinks={collect ? team.drinks : team.active_drinks} />
     </div>

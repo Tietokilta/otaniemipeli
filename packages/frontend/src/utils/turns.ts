@@ -15,7 +15,7 @@ export const turnStatusTexts: Record<TurnStatus, string> = {
   [TurnStatus.WaitingForAssistantReferee]: "Odottaa aputuomaria",
   [TurnStatus.WaitingForIE]: "Odottaa IE:tä",
   [TurnStatus.Mixing]: "Juomat työn alla",
-  [TurnStatus.Delivering]: "Juomat toimitettavana",
+  [TurnStatus.Delivering]: "Juomat matkalla",
   [TurnStatus.Drinking]: "Dokaaminen käynnissä",
   [TurnStatus.Ended]: "Valmiina!",
 };

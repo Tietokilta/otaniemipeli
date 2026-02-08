@@ -45,6 +45,8 @@ export function useGameData(
         return;
       }
 
+      console.log("Received game update:", data);
+
       setGameData(data);
       setIsLoading(false);
       setError(null);

@@ -37,9 +37,11 @@ export const DELIVERY_WARNING_SEC = 60;
 export default function IeTurnCard({
   turn,
   onStateChange,
+  drinksData,
 }: {
   turn: TurnWithTeam;
   onStateChange?: (newState: DrinkPrepStatus) => void;
+  drinksData?: DrinksIngredients | null;
 }): JSX.Element {
   const status = turnStatus(turn);
   return (
@@ -90,7 +92,11 @@ export default function IeTurnCard({
           </RadioButton>
         </div>
       )}
-      <TurnDrinksList drinks={turn.drinks.drinks} className="flex-1" />
+      <TurnDrinksList
+        drinks={turn.drinks.drinks}
+        className="flex-1"
+        drinksData={drinksData}
+      />
       {onStateChange && (
         <div
           className={`h-2 -mx-3 -mb-2 rounded-b ${turn.mixed_at ? "animate-[ieturn-progressbar_5s_linear_1_forwards] bg-primary-900" : ""}`}

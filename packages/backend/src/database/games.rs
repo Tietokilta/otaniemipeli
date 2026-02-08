@@ -1,7 +1,7 @@
-use crate::database::boards::{get_board_place, get_first_place};
+use crate::database::boards::{build_board_place, get_board_place, get_first_place};
 use crate::database::team::{get_team_by_id, get_teams};
 use crate::database::turns::build_turn;
-use crate::utils::ids::{BoardId, GameId, TeamId, TurnId};
+use crate::utils::ids::{BoardId, GameId, PlaceId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::{
     Board, Drink, FirstTurnPost, Game, GameData, GameTeam, Games, PostGame, TeamLatestTurn, Turn,
@@ -9,7 +9,7 @@ use crate::utils::types::{
 };
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Client;
-use futures::future::join_all;
+use std::collections::HashMap;
 use tokio_postgres::Row;
 
 /// Retrieves all games from the database
@@ -195,55 +195,85 @@ pub async fn get_game_list(client: &Client) -> Result<Vec<Game>, AppError> {
 }
 
 /// Retrieves full game data including teams, turns, and locations.
+/// Uses bulk queries to fetch all data efficiently.
 pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<GameData, AppError> {
     let game = get_game_by_id(client, game_id).await?;
     let teams = get_teams(client, game_id).await?;
-
     let board_id = game.board.id;
 
-    let teams = join_all(teams.into_iter().map(|team| async move {
-        let turns = get_team_turns_with_drinks(client, team.team_id, game_id)
-            .await
-            .unwrap_or_default();
-
-        // Get the latest location from the turns
-        let location = match turns.iter().rev().find_map(|turn| turn.location) {
-            Some(place_number) => get_board_place(client, board_id, place_number).await.ok(),
-            None => None,
-        };
-
-        Ok::<_, AppError>(GameTeam {
-            team,
-            turns,
-            location,
-        })
-    }))
-    .await
-    .into_iter()
-    .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(GameData { game, teams })
-}
-
-/// Retrieves all turns taken by a team in a specific game, including associated drinks
-pub async fn get_team_turns_with_drinks(
-    client: &Client,
-    team_id: TeamId,
-    game_id: GameId,
-) -> Result<Vec<Turn>, AppError> {
-    let rows = client
+    // Fetch all turns with place data (one row per turn)
+    let turn_rows = client
         .query(
-            "SELECT * FROM turns WHERE team_id = $1 AND game_id = $2 ORDER BY turn_id ASC",
-            &[&team_id, &game_id],
+            "SELECT
+                t.turn_id, t.team_id, t.game_id, t.start_time, t.thrown_at,
+                t.confirmed_at, t.mixing_at, t.mixed_at, t.delivered_at,
+                t.end_time, t.dice1, t.dice2, t.place_number, t.penalty,
+                bp.start, bp.area, bp.\"end\", bp.x, bp.y,
+                p.place_id, p.place_name, p.rule, p.place_type
+             FROM turns t
+             LEFT JOIN board_places bp ON bp.board_id = $2 AND bp.place_number = t.place_number
+             LEFT JOIN places p ON p.place_id = bp.place_id
+             WHERE t.game_id = $1
+             ORDER BY t.team_id, t.turn_id ASC",
+            &[&game_id, &board_id],
         )
         .await?;
 
-    let mut turns: Vec<Turn> = rows.into_iter().map(build_turn).collect();
+    // Fetch all turn drinks separately
+    let drink_rows = client
+        .query(
+            "SELECT td.turn_id, td.drink_id, td.n, d.name, d.favorite, d.no_mix_required
+             FROM turn_drinks td
+             JOIN drinks d ON d.drink_id = td.drink_id
+             JOIN turns t ON t.turn_id = td.turn_id
+             WHERE t.game_id = $1",
+            &[&game_id],
+        )
+        .await?;
 
-    for turn in turns.iter_mut() {
-        turn.drinks = get_turn_drinks(client, turn.turn_id).await?;
+    // Build drinks lookup
+    let mut drinks_by_turn: HashMap<TurnId, Vec<TurnDrink>> = HashMap::new();
+    for row in drink_rows {
+        let turn_id: TurnId = row.get("turn_id");
+        drinks_by_turn.entry(turn_id).or_default().push(TurnDrink {
+            drink: Drink {
+                id: row.get("drink_id"),
+                name: row.get("name"),
+                favorite: row.get("favorite"),
+                no_mix_required: row.get("no_mix_required"),
+            },
+            n: row.get("n"),
+        });
     }
-    Ok(turns)
+
+    // Build turns with place data
+    let mut turns_by_team: HashMap<TeamId, Vec<Turn>> = HashMap::new();
+    for row in &turn_rows {
+        let place_id: Option<PlaceId> = row.get("place_id");
+        let place = place_id.map(|_| build_board_place(row, board_id));
+
+        let mut turn = build_turn(row);
+        turn.drinks.drinks = drinks_by_turn.remove(&turn.turn_id).unwrap_or_default();
+        turn.place = place;
+
+        turns_by_team.entry(turn.team_id).or_default().push(turn);
+    }
+
+    // Build GameTeam for each team
+    let teams = teams
+        .into_iter()
+        .map(|team| {
+            let turns = turns_by_team.remove(&team.team_id).unwrap_or_default();
+            let location = turns.iter().rev().find_map(|t| t.place.clone());
+            GameTeam {
+                team,
+                turns,
+                location,
+            }
+        })
+        .collect();
+
+    Ok(GameData { game, teams })
 }
 
 /// Validates that dice values are between 1 and 6
@@ -321,7 +351,7 @@ pub async fn get_team_latest_turn(
             &[&team_id, &game_id],
         )
         .await?
-        .map(build_turn);
+        .map(|r| build_turn(&r));
 
     // Get location from latest confirmed turn
     let location = match latest_turn.as_ref().and_then(|t| t.location) {

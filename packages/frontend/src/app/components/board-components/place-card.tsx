@@ -27,7 +27,7 @@ export default function PlaceCard({
       <div className="flex flex-col gap-1 border-[var(--place-color)] border-4 rounded-lg bg-juvu-sini-400 p-2">
         <div className="flex gap-1 center w-full">
           {/* <p className="text-left ml-auto">{place.place.place_id}</p> */}
-          <p className="font-redaction-b-70 text-2xl text-center w-full">
+          <p className="font-redaction-b-70 flex-1 text-2xl text-center w-full overflow-hidden text-ellipsis text-nowrap">
             {place.place.place_name}
           </p>
           <p className="text-right mr-auto">#{place.place_number}</p>

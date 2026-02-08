@@ -109,6 +109,7 @@ declare global {
     location: number | null;
     penalty: boolean;
     drinks: TurnDrinks;
+    place: BoardPlace | null;
   }
 
   interface PostStartTurn {

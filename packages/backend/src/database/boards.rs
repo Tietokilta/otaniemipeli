@@ -74,6 +74,29 @@ pub async fn post_board(client: &Client, board: Board) -> Result<u64, AppError> 
         .await?)
 }
 
+/// Builds a BoardPlace struct from a row (without connections/drinks).
+pub fn build_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
+    BoardPlace {
+        board_id,
+        place: Place {
+            place_id: row.get("place_id"),
+            place_name: row.get("place_name"),
+            rule: row.get("rule"),
+            place_type: row.get("place_type"),
+        },
+        place_number: row.get("place_number"),
+        start: row.get("start"),
+        area: row.get("area"),
+        end: row.get("end"),
+        x: row.get("x"),
+        y: row.get("y"),
+        connections: Connections {
+            connections: vec![],
+        },
+        drinks: PlaceDrinks { drinks: vec![] },
+    }
+}
+
 /// Builds a BoardPlace struct from a row and fetches its connections.
 async fn build_board_place_and_get_connections(
     client: &Client,
@@ -81,25 +104,12 @@ async fn build_board_place_and_get_connections(
 ) -> Result<BoardPlace, AppError> {
     let board_id = row.get("board_id");
     let place_number: i32 = row.get("place_number");
-    Ok(BoardPlace {
-        board_id: board_id,
-        place: Place {
-            place_id: row.get("place_id"),
-            place_name: row.get("place_name"),
-            rule: row.get("rule"),
-            place_type: row.get("place_type"),
-        },
-        place_number,
-        start: row.get("start"),
-        area: row.get("area"),
-        end: row.get("end"),
-        x: row.get("x"),
-        y: row.get("y"),
-        connections: Connections {
-            connections: get_board_place_connections(&client, board_id, place_number).await?,
-        },
-        drinks: get_place_drinks(&client, place_number, board_id).await?,
-    })
+    let mut place = build_board_place(row, board_id);
+    place.connections = Connections {
+        connections: get_board_place_connections(client, board_id, place_number).await?,
+    };
+    place.drinks = get_place_drinks(client, place_number, board_id).await?;
+    Ok(place)
 }
 
 /// Retrieves all places on a board with their connections and drinks.

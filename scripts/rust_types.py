@@ -240,6 +240,7 @@ class Turn:
     dice1: Optional[int] = None
     dice2: Optional[int] = None
     location: Optional[int] = None
+    place: Optional['BoardPlace'] = None
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

@@ -10,7 +10,8 @@ import GameTeamTurnsList from "@/app/components/team-components/game-team-turns-
 import { computeTotals } from "@/app/components/team-components/team-turn-card";
 import { useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
-import { use, useMemo, useState } from "react";
+import { getDrinksWithIngredients } from "@/utils/fetchers";
+import { use, useEffect, useMemo, useState } from "react";
 
 export default function Page({
   params,
@@ -21,11 +22,16 @@ export default function Page({
   const socket = useSocket();
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
   const [showAllTurns, setShowAllTurns] = useState(false);
+  const [drinksData, setDrinksData] = useState<DrinksIngredients | null>(null);
 
   const preppedTeams = useMemo(
     () => gameData && gameData.teams.map((team) => computeTotals(team)),
     [gameData],
   );
+
+  useEffect(() => {
+    getDrinksWithIngredients().then(setDrinksData).catch(console.error);
+  }, []);
 
   if (error) {
     return <GameErrorDisplay error={error} />;
@@ -49,7 +55,11 @@ export default function Page({
         </button>
       </div>
       <div className="flex flex-col gap-2 flex-2 w-0">
-        <IeTurnsList teams={gameData.teams} wrap={!showAllTurns} />
+        <IeTurnsList
+          teams={gameData.teams}
+          wrap={!showAllTurns}
+          drinksData={drinksData}
+        />
         {showAllTurns && (
           <GameTeamTurnsList
             teams={preppedTeams}

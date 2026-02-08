@@ -192,6 +192,8 @@ pub struct Turn {
     /// whether this is a penalty turn (no dice thrown)
     pub penalty: bool,
     pub drinks: TurnDrinks,
+    /// the board place this turn ended on (if location is set)
+    pub place: Option<BoardPlace>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

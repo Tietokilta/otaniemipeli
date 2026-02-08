@@ -6,17 +6,26 @@ import { useMemo } from "react";
 
 export default function GameTeamTurnsList({
   teams,
+  board,
   collect = false,
+  assistant = false,
   className,
 }: {
   teams: GameTeamWithTotals[];
+  board?: BoardPlaces;
   /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
   collect?: boolean;
+  assistant?: boolean;
   className?: string;
 }): JSX.Element {
   const sortedTeams = useMemo(
     () =>
       teams
+        .filter(
+          (team) =>
+            !assistant ||
+            team.turns.some((turn) => turn.thrown_at && !turn.confirmed_at),
+        )
         .toSorted((a, b) => {
           if (collect) {
             // In collect mode, sort teams by total drinks (most drinks first), then by total turn time (shortest time first)
@@ -24,6 +33,21 @@ export default function GameTeamTurnsList({
               return b.total_drinks - a.total_drinks;
             }
             return a.combined_time - b.combined_time;
+          }
+
+          if (assistant) {
+            // In assistant mode, sort teams by age of unconfirmed turn (oldest first)
+            const aUnconfirmed = a.turns.find(
+              (turn) => turn.thrown_at && !turn.confirmed_at,
+            )!;
+            const bUnconfirmed = b.turns.find(
+              (turn) => turn.thrown_at && !turn.confirmed_at,
+            )!;
+
+            return (
+              new Date(aUnconfirmed.thrown_at!).getTime() -
+              new Date(bUnconfirmed.thrown_at!).getTime()
+            );
           }
 
           // teams with no turns go last
@@ -67,6 +91,7 @@ export default function GameTeamTurnsList({
               key={team.team.team_id}
               team={team}
               collect={collect}
+              assistant={assistant}
               teamTurns={team.turns}
             />
           );
@@ -77,7 +102,11 @@ export default function GameTeamTurnsList({
   return (
     <div className={`flex ${className}`}>
       <div className="writing-vertical text-xl font-bold mr-2 mt-3">
-        {collect ? "Moraalisen voiton tilanne" : "Aktiiviset vuorot"}
+        {assistant
+          ? "Vahvistamattomat"
+          : collect
+            ? "Moraalisen voiton tilanne"
+            : "Aktiiviset vuorot"}
       </div>
       <HorizontalList>{sortedTeams}</HorizontalList>
     </div>

@@ -1,18 +1,18 @@
 "use client";
 
-import { use, useMemo } from "react";
 import GameCard from "@/app/components/game-components/game-card";
-import { useSocket } from "@/app/template";
-import TeamList from "@/app/components/team-components/team-list";
+import {
+  GameErrorDisplay,
+  GameLoadingSpinner,
+} from "@/app/components/game-components/game-loading-states";
 import GameStartDialogue from "@/app/components/game-components/game-start-dialogue";
 import GameTeamTurnsList from "@/app/components/team-components/game-team-turns-list";
-import { useGameData } from "@/app/hooks/useGameData";
-import {
-  GameLoadingSpinner,
-  GameErrorDisplay,
-} from "@/app/components/game-components/game-loading-states";
-import Link from "next/link";
+import TeamList from "@/app/components/team-components/team-list";
 import { computeTotals } from "@/app/components/team-components/team-turn-card";
+import { useGameData } from "@/app/hooks/useGameData";
+import { useSocket } from "@/app/template";
+import Link from "next/link";
+import { use, useMemo } from "react";
 
 export default function Page({
   params,
@@ -49,11 +49,8 @@ export default function Page({
         {!gameData.game.started && gameData.teams.length > 0 && (
           <GameStartDialogue game={gameData.game} className="w-full" />
         )}
-        <Link
-          className="button"
-          href={`/referee/games/${gameData.game.id}/assistant`}
-        >
-          Aputuomaritila
+        <Link className="button" href={`/referee/games/${gameData.game.id}`}>
+          Päätuomaritila
         </Link>
         {gameData.game.started && (
           <Link
@@ -65,7 +62,11 @@ export default function Page({
         )}
       </div>
       <div className="flex flex-col gap-2 flex-3 w-0 min-h-0">
-        <GameTeamTurnsList teams={preppedTeams} className="max-h-1/2" />
+        <GameTeamTurnsList
+          teams={preppedTeams}
+          assistant
+          className="max-h-1/2"
+        />
         <GameTeamTurnsList
           teams={preppedTeams}
           collect

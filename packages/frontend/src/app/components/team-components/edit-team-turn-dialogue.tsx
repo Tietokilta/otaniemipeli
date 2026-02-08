@@ -9,9 +9,11 @@ import {
   getDrinks,
   confirmPenalty,
   setMoralVictoryEligible,
+  confirmTurn,
 } from "@/utils/fetchers";
 import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
 import SimpleConfirmedButton from "../simple-confirmed-button";
+import PlaceCard from "../board-components/place-card";
 
 /** Set to true to show the dice selection dialog when creating turns. */
 const REFEREE_ENTERS_DICE = false;
@@ -21,16 +23,25 @@ function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
   return team.turns.find((turn) => turn.penalty && !turn.confirmed_at);
 }
 
+/** Returns the unconfirmed turn if one exists. */
+function getUnconfirmedTurn(team: GameTeam): Turn | undefined {
+  return team.turns.find((turn) => turn.thrown_at && !turn.confirmed_at);
+}
+
 export const EditTeamTurnDialogue = ({
   team,
   open,
   setOpen,
+  assistant = false,
 }: {
   team: GameTeam;
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
+  assistant?: boolean;
 }) => {
-  const [choice, setChoice] = useState<"penalty" | "turn" | null>(null);
+  const [choice, setChoice] = useState<"penalty" | "turn" | "assistant" | null>(
+    null,
+  );
   const [pendingPenaltyTurnId, setPendingPenaltyTurnId] = useState<
     number | null
   >(null);
@@ -39,6 +50,7 @@ export const EditTeamTurnDialogue = ({
   if (!open) return null;
 
   const unconfirmedPenalty = getUnconfirmedPenalty(team);
+  const unconfirmedTurn = getUnconfirmedTurn(team);
 
   /** Creates a new pending penalty turn or takes over an existing one. */
   const handleAddPenalty = async () => {
@@ -76,6 +88,16 @@ export const EditTeamTurnDialogue = ({
     );
   }
 
+  if ((choice === "assistant" || assistant) && unconfirmedTurn) {
+    return (
+      <AssistantRefereeDialogue
+        team={team}
+        turn={unconfirmedTurn!}
+        setOpen={setOpen}
+      />
+    );
+  }
+
   const addTurnSetOpen = (open: boolean) => {
     setChoice(open ? "turn" : null);
     setOpen(open);
@@ -98,6 +120,7 @@ export const EditTeamTurnDialogue = ({
           allowDice={REFEREE_ENTERS_DICE}
           open={choice === "turn"}
           setOpen={addTurnSetOpen}
+          onAssistant={() => setChoice("assistant")}
         />
         <button
           className="button text-xl p-5"
@@ -168,6 +191,7 @@ export const AddTeamTurnButton = ({
   team,
   open,
   setOpen,
+  onAssistant,
   pending: externalPending,
   setPending: setExternalPending,
   referee,
@@ -176,6 +200,7 @@ export const AddTeamTurnButton = ({
   team: GameTeam;
   open: boolean;
   setOpen: (open: boolean) => void;
+  onAssistant?: () => void;
   pending?: boolean;
   setPending?: (pending: boolean) => void;
   referee?: boolean;
@@ -245,6 +270,15 @@ export const AddTeamTurnButton = ({
             onAccept={handleEndTurn}
           />
         )
+      ) : currentStatus === TurnStatus.WaitingForAssistantReferee &&
+        onAssistant ? (
+        <button
+          className="button text-xl p-5"
+          onClick={onAssistant}
+          disabled={pending}
+        >
+          Aputuomaroi vuoro
+        </button>
       ) : canDice ? (
         <button
           className="button text-xl p-5"
@@ -367,7 +401,7 @@ const AddTeamTurnDialogue = ({
             onClick={submitTurn}
             disabled={dice1 === 0 || dice2 === 0 || pending}
           >
-            Heitä
+            {ongoingTurn?.thrown_at ? "Muuta heitot" : "Heitä"}
           </button>
         </div>
       </div>
@@ -500,6 +534,138 @@ const AddTeamPenaltyDialogue = ({
             disabled={!hasSelectedDrinks || pending}
           >
             Sakkoa
+          </button>
+        </div>
+      </form>
+    </PopUpDialogue>
+  );
+};
+
+function addFavorites(
+  turnDrinks: TurnDrinks,
+  availableDrinks: Drink[],
+): TurnDrinks {
+  const favoriteDrinks = availableDrinks
+    .filter((d) => d.favorite)
+    .map((d) => ({
+      drink: d,
+      n: 0,
+    }));
+  const toAdd = favoriteDrinks.filter(
+    (fd) => !turnDrinks.drinks.some((d) => d.drink.id === fd.drink.id),
+  );
+  return toAdd.length === 0
+    ? turnDrinks
+    : { drinks: [...turnDrinks.drinks, ...toAdd] };
+}
+
+const AssistantRefereeDialogue = ({
+  team,
+  turn,
+  setOpen,
+}: {
+  team: GameTeam;
+  turn: Turn;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+}) => {
+  const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
+  const [turnDrinks, setTurnDrinks] = useState<TurnDrinks>({
+    drinks: [],
+  });
+  const [pending, setPending] = useState(false);
+  const [changingDice, setChangingDice] = useState(false);
+
+  useEffect(() => {
+    getDrinks().then((drinks) => {
+      const drinkList = drinks.drink_ingredients.map((d) => d.drink);
+      setAvailableDrinks(drinkList);
+
+      // Add favorite drinks with n=0
+      setTurnDrinks((prev) => addFavorites(prev, drinkList));
+    });
+  }, []);
+
+  useEffect(() => {
+    // Populate turnDrinks with existing drinks for the turn
+    if (turn.drinks) {
+      setTurnDrinks(
+        addFavorites({ drinks: turn.drinks.drinks }, availableDrinks),
+      );
+    }
+  }, [turn.drinks]);
+
+  const handleSubmit = async () => {
+    setPending(true);
+    const drinks: TurnDrinks = {
+      drinks: turnDrinks.drinks.filter((d) => d.n > 0),
+    };
+    await confirmTurn(turn.turn_id, drinks);
+    setPending(false);
+    setOpen(false);
+  };
+
+  return (
+    <PopUpDialogue
+      setOpen={setOpen}
+      title={`Vahvista vuoro: ${team.team.team_name}`}
+      disabled={pending}
+    >
+      {changingDice && (
+        <AddTeamTurnDialogue
+          onClose={() => setChangingDice(false)}
+          team={team}
+          ongoingTurn={turn}
+        />
+      )}
+      <form
+        className="w-[90vw] md:w-xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <p>
+            Heitot: {turn.dice1} + {turn.dice2}
+          </p>
+          <button
+            type="button"
+            className="button"
+            onClick={() => setChangingDice(true)}
+          >
+            Muuta heittoja
+          </button>
+        </div>
+        {turn.place ? (
+          <PlaceCard place={turn.place} className="max-w-full" />
+        ) : (
+          <p>Paikkaa ei löydy!</p>
+        )}
+        {turn.place?.place.rule && (
+          <p className="text-lg text-left border-l-2 border-primary-900 pl-4 ml-4 pr-8">
+            "{turn.place.place.rule}"
+          </p>
+        )}
+        <DrinkSelectionList
+          availableDrinks={availableDrinks}
+          selectedDrinks={turnDrinks}
+          setSelectedDrinks={setTurnDrinks}
+        />
+        <div className="flex justify-between px-4 py-4">
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={() => setOpen(false)}
+            disabled={pending}
+          >
+            Eiku
+          </button>
+          <button
+            type="button"
+            className="button text-xl p-4"
+            onClick={handleSubmit}
+            disabled={pending}
+          >
+            Vahvista vuoro
           </button>
         </div>
       </form>

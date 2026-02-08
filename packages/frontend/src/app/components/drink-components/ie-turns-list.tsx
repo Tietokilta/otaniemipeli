@@ -8,9 +8,11 @@ const RECENTLY_FINISHED_TIMEOUT_MS = 5000;
 export default function IeTurnsList({
   teams,
   wrap,
+  drinksData,
 }: {
   teams: GameTeam[];
   wrap: boolean;
+  drinksData: DrinksIngredients | null;
 }): JSX.Element {
   const [recentlyChanged, setRecentlyChanged] = useState(
     () => new Map<number, number | boolean>(),
@@ -96,6 +98,7 @@ export default function IeTurnsList({
               key={turn.turn_id}
               turn={turn}
               onStateChange={(state) => handleStateChange(turn, state)}
+              drinksData={drinksData}
             />
           ))}
         </HorizontalList>

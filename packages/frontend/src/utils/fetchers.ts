@@ -137,6 +137,10 @@ export async function getDrinks(): Promise<DrinksIngredients> {
   return apiFetch<DrinksIngredients>(`${API_URL}/drinks`);
 }
 
+export async function getDrinksWithIngredients(): Promise<DrinksIngredients> {
+  return apiFetch<DrinksIngredients>(`${API_URL}/drinks/ingredients`);
+}
+
 export async function getDrinkIngredients(
   drink_id: number,
 ): Promise<DrinkIngredients> {

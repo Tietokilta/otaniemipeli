@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AddDrinkIngredientForm from "@/app/components/drink-components/add-drink-ingredient-form";
 import IngredientCard from "@/app/components/drink-components/ingredient-card";
 import {
@@ -214,13 +214,36 @@ export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
   );
 }
 
-export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
+export function TurnDrinkCard({
+  drink,
+  drinkIngredients,
+}: {
+  drink: TurnDrink;
+  drinkIngredients?: DrinkIngredients;
+}): JSX.Element {
+  const trivial =
+    drinkIngredients?.ingredients.length === 1 &&
+    drinkIngredients.ingredients[0].ingredient.name === drink.drink.name;
+  const showIngredients = drinkIngredients?.ingredients.length && !trivial;
+
   return (
-    <div className="flex items-center w-full border-b border-primary-900 whitespace-nowrap">
-      <h2 className="text-2xl text-left px-1">{drink.n}x</h2>
-      <h2 className="text-xl text-left px-1 overflow-hidden text-ellipsis">
-        {drink.drink.name}
-      </h2>
+    <div className="flex flex-col w-full border-b border-primary-900">
+      <div className="flex items-center whitespace-nowrap">
+        <h2 className="text-2xl text-left px-1">{drink.n}x</h2>
+        <h2 className="text-xl text-left px-1 overflow-hidden text-ellipsis">
+          {drink.drink.name}
+          {trivial && ` (${drinkIngredients.ingredients[0].quantity}cl)`}
+        </h2>
+      </div>
+      {showIngredients && (
+        <div className="flex flex-col gap-1 px-2 pb-1 text-sm">
+          {drinkIngredients.ingredients.map((ing) => (
+            <div key={ing.ingredient.id}>
+              • {ing.ingredient.name} ({Math.round(ing.quantity)}cl)
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -228,10 +251,21 @@ export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
 export function TurnDrinksList({
   drinks,
   className,
+  drinksData,
 }: {
   drinks: TurnDrink[];
   className?: string;
+  drinksData?: DrinksIngredients | null;
 }): JSX.Element {
+  // Create a map of drink ID to DrinkIngredients for quick lookup
+  const drinksMap = useMemo(
+    () =>
+      new Map<number, DrinkIngredients>(
+        drinksData?.drink_ingredients.map((di) => [di.drink.id, di]),
+      ),
+    [drinksData],
+  );
+
   return (
     <VerticalList
       className={`gap-2 px-2 py-4 min-h-0 overflow-y-auto ${className ?? ""}`}
@@ -239,7 +273,11 @@ export function TurnDrinksList({
       {drinks
         .sort((da, db) => db.n - da.n)
         .map((drink) => (
-          <TurnDrinkCard key={`${drink.drink.id}`} drink={drink} />
+          <TurnDrinkCard
+            key={`${drink.drink.id}`}
+            drink={drink}
+            drinkIngredients={drinksMap.get(drink.drink.id)}
+          />
         ))}
     </VerticalList>
   );

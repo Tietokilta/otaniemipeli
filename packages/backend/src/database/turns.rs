@@ -38,7 +38,7 @@ pub async fn end_active_turns(
         )
         .into());
     }
-    Ok(build_turn(rows[0].clone()))
+    Ok(build_turn(&rows[0]))
 }
 
 /// Starts a new turn for a team in a game.
@@ -71,7 +71,7 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Ap
             .await?
     };
 
-    Ok(build_turn(row))
+    Ok(build_turn(&row))
 }
 
 /// Updates the dice values for an existing turn and sets thrown_at
@@ -90,7 +90,7 @@ pub async fn update_turn_dice(
         )
         .await?;
 
-    Ok(build_turn(row))
+    Ok(build_turn(&row))
 }
 
 /// Sets confirmed_at for a turn
@@ -105,7 +105,7 @@ pub async fn set_turn_confirmed(client: &Client, turn_id: TurnId) -> Result<Turn
         )
         .await?;
 
-    Ok(build_turn(row))
+    Ok(build_turn(&row))
 }
 
 /// Retrieves a turn by ID with its drinks
@@ -113,7 +113,7 @@ pub async fn get_turn_with_drinks(client: &Client, turn_id: TurnId) -> Result<Tu
     let row = client
         .query_one("SELECT * FROM turns WHERE turn_id = $1", &[&turn_id])
         .await?;
-    let mut turn = build_turn(row);
+    let mut turn = build_turn(&row);
     turn.drinks = crate::database::games::get_turn_drinks(client, turn_id).await?;
     Ok(turn)
 }
@@ -138,7 +138,7 @@ pub async fn cancel_turn(client: &Client, turn_id: TurnId) -> Result<(), AppErro
 }
 
 /// Builds a Turn struct from a database row
-pub fn build_turn(row: Row) -> Turn {
+pub fn build_turn(row: &Row) -> Turn {
     Turn {
         turn_id: row.get("turn_id"),
         team_id: row.get("team_id"),
@@ -155,6 +155,7 @@ pub fn build_turn(row: Row) -> Turn {
         location: row.get("place_number"),
         penalty: row.get("penalty"),
         drinks: TurnDrinks { drinks: vec![] },
+        place: None,
     }
 }
 
@@ -244,5 +245,5 @@ pub async fn set_drink_prep_status(
     };
 
     let row = client.query_one(query, &[&turn_id]).await?;
-    Ok(build_turn(row))
+    Ok(build_turn(&row))
 }
