@@ -4,16 +4,16 @@ use crate::database::games::{
 };
 use crate::database::team::set_team_double_tampere;
 use crate::database::turns::{
-    cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks, set_end_place,
-    set_turn_confirmed, set_turn_drinks, set_turn_mixed_if_no_mixing, start_turn as db_start_turn,
-    update_turn_dice,
+    cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks,
+    set_drink_prep_status as db_set_drink_prep_status, set_end_place, set_turn_automixing,
+    set_turn_confirmed, set_turn_drinks, start_turn as db_start_turn, update_turn_dice,
 };
 use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TurnId};
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
-    BoardPlace, CancelTurn, ChangeDice, ConfirmTurn, EndTurn, GameData, PlaceThrow, PostStartTurn,
-    TeamLatestTurn, Turn, TurnDrinks,
+    BoardPlace, ChangeDiceBody, ConfirmTurnBody, EndTurn, GameData, PlaceThrow, PostStartTurn,
+    SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrinks,
 };
 use axum::extract::{Path, State};
 use axum::Json;
@@ -104,40 +104,33 @@ pub async fn process_start_turn(
 }
 
 /// Changes dice for an existing turn and recomputes movement/drinks.
-pub async fn process_change_dice(client: &Client, change_dice: ChangeDice) -> Result<(), AppError> {
-    check_dice(change_dice.dice1, change_dice.dice2)?;
+pub async fn process_change_dice(
+    client: &Client,
+    turn_id: TurnId,
+    dice1: i32,
+    dice2: i32,
+) -> Result<Turn, AppError> {
+    check_dice(dice1, dice2)?;
 
-    let turn = update_turn_dice(
-        client,
-        change_dice.turn_id,
-        change_dice.dice1,
-        change_dice.dice2,
-    )
-    .await?;
+    let turn = update_turn_dice(client, turn_id, dice1, dice2).await?;
 
-    let team_data = get_team_latest_turn(client, change_dice.game_id, turn.team_id).await?;
+    let team_data = get_team_latest_turn(client, turn.game_id, turn.team_id).await?;
 
-    let result = compute_turn_result(
-        client,
-        change_dice.game_id,
-        &team_data,
-        change_dice.dice1,
-        change_dice.dice2,
-    )
-    .await?;
+    let result = compute_turn_result(client, turn.game_id, &team_data, dice1, dice2).await?;
 
     set_end_place(client, result.place_after.place_number, turn.turn_id).await?;
     set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
 
-    Ok(())
+    Ok(turn)
 }
 
 /// Confirms a turn: sets confirmed_at, replaces drinks, and applies side effects.
 pub async fn process_confirm_turn(
     client: &Client,
-    confirm_data: ConfirmTurn,
-) -> Result<(), AppError> {
-    let turn = get_turn_with_drinks(client, confirm_data.turn_id).await?;
+    turn_id: TurnId,
+    drinks: TurnDrinks,
+) -> Result<Turn, AppError> {
+    let turn = get_turn_with_drinks(client, turn_id).await?;
 
     let (Some(location), Some(dice1), Some(dice2)) = (turn.location, turn.dice1, turn.dice2) else {
         return Err(AppError::Validation(
@@ -145,8 +138,8 @@ pub async fn process_confirm_turn(
         ));
     };
 
-    let game = get_game_by_id(client, confirm_data.game_id).await?;
-    let team_data = get_team_latest_turn(client, confirm_data.game_id, turn.team_id).await?;
+    let game = get_game_by_id(client, turn.game_id).await?;
+    let team_data = get_team_latest_turn(client, turn.game_id, turn.team_id).await?;
 
     let Some(place_before) = team_data.location else {
         return Err(AppError::Validation(
@@ -154,9 +147,9 @@ pub async fn process_confirm_turn(
         ));
     };
 
-    set_turn_confirmed(client, confirm_data.turn_id).await?;
-    set_turn_drinks(client, confirm_data.turn_id, confirm_data.drinks.clone()).await?;
-    set_turn_mixed_if_no_mixing(client, confirm_data.turn_id, &confirm_data.drinks).await?;
+    set_turn_confirmed(client, turn_id).await?;
+    set_turn_drinks(client, turn_id, drinks.clone()).await?;
+    set_turn_automixing(client, turn_id, &drinks).await?;
 
     let place_after = get_board_place(client, game.board.id, location).await?;
 
@@ -168,29 +161,30 @@ pub async fn process_confirm_turn(
     }
 
     if place_after.end {
-        end_game(client, confirm_data.game_id).await?;
+        end_game(client, turn.game_id).await?;
     }
 
-    if confirm_data.drinks.drinks.is_empty() && !place_after.end {
+    if drinks.drinks.is_empty() && !place_after.end {
         db_end_turn(
             client,
             &EndTurn {
                 team_id: turn.team_id,
-                game_id: confirm_data.game_id,
+                game_id: turn.game_id,
             },
         )
         .await?;
     }
 
-    Ok(())
+    Ok(turn)
 }
 
 /// Confirms a penalty turn: sets confirmed_at, sets drinks, and applies mixing logic.
 pub async fn process_confirm_penalty(
     client: &Client,
-    confirm_data: ConfirmTurn,
-) -> Result<(), AppError> {
-    let turn = get_turn_with_drinks(client, confirm_data.turn_id).await?;
+    turn_id: TurnId,
+    drinks: TurnDrinks,
+) -> Result<Turn, AppError> {
+    let turn = get_turn_with_drinks(client, turn_id).await?;
 
     if !turn.penalty {
         return Err(AppError::Validation(
@@ -198,17 +192,17 @@ pub async fn process_confirm_penalty(
         ));
     }
 
-    if confirm_data.drinks.drinks.is_empty() {
+    if drinks.drinks.is_empty() {
         return Err(AppError::Validation(
             "Penalty turn must have drinks assigned".to_string(),
         ));
     }
 
-    set_turn_confirmed(client, confirm_data.turn_id).await?;
-    set_turn_drinks(client, confirm_data.turn_id, confirm_data.drinks.clone()).await?;
-    set_turn_mixed_if_no_mixing(client, confirm_data.turn_id, &confirm_data.drinks).await?;
+    set_turn_confirmed(client, turn_id).await?;
+    set_turn_drinks(client, turn_id, drinks.clone()).await?;
+    set_turn_automixing(client, turn_id, &drinks).await?;
 
-    Ok(())
+    Ok(turn)
 }
 
 // REST handlers
@@ -230,14 +224,12 @@ pub async fn start_turn(
 pub async fn change_dice(
     State(state): State<AppState>,
     Path(turn_id): Path<TurnId>,
-    Json(mut data): Json<ChangeDice>,
+    Json(data): Json<ChangeDiceBody>,
 ) -> Result<(), AppError> {
-    data.turn_id = turn_id;
-    let game_id = data.game_id;
     let client = state.db.get().await?;
-    process_change_dice(&client, data).await?;
-    let game_data = get_full_game_data(&client, game_id).await?;
-    broadcast_game_update(&state.io, game_id, &game_data).await;
+    let turn = process_change_dice(&client, turn_id, data.dice1, data.dice2).await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
 }
 
@@ -245,14 +237,12 @@ pub async fn change_dice(
 pub async fn confirm_turn(
     State(state): State<AppState>,
     Path(turn_id): Path<TurnId>,
-    Json(mut data): Json<ConfirmTurn>,
+    Json(data): Json<ConfirmTurnBody>,
 ) -> Result<(), AppError> {
-    data.turn_id = turn_id;
-    let game_id = data.game_id;
     let client = state.db.get().await?;
-    process_confirm_turn(&client, data).await?;
-    let game_data = get_full_game_data(&client, game_id).await?;
-    broadcast_game_update(&state.io, game_id, &game_data).await;
+    let turn = process_confirm_turn(&client, turn_id, data.drinks).await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
 }
 
@@ -260,27 +250,32 @@ pub async fn confirm_turn(
 pub async fn cancel_turn(
     State(state): State<AppState>,
     Path(turn_id): Path<TurnId>,
-    Json(mut data): Json<CancelTurn>,
 ) -> Result<(), AppError> {
-    data.turn_id = turn_id;
-    let game_id = data.game_id;
     let client = state.db.get().await?;
-    db_cancel_turn(&client, data.turn_id).await?;
-    let game_data = get_full_game_data(&client, data.game_id).await?;
-    broadcast_game_update(&state.io, game_id, &game_data).await;
+    let turn = get_turn_with_drinks(&client, turn_id).await?;
+    db_cancel_turn(&client, turn_id).await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
 }
 
-/// POST /turns/end - End a turn.
+/// POST /turns/{turn_id}/end - End a turn.
 pub async fn end_turn(
     State(state): State<AppState>,
-    Json(data): Json<EndTurn>,
+    Path(turn_id): Path<TurnId>,
 ) -> Result<(), AppError> {
-    let game_id = data.game_id;
     let client = state.db.get().await?;
-    db_end_turn(&client, &data).await?;
-    let game_data = get_full_game_data(&client, data.game_id).await?;
-    broadcast_game_update(&state.io, game_id, &game_data).await;
+    let turn = get_turn_with_drinks(&client, turn_id).await?;
+    db_end_turn(
+        &client,
+        &EndTurn {
+            team_id: turn.team_id,
+            game_id: turn.game_id,
+        },
+    )
+    .await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
 }
 
@@ -288,13 +283,25 @@ pub async fn end_turn(
 pub async fn confirm_penalty(
     State(state): State<AppState>,
     Path(turn_id): Path<TurnId>,
-    Json(mut data): Json<ConfirmTurn>,
+    Json(data): Json<ConfirmTurnBody>,
 ) -> Result<(), AppError> {
-    data.turn_id = turn_id;
-    let game_id = data.game_id;
     let client = state.db.get().await?;
-    process_confirm_penalty(&client, data).await?;
-    let game_data = get_full_game_data(&client, game_id).await?;
-    broadcast_game_update(&state.io, game_id, &game_data).await;
+    let turn = process_confirm_penalty(&client, turn_id, data.drinks).await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
+    Ok(())
+}
+
+/// PUT /turns/{turn_id}/prep-status - Update the drink preparation status.
+pub async fn set_drink_prep_status(
+    State(state): State<AppState>,
+    Path(turn_id): Path<TurnId>,
+    Json(data): Json<SetDrinkPrepStatusBody>,
+) -> Result<(), AppError> {
+    let client = state.db.get().await?;
+    let turn = get_turn_with_drinks(&client, turn_id).await?;
+    db_set_drink_prep_status(&client, turn_id, data.status).await?;
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
 }

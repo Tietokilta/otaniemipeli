@@ -18,7 +18,9 @@ function HeaderItemComponent({
     center
     py-2
     text-tertiary-500
-    text-2xl
+    text-lg
+    md:text-xl
+    lg:text-2xl
     font-bold
     flex
     center
@@ -76,7 +78,7 @@ export default function GeneralHeader({
 
   return (
     <div className="flex items-end justify-right w-full h-min-content px-4 bg-quaternary-500">
-      <div className="flex center h-full mr-auto pt-4">
+      <div className="flex center h-full mr-auto md:pt-4">
         <Link
           className="
           ml-6
@@ -87,7 +89,8 @@ export default function GeneralHeader({
           text-shadow-lg
           text-shadow-tertiary-900
           hover:text-shadow-secondary-900
-          text-2xl
+          text-xl
+          lg:text-2xl
           2xl:text-4xl
           font-pixel-b"
           href={base_path}
@@ -95,8 +98,8 @@ export default function GeneralHeader({
           Otaniemipeli {role}
         </Link>
       </div>
-      <div className="flex h-full items-center pt-6">
-        <nav className="flex cursor-default h-full py-3 rounded-md bottom">
+      <div className="flex h-full items-center md:pt-6">
+        <nav className="flex flex-col md:flex-row cursor-default h-full py-3 rounded-md bottom">
           {items.map((item) => (
             <HeaderItemComponent
               key={item.text}

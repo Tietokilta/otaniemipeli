@@ -99,6 +99,8 @@ PlaceType = Literal["Normal", "Food", "Sauna", "Special", "Guild"]
 
 UserType = Literal["Admin", "Ie", "Referee", "Secretary"]
 
+DrinkPrepStatus = Literal["Queued", "Mixing", "Mixed", "Delivered"]
+
 
 
 @dataclass
@@ -253,9 +255,7 @@ class PostStartTurn:
 
 
 @dataclass
-class ChangeDice:
-    turn_id: int
-    game_id: int
+class ChangeDiceBody:
     dice1: int
     dice2: int
     @classmethod
@@ -263,17 +263,7 @@ class ChangeDice:
 
 
 @dataclass
-class CancelTurn:
-    turn_id: int
-    game_id: int
-    @classmethod
-    def from_dict(cls, data: Any): return _from_dict(cls, data)
-
-
-@dataclass
-class ConfirmTurn:
-    turn_id: int
-    game_id: int
+class ConfirmTurnBody:
     drinks: 'TurnDrinks'
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
@@ -283,6 +273,13 @@ class ConfirmTurn:
 class EndTurn:
     team_id: int
     game_id: int
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class SetDrinkPrepStatusBody:
+    status: DrinkPrepStatus
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

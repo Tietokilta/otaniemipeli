@@ -1,6 +1,6 @@
 use crate::utils::ids::TurnId;
 use crate::utils::state::AppError;
-use crate::utils::types::{EndTurn, PostStartTurn, Turn, TurnDrinks};
+use crate::utils::types::{DrinkPrepStatus, EndTurn, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
@@ -193,8 +193,8 @@ pub async fn set_turn_drinks(
     Ok(())
 }
 
-/// Sets mixing_at and mixed_at to NOW() if no drinks require mixing
-pub async fn set_turn_mixed_if_no_mixing(
+/// Sets mixing_at to NOW() if no drinks require mixing
+pub async fn set_turn_automixing(
     client: &Client,
     turn_id: TurnId,
     drinks: &TurnDrinks,
@@ -203,10 +203,44 @@ pub async fn set_turn_mixed_if_no_mixing(
     if !needs_mixing {
         client
             .execute(
-                "UPDATE turns SET mixing_at = NOW(), mixed_at = NOW() WHERE turn_id = $1",
+                "UPDATE turns SET mixing_at = NOW() WHERE turn_id = $1",
                 &[&turn_id],
             )
             .await?;
     }
     Ok(())
+}
+
+/// Updates the drink preparation status of a turn.
+///
+/// - queued: clears mixing_at, mixed_at, delivered_at
+/// - mixing: sets mixing_at to NOW(), clears mixed_at and delivered_at
+/// - mixed: sets mixed_at to NOW(), coalesces mixing_at to NOW(), clears delivered_at
+/// - delivered: sets delivered_at to NOW(), coalesces mixing_at and mixed_at to NOW()
+pub async fn set_drink_prep_status(
+    client: &Client,
+    turn_id: TurnId,
+    status: DrinkPrepStatus,
+) -> Result<Turn, AppError> {
+    let query = match status {
+        DrinkPrepStatus::Queued => {
+            "UPDATE turns SET mixing_at = NULL, mixed_at = NULL, delivered_at = NULL
+             WHERE turn_id = $1 RETURNING *"
+        }
+        DrinkPrepStatus::Mixing => {
+            "UPDATE turns SET mixing_at = NOW(), mixed_at = NULL, delivered_at = NULL
+             WHERE turn_id = $1 RETURNING *"
+        }
+        DrinkPrepStatus::Mixed => {
+            "UPDATE turns SET mixing_at = COALESCE(mixing_at, NOW()), mixed_at = NOW(), delivered_at = NULL
+             WHERE turn_id = $1 RETURNING *"
+        }
+        DrinkPrepStatus::Delivered => {
+            "UPDATE turns SET mixing_at = COALESCE(mixing_at, NOW()), mixed_at = COALESCE(mixed_at, NOW()), delivered_at = NOW()
+             WHERE turn_id = $1 RETURNING *"
+        }
+    };
+
+    let row = client.query_one(query, &[&turn_id]).await?;
+    Ok(build_turn(row))
 }

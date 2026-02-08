@@ -21,7 +21,7 @@ export default function GameList({
   }, []);
 
   return (
-    <ItemList title="Games" addDialog={<></>} className={className}>
+    <ItemList title="Pelit" addDialog={<></>} className={className}>
       {games ? (
         games.games
           .sort((a, b) => b.start_time.localeCompare(a.start_time))

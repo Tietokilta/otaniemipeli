@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <>
       <GeneralHeader base_path="/ie" />
-      <div className="p-2 h-[90dvh] min-h-0">{children}</div>
+      <div className="flex flex-col flex-1 min-h-0 p-4">{children}</div>
     </>
   );
 }

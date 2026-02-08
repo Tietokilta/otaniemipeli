@@ -6,6 +6,8 @@ declare global {
 
   type UserType = "Admin" | "Ie" | "Referee" | "Secretary";
 
+  type DrinkPrepStatus = "Queued" | "Mixing" | "Mixed" | "Delivered";
+
   type WithNameAndId = { id: string | number; name: string };
 
   interface HeaderItem {
@@ -116,27 +118,22 @@ declare global {
     penalty: boolean;
   }
 
-  interface ChangeDice {
-    turn_id: number;
-    game_id: number;
+  interface ChangeDiceBody {
     dice1: number;
     dice2: number;
   }
 
-  interface CancelTurn {
-    turn_id: number;
-    game_id: number;
-  }
-
-  interface ConfirmTurn {
-    turn_id: number;
-    game_id: number;
+  interface ConfirmTurnBody {
     drinks: TurnDrinks;
   }
 
   interface EndTurn {
     team_id: number;
     game_id: number;
+  }
+
+  interface SetDrinkPrepStatusBody {
+    status: DrinkPrepStatus;
   }
 
   interface PlaceThrow {
@@ -278,6 +275,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

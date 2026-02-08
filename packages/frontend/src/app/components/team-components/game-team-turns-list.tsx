@@ -77,7 +77,7 @@ export default function GameTeamTurnsList({
   return (
     <div className={`flex ${className}`}>
       <div className="writing-vertical text-xl font-bold mr-2 mt-3">
-        {collect ? "Kokonaissaldot" : "Aktiiviset vuorot"}
+        {collect ? "Moraalisen voiton tilanne" : "Aktiiviset vuorot"}
       </div>
       <HorizontalList>{sortedTeams}</HorizontalList>
     </div>

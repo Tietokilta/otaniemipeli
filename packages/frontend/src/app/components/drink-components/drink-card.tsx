@@ -9,6 +9,7 @@ import {
 } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
 import RefillSVG from "@/public/refill";
+import { VerticalList } from "../generic-list-components";
 
 export default function DrinkCard({
   drink,
@@ -167,6 +168,7 @@ export default function DrinkCard({
     </li>
   );
 }
+
 export function DrinkCardNoIngredients({
   drink,
   className,
@@ -186,6 +188,7 @@ export function DrinkCardNoIngredients({
     </div>
   );
 }
+
 export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
   return (
     <div className="flex flex-col justify-items-start w-full border-b-1 border-primary-900">
@@ -210,6 +213,7 @@ export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
     </div>
   );
 }
+
 export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
   return (
     <div className="flex items-center w-full border-b border-primary-900 whitespace-nowrap">
@@ -218,5 +222,21 @@ export function TurnDrinkCard({ drink }: { drink: TurnDrink }): JSX.Element {
         {drink.drink.name}
       </h2>
     </div>
+  );
+}
+
+export function TurnDrinksList({
+  drinks,
+}: {
+  drinks: TurnDrink[];
+}): JSX.Element {
+  return (
+    <VerticalList className="gap-2 px-2 py-4 overflow-y-auto">
+      {drinks
+        .sort((da, db) => db.n - da.n)
+        .map((drink) => (
+          <TurnDrinkCard key={`${drink.drink.id}`} drink={drink} />
+        ))}
+    </VerticalList>
   );
 }

@@ -206,24 +206,16 @@ pub struct PostStartTurn {
     pub penalty: bool,
 }
 
+/// Request body for PUT /turns/{turn_id}/dice
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeDice {
-    pub turn_id: TurnId,
-    pub game_id: GameId,
+pub struct ChangeDiceBody {
     pub dice1: i32,
     pub dice2: i32,
 }
 
+/// Request body for POST /turns/{turn_id}/confirm and /turns/{turn_id}/penalty
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct CancelTurn {
-    pub turn_id: TurnId,
-    pub game_id: GameId,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ConfirmTurn {
-    pub turn_id: TurnId,
-    pub game_id: GameId,
+pub struct ConfirmTurnBody {
     pub drinks: TurnDrinks,
 }
 
@@ -231,6 +223,21 @@ pub struct ConfirmTurn {
 pub struct EndTurn {
     pub team_id: TeamId,
     pub game_id: GameId,
+}
+
+/// Status of drink preparation for a turn
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum DrinkPrepStatus {
+    Queued,
+    Mixing,
+    Mixed,
+    Delivered,
+}
+
+/// Request body for PUT /turns/{turn_id}/prep-status
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct SetDrinkPrepStatusBody {
+    pub status: DrinkPrepStatus,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

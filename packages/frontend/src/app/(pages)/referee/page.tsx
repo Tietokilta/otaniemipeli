@@ -5,12 +5,10 @@ import CreateUserForm from "@/app/components/create-user-form";
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center gap-3.5 sm:px-10 sm:py-4 ">
-      <div className="flex gap-4 w-full h-full">
-        <CreateUserForm className="w-100 box" />
-        <CreateGameForm className="w-100" />
-        <GameList className="w-100" />
-      </div>
+    <div className="flex flex-wrap lg:flex-nowrap gap-x-4 gap-y-10 overflow-auto">
+      <CreateUserForm className="w-full lg:w-100 box" />
+      <CreateGameForm className="w-full lg:w-100" />
+      <GameList className="w-full lg:w-100" />
     </div>
   );
 }

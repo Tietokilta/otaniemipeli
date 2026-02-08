@@ -353,13 +353,14 @@ export async function startTurn(data: PostStartTurn): Promise<Turn> {
 
 export async function changeDice(
   turnId: number,
-  data: ChangeDice,
+  dice1: number,
+  dice2: number,
 ): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}/dice`,
     {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ dice1, dice2 }),
     },
     true,
   );
@@ -367,52 +368,57 @@ export async function changeDice(
 
 export async function confirmTurn(
   turnId: number,
-  data: ConfirmTurn,
+  drinks: TurnDrinks,
 ): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}/confirm`,
     {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ drinks }),
     },
     true,
   );
 }
 
-export async function cancelTurn(
-  turnId: number,
-  data: CancelTurn,
-): Promise<void> {
+export async function cancelTurn(turnId: number): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}`,
-    {
-      method: "DELETE",
-      body: JSON.stringify(data),
-    },
+    { method: "DELETE" },
     true,
   );
 }
 
-export async function endTurn(turnId: number, data: EndTurn): Promise<void> {
+export async function endTurn(turnId: number): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}/end`,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    },
+    { method: "POST" },
     true,
   );
 }
 
 export async function confirmPenalty(
   turnId: number,
-  data: ConfirmTurn,
+  drinks: TurnDrinks,
 ): Promise<void> {
   return apiFetchVoid(
     `${API_URL}/turns/${turnId}/penalty`,
     {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ drinks }),
+    },
+    true,
+  );
+}
+
+export async function setDrinkPrepStatus(
+  turnId: number,
+  status: DrinkPrepStatus,
+): Promise<void> {
+  return apiFetchVoid(
+    `${API_URL}/turns/${turnId}/prep-status`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ status }),
     },
     true,
   );

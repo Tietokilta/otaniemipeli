@@ -21,7 +21,13 @@ export function formatClockTimeMs(ts: number) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-export function TurnStatus({ turn }: { turn: Turn }): JSX.Element {
+export function TimeSince({
+  timestamp,
+  warnSec,
+}: {
+  timestamp: string;
+  warnSec?: number;
+}): JSX.Element {
   const [, rerender] = useState<unknown>({});
 
   // Force re-render every second
@@ -30,28 +36,37 @@ export function TurnStatus({ turn }: { turn: Turn }): JSX.Element {
     return () => clearInterval(id);
   }, []);
 
-  const startTs = dateFromDb(turn.start_time).getTime();
-  if (Number.isNaN(startTs)) return <p>Virheellistä dataa</p>;
+  const date = dateFromDb(timestamp);
+  const elapsedMs = Date.now() - date.getTime();
+  const elapsed = formatShortDurationMs(elapsedMs);
 
+  const warn = warnSec !== undefined && elapsedMs > warnSec * 1000;
+
+  return warn ? <em>{elapsed}</em> : <>{elapsed}</>;
+}
+
+export function TurnStatus({ turn }: { turn: Turn }): JSX.Element {
   if (turn.end_time) {
+    const startTs = dateFromDb(turn.start_time).getTime();
     const endTs = dateFromDb(turn.end_time).getTime();
-    if (Number.isNaN(endTs)) return <p>Virheellistä dataa</p>;
 
-    const elapsed = formatShortDurationMs(Date.now() - endTs);
     const dur = formatShortDurationMs(endTs - startTs);
     return (
       <>
-        <p className="text-quaternary-500">Valmiina! ({elapsed})</p>
+        <p className="text-quaternary-500">
+          Valmiina! (<TimeSince timestamp={turn.end_time} />)
+        </p>
         <p>Vuoro kesti: {dur}</p>
       </>
     );
   }
-  const elapsed = formatShortDurationMs(Date.now() - startTs);
 
   return (
     <>
       <p>{turnStatusText(turn)}</p>
-      <p>Vuoro alkoi {elapsed} sitten</p>
+      <p>
+        Vuoro alkoi <TimeSince timestamp={turn.start_time} /> sitten
+      </p>
     </>
   );
 }

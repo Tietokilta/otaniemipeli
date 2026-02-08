@@ -80,15 +80,10 @@ export const EditTeamTurnDialogue = ({
     setChoice("penalty");
   };
 
-  /** Ends the current turn. */
+  /** Ends all active turns for a team. */
   const handleEndTurn = async () => {
     setPending(true);
-    const params: EndTurn = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-    };
-    // TODO: This should end all turns; there can be penalty and non-penalty turns active at the same time.
-    await endTurn(ongoingTurn!.turn_id, params);
+    await endTurn(ongoingTurn!.turn_id);
     setPending(false);
     setOpen(false);
   };
@@ -136,7 +131,7 @@ export const EditTeamTurnDialogue = ({
             onClick={handleEndTurn}
             disabled={pending}
           >
-            Juomat juotu
+            Juomat juotu!
           </button>
         ) : REFEREE_ENTERS_DICE ||
           currentStatus === TurnStatus.WaitingForDice ? (
@@ -218,13 +213,7 @@ const AddTeamTurnDialogue = ({
 
     if (ongoingTurn) {
       // Update existing turn with dice values
-      const data: ChangeDice = {
-        turn_id: ongoingTurn.turn_id,
-        game_id: team.team.game_id,
-        dice1,
-        dice2,
-      };
-      await changeDice(ongoingTurn.turn_id, data);
+      await changeDice(ongoingTurn.turn_id, dice1, dice2);
     } else {
       // Create new turn with dice values
       const postTurn: PostStartTurn = {
@@ -322,21 +311,14 @@ const AddTeamPenaltyDialogue = ({
     const drinks: TurnDrinks = {
       drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
     };
-    await confirmPenalty(turnId, {
-      turn_id: turnId,
-      game_id: team.team.game_id,
-      drinks,
-    });
+    await confirmPenalty(turnId, drinks);
     setPending(false);
     onClose();
   };
 
   const handleCancel = async () => {
     setPending(true);
-    await cancelTurn(turnId, {
-      turn_id: turnId,
-      game_id: team.team.game_id,
-    });
+    await cancelTurn(turnId);
     setPending(false);
     onClose();
   };

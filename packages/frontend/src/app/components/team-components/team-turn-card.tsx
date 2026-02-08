@@ -1,6 +1,5 @@
 import PlaceCard from "@/app/components/board-components/place-card";
-import { TurnDrinkCard } from "@/app/components/drink-components/drink-card";
-import { VerticalList } from "@/app/components/generic-list-components";
+import { TurnDrinksList } from "@/app/components/drink-components/drink-card";
 import { EditTeamTurnDialogue } from "@/app/components/team-components/edit-team-turn-dialogue";
 import { formatShortDurationMs, TurnStatus } from "@/app/components/time-since";
 import { useMemo, useState } from "react";
@@ -138,13 +137,7 @@ export default function TeamTurnCard({
         ) : (
           <p className="text-juvu-puna">Place not found</p>
         ))}
-      <VerticalList className="gap-2 px-2 py-4 overflow-y-auto">
-        {(collect ? team.drinks : team.active_drinks)
-          .sort((da, db) => db.n - da.n)
-          .map((drink) => (
-            <TurnDrinkCard key={`${drink.drink.id}`} drink={drink} />
-          ))}
-      </VerticalList>
+      <TurnDrinksList drinks={collect ? team.drinks : team.active_drinks} />
     </div>
   );
 }

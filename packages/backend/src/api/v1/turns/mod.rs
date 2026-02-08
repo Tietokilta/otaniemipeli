@@ -13,4 +13,5 @@ pub fn router() -> Router<AppState> {
         .route("/{turn_id}", delete(cancel_turn))
         .route("/{turn_id}/end", post(end_turn))
         .route("/{turn_id}/penalty", post(confirm_penalty))
+        .route("/{turn_id}/prep-status", put(set_drink_prep_status))
 }

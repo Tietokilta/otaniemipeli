@@ -41,7 +41,7 @@ export default function Page({
   }
   return (
     <div className="flex-1 flex gap-4">
-      <div className="flex flex-col gap-2 flex-1">
+      <div className="flex flex-col gap-2 flex-1 min-w-80">
         <GameCard game={gameData.game} className="w-full" />
         <TeamList
           game={gameData.game}
@@ -61,7 +61,7 @@ export default function Page({
           </Link>
         )}
       </div>
-      <div className="flex flex-col gap-2 flex-3 max-h-[80dvh] w-1/2">
+      <div className="flex flex-col gap-2 flex-2 w-0">
         <GameTeamTurnsList teams={preppedTeams} className="max-h-1/2" />
         <GameTeamTurnsList
           teams={preppedTeams}
