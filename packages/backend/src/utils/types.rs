@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use crate::utils::ids::{BoardId, DrinkId, GameId, IngredientId, PlaceId, TeamId, TurnId, UserId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -130,6 +132,7 @@ pub struct Team {
 pub struct TurnDrink {
     pub drink: Drink,
     pub n: i32,
+    pub on_table: i32,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -351,9 +354,11 @@ pub struct PlaceDrink {
 
 impl PlaceDrink {
     pub fn to_turn_drink(&self, multiplier: i32) -> TurnDrink {
+        let n = self.n * multiplier;
         TurnDrink {
             drink: self.drink.clone(),
-            n: self.n * multiplier,
+            n,
+            on_table: if self.on_table { min(n, self.n) } else { 0 },
         }
     }
 }

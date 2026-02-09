@@ -1,13 +1,12 @@
 "use client";
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import React, { Dispatch, SetStateAction } from "react";
 
 type PickerProps<T extends WithNameAndId> = {
   buttonText: string;
   options: T[] | string[];
   selectedOption: T | undefined;
-  setSelectedOption: Dispatch<SetStateAction<T | undefined>>;
+  setSelectedOption: (selected: T | undefined) => void;
 };
 
 export default function DropdownMenu<T extends WithNameAndId>({
@@ -42,11 +41,7 @@ export default function DropdownMenu<T extends WithNameAndId>({
                 data-focus:text-tertiary-900
                 p-3
                 cursor-pointer"
-                onClick={() =>
-                  setSelectedOption((prev) =>
-                    prev && prev?.id === option.id ? undefined : option,
-                  )
-                }
+                onClick={() => setSelectedOption(option)}
               >
                 <p>{option.name}</p>
               </div>

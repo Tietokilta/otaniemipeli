@@ -178,6 +178,7 @@ class Team:
 class TurnDrink:
     drink: 'Drink'
     n: int
+    on_table: int
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

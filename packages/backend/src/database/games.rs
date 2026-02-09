@@ -222,7 +222,7 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
     // Fetch all turn drinks separately
     let drink_rows = client
         .query(
-            "SELECT td.turn_id, td.drink_id, td.n, d.name, d.favorite, d.no_mix_required
+            "SELECT td.turn_id, td.drink_id, td.n, td.on_table, d.name, d.favorite, d.no_mix_required
              FROM turn_drinks td
              JOIN drinks d ON d.drink_id = td.drink_id
              JOIN turns t ON t.turn_id = td.turn_id
@@ -243,6 +243,7 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
                 no_mix_required: row.get("no_mix_required"),
             },
             n: row.get("n"),
+            on_table: row.get("on_table"),
         });
     }
 
@@ -291,7 +292,7 @@ pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
 pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDrinks, AppError> {
     let rows = client
         .query(
-            "SELECT td.drink_id, d.name, d.favorite, d.no_mix_required, td.n
+            "SELECT td.drink_id, d.name, d.favorite, d.no_mix_required, td.n, td.on_table
              FROM turn_drinks td
              JOIN drinks d ON td.drink_id = d.drink_id
              WHERE td.turn_id = $1",
@@ -310,6 +311,7 @@ pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDri
                     no_mix_required: row.get("no_mix_required"),
                 },
                 n: row.get("n"),
+                on_table: row.get("on_table"),
             })
             .collect(),
     };

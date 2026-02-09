@@ -96,6 +96,7 @@ export default function IeTurnCard({
         drinks={turn.drinks.drinks}
         className="flex-1"
         drinksData={drinksData}
+        ieOnly
       />
       {onStateChange && (
         <div

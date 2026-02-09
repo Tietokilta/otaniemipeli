@@ -65,6 +65,7 @@ declare global {
   interface TurnDrink {
     drink: Drink;
     n: number;
+    on_table: number;
   }
 
   interface TurnDrinks {

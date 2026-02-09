@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS turn_drinks
     drink_id INTEGER NOT NULL REFERENCES drinks (drink_id) ON DELETE CASCADE,
     turn_id  INTEGER NOT NULL REFERENCES turns (turn_id) ON DELETE CASCADE,
     n        INTEGER NOT NULL DEFAULT 1,
+    on_table INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (drink_id, turn_id)
 );
 

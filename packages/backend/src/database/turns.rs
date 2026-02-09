@@ -1,3 +1,4 @@
+use crate::database::games::get_turn_drinks;
 use crate::utils::ids::{GameId, TeamId, TurnId};
 use crate::utils::state::AppError;
 use crate::utils::types::{DrinkPrepStatus, PostStartTurn, Turn, TurnDrinks};
@@ -138,7 +139,7 @@ pub async fn get_turn_with_drinks(client: &Client, turn_id: TurnId) -> Result<Tu
         .query_one("SELECT * FROM turns WHERE turn_id = $1", &[&turn_id])
         .await?;
     let mut turn = build_turn(&row);
-    turn.drinks = crate::database::games::get_turn_drinks(client, turn_id).await?;
+    turn.drinks = get_turn_drinks(client, turn_id).await?;
     Ok(turn)
 }
 
@@ -213,26 +214,8 @@ pub async fn set_turn_drinks(
     for drink in &drinks.drinks {
         client
             .execute(
-                "INSERT INTO turn_drinks (turn_id, drink_id, n) VALUES ($1, $2, $3)",
-                &[&turn_id, &drink.drink.id, &drink.n],
-            )
-            .await?;
-    }
-    Ok(())
-}
-
-/// Sets mixing_at to NOW() if no drinks require mixing
-pub async fn set_turn_automixing(
-    client: &Client,
-    turn_id: TurnId,
-    drinks: &TurnDrinks,
-) -> Result<(), AppError> {
-    let needs_mixing = drinks.drinks.iter().any(|d| !d.drink.no_mix_required);
-    if !needs_mixing {
-        client
-            .execute(
-                "UPDATE turns SET mixing_at = NOW() WHERE turn_id = $1",
-                &[&turn_id],
+                "INSERT INTO turn_drinks (turn_id, drink_id, n, on_table) VALUES ($1, $2, $3, $4)",
+                &[&turn_id, &drink.drink.id, &drink.n, &drink.on_table],
             )
             .await?;
     }

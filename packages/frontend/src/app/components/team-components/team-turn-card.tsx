@@ -34,13 +34,14 @@ function sumByDrinkId(rows: TurnDrink[]) {
   const byId = new Map<number, TurnDrink>();
   let total_drinks = 0;
 
-  for (const { drink, n } of rows) {
+  for (const { drink, n, on_table } of rows) {
     total_drinks += n;
     const existing = byId.get(drink.id);
     if (existing) {
       existing.n += n; // add up
+      existing.on_table += on_table;
     } else {
-      byId.set(drink.id, { drink, n });
+      byId.set(drink.id, { drink, n, on_table });
     }
   }
   return { drinks: Array.from(byId.values()), total_drinks };

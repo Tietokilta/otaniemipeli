@@ -62,12 +62,143 @@ Types flow from Rust to TypeScript via Python scripts:
 
 The generated types are globally available (no imports needed).
 
+## Core Data Types & Game Logic
+
+### Entity Hierarchy
+
+```
+Game (game session)
+├── Board (physical game board)
+│   └── BoardPlace[] (places on this board)
+│       ├── Place (reusable place definition)
+│       ├── Connection[] (paths to other places)
+│       └── PlaceDrink[] (drinks awarded at this place)
+└── Team[] (teams in this game)
+    └── Turn[] (turns taken by this team)
+        ├── TurnDrink[] (drinks awarded in this turn)
+        └── BoardPlace (where the turn ended)
+
+Drink (beverage recipe)
+└── Ingredient[] (components with quantities)
+```
+
+### Key Types
+
+**User** (`User`)
+- Hierarchical permissions: Admin > Referee > IE > Secretary
+
+**Game** (`Game`)
+- Represents a game session on a specific board
+- Fields: `id`, `name`, `board`, `started`, `finished`, `start_time`
+- A game has many teams and uses one board
+
+**Board** (`Board`, `BoardPlace`, `BoardPlaces`)
+- A physical game board with numbered places
+- `Board`: Basic board info (id, name)
+- `BoardPlace`: A place at a specific `place_number` on the board, includes:
+  - Reference to a reusable `Place` definition (place_name, rule, place_type)
+  - Position data (`x`, `y`, `area`, `start`, `end`)
+  - `connections`: Paths to adjacent places
+  - `drinks`: Drinks awarded when landing here
+- Movement and board locations use `place_number` (position on board), not `place_id` (reusable place definition)
+
+**Team** (`Team`)
+- A team participating in a game
+- Fields: `team_id`, `game_id`, `team_name`, `team_hash`, `double_tampere`, `moral_victory_eligible`
+- Has many turns (chronological history)
+
+**Turn** (`Turn`)
+- Represents one turn (dice throw + drinks) or a penalty turn
+- Lifecycle timestamps: `start_time` → `thrown_at` → `confirmed_at` → `mixing_at` → `mixed_at` → `delivered_at` → `end_time`
+- Fields:
+  - `dice1`, `dice2`: Dice values (1-6, null or zero if not thrown yet)
+  - `dice_ayy`: Backwards movement dice (for AYY square)
+  - `location`: The `place_number` where the turn ended (not a PlaceId)
+  - `place`: Full `BoardPlace` object for the location
+  - `drinks`: List of drinks awarded
+  - `penalty`: Whether this is a penalty turn (no dice)
+- Turn progression:
+  1. Start turn (referee clicks "give turn")
+  2. Throw dice (sets `thrown_at`)
+  3. Confirm location & drinks (sets `confirmed_at`)
+  4. Mix drinks (IE: `mixing_at` → `mixed_at`)
+  5. Deliver drinks (sets `delivered_at`)
+  6. End turn (players raise hands, sets `end_time`)
+
+**Drink** (`Drink`, `DrinkIngredients`, `Ingredient`)
+- Beverage recipe system
+- `Drink`: Basic drink info
+  - `id`, `name`: Identity
+  - `favorite`: Marks frequently used drinks
+  - `no_mix_required`: If true, skip mixing phase (e.g., beer, premade drinks)
+- `DrinkIngredients`: Drink with full ingredient list, calculated ABV and total quantity
+- `Ingredient`: Component of drinks (name, abv, carbonated, quantity in cl)
+
+**PlaceDrink** (`PlaceDrink`, `PlaceDrinks`)
+- Template defining which drinks are awarded when landing on a specific `BoardPlace`
+- Fields:
+  - `drink`: The drink recipe to award
+  - `n`: Base quantity of this drink
+  - `n_update`: Formula string for calculating quantity (e.g., "dice1 + dice2")
+  - `refill`: If true, awarded on every visit; if false, only on first visit to this place
+  - `optional`: If true, referee can choose whether to award this drink
+  - `on_table`: If true, drink is already on the game board (immediately available); if false, needs to be ordered/mixed
+- Converted to `TurnDrink` when a turn is confirmed (via `to_turn_drink()` method)
+
+**TurnDrink** (`TurnDrink`, `TurnDrinks`)
+- Actual drinks awarded to a team during a specific turn
+- `TurnDrinks` is a wrapper containing `Vec<TurnDrink>`
+- Fields:
+  - `drink`: Reference to the drink recipe
+  - `n`: Final quantity (after applying multipliers from double_tampere, dice formulas, etc.)
+  - `on_table`: How many of the drinks were already on the game board (based on `PlaceDrink.on_table`)
+- Can be modified by referee after turn confirmation (adding/removing drinks, changing quantities)
+- Created from `PlaceDrink` templates when turn is confirmed, or manually specified for penalty turns
+
+**Connections** (`Connection`)
+- Defines paths between places on a board for movement calculation
+- Fields: `origin`, `target` (both are `place_number` values, not place IDs)
+- Movement flags:
+  - `on_land`: Auto-taken when landing on origin (used for Tampere, Raide-Jokeri shortcuts)
+  - `backwards`: Path for backwards movement (used at AYY square, end of board turnaround)
+  - `dashed`: Visual style hint for rendering the board
+
+### Game Start Logic
+- Create game → Add teams → Start game
+- Starting game creates initial penalty turns for all teams at the start position
+- Each penalty turn includes the starting drinks (specified in `FirstTurnPost`)
+
+### Movement Calculation (once per turn)
+- Team throws dice, secretary marks down the throw, and system calculates final location
+- Assistant referee confirms final location and associated drinks
+- `move_forwards()` / `move_backwards()` traverse `Connection` paths
+- Movement respects connection flags (`on_land`, `backwards`)
+- Final `place_number` is stored in `Turn.location`
+
+### Drink Flow (PlaceDrink → TurnDrink)
+- **At Confirmation**: `PlaceDrink` templates are converted to `TurnDrink` instances
+  - Applies `n_update` formula (e.g., calculates quantity from dice)
+  - Applies `refill` rule (skip if place visited before and refill=false)
+  - Applies multipliers (double dice and `double_tampere` double quantities)
+  - Referee can manually adjust drinks before/after confirmation
+- **Mixing Phase**: Only for drinks where `no_mix_required=false` AND `on_table=false`
+  - `on_table=true`: Drink already exists on board, skip mixing and delivery → goes directly to delivered
+  - `no_mix_required=true`: No mixing needed (e.g., beer), skip mixing → goes directly to delivery phase
+  - Otherwise: IE mixes the drink (`mixing_at` → `mixed_at` → `delivered_at`)
+- **End Turn**: Players raise hands when drinks consumed and turn is complete
+
 ## Code Style
 
 - Rust: `cargo fmt` for formatting, `clippy` for linting
 - TypeScript: Prettier for formatting, ESLint for linting (with `eslint --fix` for auto-fixing)
 - Always include brief doc comments for each function and struct on the module root. Callbacks and inner functions can omit comments if obvious.
 - Use a blank line between functions and struct definitions for readability. When modifying code, insert these where missing, but don't touch unrelated code.
+
+## Developing
+
+- Always format and lint when finished with a change, but avoid doing it unnecessarily.
+- Generate types after changing Rust types before making any frontend changes.
+- Make sure to update CLAUDE.md if you change core logic, data structures, or development commands.
 
 ## Environment Setup
 

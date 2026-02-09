@@ -33,6 +33,7 @@ export default function GameStartDialogue({
         .map((d) => ({
           drink: d,
           n: 0,
+          on_table: 0,
         }));
       if (favoriteDrinks.length > 0) {
         setSelectedDrinks({ drinks: favoriteDrinks });
@@ -74,7 +75,11 @@ export default function GameStartDialogue({
             onClick={(e) => e.stopPropagation()}
             className="w-xl bg-white h-[80dvh] max-h-200 flex flex-col gap-2 px-4 py-2"
           >
-            <p className="text-xl">Valitse aloitusjuomat</p>
+            <p className="text-xl">Valitse aloitusjuomat.</p>
+            <p>
+              <em>Huom!</em> Hanki juomat valmiiksi pöytiin ennen pelin
+              aloittamista!
+            </p>
             <DrinkSelectionList
               availableDrinks={knownDrinks}
               selectedDrinks={selectedDrinks}

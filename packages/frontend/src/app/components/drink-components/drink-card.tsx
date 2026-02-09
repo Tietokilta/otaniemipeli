@@ -214,12 +214,14 @@ export function PlaceDrinkCard({ drink }: { drink: PlaceDrink }): JSX.Element {
   );
 }
 
-export function TurnDrinkCard({
+function TurnDrinkCard({
   drink,
   drinkIngredients,
+  ieOnly = false,
 }: {
   drink: TurnDrink;
   drinkIngredients?: DrinkIngredients;
+  ieOnly?: boolean;
 }): JSX.Element {
   const trivial =
     drinkIngredients?.ingredients.length === 1 &&
@@ -229,7 +231,13 @@ export function TurnDrinkCard({
   return (
     <div className="flex flex-col w-full border-b border-primary-900">
       <div className="flex items-center whitespace-nowrap">
-        <h2 className="text-2xl text-left px-1">{drink.n}x</h2>
+        <h2 className="text-2xl text-left px-1">
+          {
+            // Subtract on_table drinks if used for IE view
+            ieOnly ? drink.n - drink.on_table : drink.n
+          }
+          x
+        </h2>
         <h2 className="text-xl text-left px-1 overflow-hidden text-ellipsis">
           {drink.drink.name}
           {trivial && ` (${drinkIngredients.ingredients[0].quantity}cl)`}
@@ -252,10 +260,12 @@ export function TurnDrinksList({
   drinks,
   className,
   drinksData,
+  ieOnly = false,
 }: {
   drinks: TurnDrink[];
   className?: string;
   drinksData?: DrinksIngredients | null;
+  ieOnly?: boolean;
 }): JSX.Element {
   // Create a map of drink ID to DrinkIngredients for quick lookup
   const drinksMap = useMemo(
@@ -277,6 +287,7 @@ export function TurnDrinksList({
             key={`${drink.drink.id}`}
             drink={drink}
             drinkIngredients={drinksMap.get(drink.drink.id)}
+            ieOnly={ieOnly}
           />
         ))}
     </VerticalList>

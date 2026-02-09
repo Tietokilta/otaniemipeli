@@ -25,6 +25,6 @@
     "url": "https://github.com/Tietokilta/otaniemipeli.git"
   },
   "devDependencies": {
-    "prettier": "^3.7.4"
+    "prettier": "^3.8.1"
   }
 }

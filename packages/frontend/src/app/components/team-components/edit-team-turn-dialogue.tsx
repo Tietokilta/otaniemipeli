@@ -1,4 +1,11 @@
-import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
+import React, {
+  useEffect,
+  useState,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+} from "react";
+import deepEqual from "fast-deep-equal";
 import PopUpDialogue from "../pop-up-dialogue";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import {
@@ -486,10 +493,13 @@ const AddTeamPenaltyDialogue = ({
       // Add favorite drinks with n=0
       const favoriteDrinks = drinkList
         .filter((d) => d.favorite)
-        .map((d) => ({
-          drink: d,
-          n: 0,
-        }));
+        .map(
+          (d): TurnDrink => ({
+            drink: d,
+            n: 0,
+            on_table: 0,
+          }),
+        );
       if (favoriteDrinks.length > 0) {
         setPenaltyDrinks({ drinks: favoriteDrinks });
       }
@@ -564,6 +574,7 @@ function addFavorites(
     .map((d) => ({
       drink: d,
       n: 0,
+      on_table: 0,
     }));
   const toAdd = favoriteDrinks.filter(
     (fd) => !turnDrinks.drinks.some((d) => d.drink.id === fd.drink.id),
@@ -572,6 +583,12 @@ function addFavorites(
     ? turnDrinks
     : { drinks: [...turnDrinks.drinks, ...toAdd] };
 }
+
+type TurnDrinksWithSources = {
+  combined: TurnDrinks;
+  fromServer: TurnDrinks;
+  drinksLoaded: boolean;
+};
 
 const AssistantRefereeDialogue = ({
   team,
@@ -583,11 +600,15 @@ const AssistantRefereeDialogue = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
-  const [turnDrinks, setTurnDrinks] = useState<TurnDrinks>({
-    drinks: [],
-  });
   const [pending, setPending] = useState(false);
   const [changingDice, setChangingDice] = useState(false);
+
+  const [prevTurnDrinks, setTurnDrinks] = useState<TurnDrinksWithSources>({
+    combined: turn.drinks,
+    fromServer: turn.drinks,
+    drinksLoaded: false,
+  });
+  const { combined: turnDrinks } = prevTurnDrinks;
 
   useEffect(() => {
     getDrinks().then((drinks) => {
@@ -596,14 +617,25 @@ const AssistantRefereeDialogue = ({
     });
   }, []);
 
-  useEffect(() => {
-    // Populate turnDrinks with existing drinks for the turn
-    if (turn.drinks) {
-      setTurnDrinks(
-        addFavorites({ drinks: turn.drinks.drinks }, availableDrinks),
-      );
-    }
-  }, [turn.drinks, availableDrinks]);
+  // Populate turnDrinks if the turn changed
+  if (
+    !deepEqual(turn.drinks, prevTurnDrinks.fromServer) &&
+    availableDrinks.length > 0
+  ) {
+    setTurnDrinks({
+      combined: addFavorites(turnDrinks, availableDrinks),
+      fromServer: turn.drinks,
+      drinksLoaded: availableDrinks.length > 0,
+    });
+  }
+  // Or if drinks just loaded and we haven't added favorites yet
+  else if (!prevTurnDrinks.drinksLoaded && availableDrinks.length > 0) {
+    setTurnDrinks({
+      combined: addFavorites(turnDrinks, availableDrinks),
+      fromServer: turn.drinks,
+      drinksLoaded: availableDrinks.length > 0,
+    });
+  }
 
   const handleSubmit = async () => {
     setPending(true);
@@ -665,7 +697,9 @@ const AssistantRefereeDialogue = ({
         <DrinkSelectionList
           availableDrinks={availableDrinks}
           selectedDrinks={turnDrinks}
-          setSelectedDrinks={setTurnDrinks}
+          setSelectedDrinks={(fn) =>
+            setTurnDrinks((prev) => ({ ...prev, combined: fn(turnDrinks) }))
+          }
         />
         <div className="flex justify-between px-4 py-4">
           <button
@@ -698,53 +732,43 @@ export function DrinkSelectionList<T extends Drink>({
 }: {
   availableDrinks: T[];
   selectedDrinks: TurnDrinks;
-  setSelectedDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
+  setSelectedDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
   buttonText?: string;
 }): JSX.Element {
-  const [selectedOption, setSelectedOption] = useState<T | undefined>();
-
   // Filter out already-selected drinks from the dropdown
   const filteredDrinks = availableDrinks.filter(
     (d) => !selectedDrinks.drinks.some((td) => td.drink.id === d.id),
   );
 
-  useEffect(() => {
-    if (!selectedOption) return;
-
-    setSelectedDrinks((prev) => {
-      const existing = prev.drinks.find(
-        (d) => d.drink.id === selectedOption.id,
-      );
-      if (existing) {
-        // Increment n if already exists (e.g., favorite at n=0)
+  const onSelect = useCallback(
+    (selected: T | undefined) => {
+      if (!selected) return;
+      setSelectedDrinks((prev) => {
+        // Ensure we don't add the same drink twice (shouldn't occur normally with the filtering above)
+        if (prev.drinks.some((d) => d.drink.id === selected.id)) return prev;
+        // Add new drink with n=1
         return {
-          drinks: prev.drinks.map((d) =>
-            d.drink.id === selectedOption.id ? { ...d, n: d.n + 1 } : d,
-          ),
+          drinks: [
+            ...prev.drinks,
+            {
+              drink: selected,
+              n: 1,
+              on_table: 0,
+            },
+          ],
         };
-      }
-      // Add new drink with n=1
-      return {
-        drinks: [
-          ...prev.drinks,
-          {
-            drink: selectedOption,
-            n: 1,
-          },
-        ],
-      };
-    });
-
-    setSelectedOption(undefined);
-  }, [selectedOption, setSelectedDrinks]);
+      });
+    },
+    [setSelectedDrinks],
+  );
 
   return (
     <>
       <DropdownMenu
         buttonText={buttonText}
         options={filteredDrinks}
-        selectedOption={selectedOption}
-        setSelectedOption={setSelectedOption}
+        selectedOption={undefined}
+        setSelectedOption={onSelect}
       />
       <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
         {selectedDrinks.drinks.length === 0 && (
@@ -769,7 +793,7 @@ export function DrinkSelectionCard({
   favorite = false,
 }: {
   turnDrink: TurnDrink;
-  updateDrinks: React.Dispatch<React.SetStateAction<TurnDrinks>>;
+  updateDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
   favorite?: boolean;
 }): JSX.Element {
   const updateN = (change: number) => {
@@ -777,8 +801,8 @@ export function DrinkSelectionCard({
       const newN = turnDrink.n + change;
       // Don't go below 0
       if (newN < 0) return dr;
-      // Delete non-favorite drinks when going below 1
-      if (newN < 1 && !favorite) {
+      // Delete non-favorite, non-on-table drinks when going below 1
+      if (newN < 1 && !favorite && !turnDrink.on_table) {
         return {
           drinks: dr.drinks.filter(
             (drink) => drink.drink.id !== turnDrink.drink.id,
@@ -800,8 +824,15 @@ export function DrinkSelectionCard({
 
   return (
     <div className="flex gap-2 w-full box p-2 center">
-      <div className="w-1/2 mr-auto text-lg font-bold overflow-hidden flex-grow-0 text-ellipsis text-nowrap text-left">
-        {turnDrink.drink.name}
+      <div className="w-1/2 flex flex-col">
+        <div className="text-lg font-bold overflow-hidden text-ellipsis text-nowrap text-left">
+          {turnDrink.drink.name}
+        </div>
+        {turnDrink.on_table > 0 && (
+          <div className="text-base text-left">
+            Ruudussa: {turnDrink.on_table} kpl
+          </div>
+        )}
       </div>
       <div
         className="flex gap-2 w-1/2 center"

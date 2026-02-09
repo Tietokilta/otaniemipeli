@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import SelectMode from "@/app/components/select-mode";
 import { usersExist } from "@/utils/fetchers";
 import CreateFirstUser from "@/app/components/create-user-form";
+import { GameLoadingSpinner } from "./components/game-components/game-loading-states";
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
   const [loggedIn, setLogin] = useState<boolean>(false);
   const [firstUserExists, setFirstUserExists] = useState<boolean>(false);
   const [text, setText] = useState<string>("");
@@ -19,7 +21,9 @@ export default function Home() {
     fetch(base)
       .then((res) => res.text())
       .then(setText)
-      .catch((err) => setText("Failed to fetch base:" + err));
+      .catch((err) =>
+        setText((prev) => prev || "Failed to fetch server status: " + err),
+      );
   }, []);
 
   // Check if users exist - only on mount
@@ -27,9 +31,10 @@ export default function Home() {
     usersExist()
       .then((data: boolean) => {
         setFirstUserExists(data);
+        setLoading(false);
       })
       .catch((error) => {
-        console.error("Error checking if users exist:", error);
+        setText("Error checking if users exist: " + error);
       });
   }, []);
 
@@ -52,8 +57,10 @@ export default function Home() {
         <SelectMode setLoginAction={setLogin} />
       ) : firstUserExists ? (
         <LoginComponent setLoginAction={setLogin} />
-      ) : (
+      ) : !loading ? (
         <CreateFirstUser setLoginAction={setLogin} firstUser={true} />
+      ) : (
+        <GameLoadingSpinner />
       )}
     </div>
   );

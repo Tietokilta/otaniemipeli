@@ -97,7 +97,7 @@ pub fn build_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
     }
 }
 
-/// Builds a BoardPlace struct from a row and fetches its connections.
+/// Builds a BoardPlace struct from a row and fetches its connections and drinks.
 async fn build_board_place_and_get_connections(
     client: &Client,
     row: &Row,
