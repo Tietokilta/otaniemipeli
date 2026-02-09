@@ -227,7 +227,28 @@ pub async fn get_place_drinks(
 }
 
 /// Adds drink assignments to a place on a board.
-pub async fn add_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, AppError> {
+pub async fn set_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u64, AppError> {
+    // Ensure all drinks belong to the same place and board
+    if drinks.drinks.is_empty() {
+        return Ok(0);
+    }
+    if !drinks.drinks.iter().all(|d| {
+        d.place_number == drinks.drinks[0].place_number && d.board_id == drinks.drinks[0].board_id
+    }) {
+        return Err(AppError::Validation(
+            "All drinks must belong to the same place and board".to_string(),
+        ));
+    }
+
+    // Delete existing drinks for the place
+    let delete_str = "DELETE FROM place_drinks WHERE place_number = $1 AND board_id = $2";
+    client
+        .execute(
+            delete_str,
+            &[&drinks.drinks[0].place_number, &drinks.drinks[0].board_id],
+        )
+        .await?;
+
     let query_str = "\
     INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, on_table, n, n_update) \
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";

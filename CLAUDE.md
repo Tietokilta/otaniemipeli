@@ -117,13 +117,6 @@ Drink (beverage recipe)
   - `place`: Full `BoardPlace` object for the location
   - `drinks`: List of drinks awarded
   - `penalty`: Whether this is a penalty turn (no dice)
-- Turn progression:
-  1. Start turn (referee clicks "give turn")
-  2. Throw dice (sets `thrown_at`)
-  3. Confirm location & drinks (sets `confirmed_at`)
-  4. Mix drinks (IE: `mixing_at` → `mixed_at`)
-  5. Deliver drinks (sets `delivered_at`)
-  6. End turn (players raise hands, sets `end_time`)
 
 **Drink** (`Drink`, `DrinkIngredients`, `Ingredient`)
 - Beverage recipe system
@@ -168,9 +161,22 @@ Drink (beverage recipe)
 - Starting game creates initial penalty turns for all teams at the start position
 - Each penalty turn includes the starting drinks (specified in `FirstTurnPost`)
 
-### Movement Calculation (once per turn)
-- Team throws dice, secretary marks down the throw, and system calculates final location
-- Assistant referee confirms final location and associated drinks
+### Turn Progression
+Most game logic is in `packages/backend/src/api/v1/turns/utils.rs`:
+
+1. Start turn (referee clicks "give turn")
+2. Throw dice (sets `thrown_at`)
+  - Movement calculated
+3. Confirm location & drinks (sets `confirmed_at`)
+  - Referee can adjust dice, location is recalculated and drinks regenerated
+  - Referee can adjust drinks before confirming
+4. Mix drinks (IE: `mixing_at` → `mixed_at`)
+5. Deliver drinks (sets `delivered_at`)
+6. End turn (players raise hands, sets `end_time`)
+
+### Movement Calculation
+All movement logic is in `packages/backend/src/database/boards.rs`:
+
 - `move_forwards()` / `move_backwards()` traverse `Connection` paths
 - Movement respects connection flags (`on_land`, `backwards`)
 - Final `place_number` is stored in `Turn.location`

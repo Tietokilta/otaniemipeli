@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS turn_drinks
     turn_id  INTEGER NOT NULL REFERENCES turns (turn_id) ON DELETE CASCADE,
     n        INTEGER NOT NULL DEFAULT 1,
     on_table INTEGER NOT NULL DEFAULT 0,
+    -- whether an assistant referee should do manual work to this drink; not used after confirming the turn
+    optional BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (drink_id, turn_id)
 );
 

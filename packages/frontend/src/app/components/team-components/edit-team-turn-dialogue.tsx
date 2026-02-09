@@ -23,8 +23,10 @@ import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
 import SimpleConfirmedButton from "../simple-confirmed-button";
 import PlaceCard from "../board-components/place-card";
 
-/** Set to true to show the dice selection dialog when creating turns. */
-const REFEREE_ENTERS_DICE = false;
+/** Set to false to show the dice selection dialog when creating turns. */
+const USE_SECRETARIES = true;
+/** Set to false to auto-enter the assistant referee dialogue. */
+const USE_ASSISTANT_REFEREES = true;
 
 const ALLOW_REFEREE_TO_DELIVER_DRINKS = true;
 const KEEP_DIALOGUE_OPEN_ON_ACTIONS = true;
@@ -100,7 +102,10 @@ export const EditTeamTurnDialogue = ({
     );
   }
 
-  if ((choice === "assistant" || assistant) && unconfirmedTurn) {
+  if (
+    (choice === "assistant" || assistant || !USE_ASSISTANT_REFEREES) &&
+    unconfirmedTurn
+  ) {
     return (
       <AssistantRefereeDialogue
         team={team}
@@ -136,7 +141,7 @@ export const EditTeamTurnDialogue = ({
         <AddTeamTurnButton
           team={team}
           referee
-          allowDice={REFEREE_ENTERS_DICE}
+          allowDice={!USE_SECRETARIES}
           diceOpen={choice === "turn"}
           setDiceOpen={setDiceOpen}
           onAssistant={() => setChoice("assistant")}
@@ -541,6 +546,7 @@ const AddTeamPenaltyDialogue = ({
             drink: d,
             n: 0,
             on_table: 0,
+            optional: false,
           }),
         );
       if (favoriteDrinks.length > 0) {
@@ -618,6 +624,7 @@ function addFavorites(
       drink: d,
       n: 0,
       on_table: 0,
+      optional: false,
     }));
   const toAdd = favoriteDrinks.filter(
     (fd) => !turnDrinks.drinks.some((d) => d.drink.id === fd.drink.id),
@@ -626,12 +633,6 @@ function addFavorites(
     ? turnDrinks
     : { drinks: [...turnDrinks.drinks, ...toAdd] };
 }
-
-type TurnDrinksWithSources = {
-  combined: TurnDrinks;
-  fromServer: TurnDrinks;
-  drinksLoaded: boolean;
-};
 
 const AssistantRefereeDialogue = ({
   team,
@@ -646,10 +647,17 @@ const AssistantRefereeDialogue = ({
   const [pending, setPending] = useState(false);
   const [changingDice, setChangingDice] = useState(false);
 
+  type TurnDrinksWithSources = {
+    combined: TurnDrinks;
+    fromServer: TurnDrinks;
+    drinksLoaded: boolean;
+    modified: boolean;
+  };
   const [prevTurnDrinks, setTurnDrinks] = useState<TurnDrinksWithSources>({
     combined: turn.drinks,
     fromServer: turn.drinks,
     drinksLoaded: false,
+    modified: false,
   });
   const { combined: turnDrinks } = prevTurnDrinks;
 
@@ -669,6 +677,7 @@ const AssistantRefereeDialogue = ({
       combined: addFavorites(turnDrinks, availableDrinks),
       fromServer: turn.drinks,
       drinksLoaded: availableDrinks.length > 0,
+      modified: false,
     });
   }
   // Or if drinks just loaded and we haven't added favorites yet
@@ -677,8 +686,12 @@ const AssistantRefereeDialogue = ({
       combined: addFavorites(turnDrinks, availableDrinks),
       fromServer: turn.drinks,
       drinksLoaded: availableDrinks.length > 0,
+      modified: false,
     });
   }
+
+  const hasOptionals = turnDrinks.drinks.some((d) => d.optional);
+  const mustModify = hasOptionals && !prevTurnDrinks.modified;
 
   const handleSubmit = async () => {
     setPending(true);
@@ -695,6 +708,7 @@ const AssistantRefereeDialogue = ({
   const showAyy =
     !!turn.dice_ayy ||
     turn.place?.place.place_name === "Aalto-yliopiston Ylioppilaskunta";
+  const mustAyy = showAyy && !turn.dice_ayy;
 
   return (
     <PopUpDialogue
@@ -710,16 +724,20 @@ const AssistantRefereeDialogue = ({
         />
       )}
       <form
-        className="w-[90vw] md:w-xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
+        className="w-[90vw] md:w-2xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
         onSubmit={(e) => {
           e.preventDefault();
         }}
       >
         <div className="flex items-center gap-2">
-          <p>
-            Heitot: {turn.dice1} + {turn.dice2}
-            {showAyy && <> - {turn.dice_ayy || <em>???</em>} (AYY)</>}
-          </p>
+          <span>
+            Heitot: {turn.dice1}&nbsp;+&nbsp;{turn.dice2}
+          </span>
+          {mustAyy ? (
+            <em>AYY-nopanheitto vaaditaan.</em>
+          ) : (
+            showAyy && <em>AYY-noppa: {turn.dice_ayy}</em>
+          )}
           <button
             type="button"
             className="button"
@@ -734,17 +752,30 @@ const AssistantRefereeDialogue = ({
           <p>Paikkaa ei löydy!</p>
         )}
         {turn.place?.place.rule && (
-          <p className="text-lg text-left border-l-2 border-primary-900 pl-4 ml-4 pr-8">
-            &quot;{turn.place.place.rule}&quot;
-          </p>
+          <div className="flex items-center">
+            <em>Sääntö</em>
+            <p className="text-lg text-left border-l-2 border-primary-900 pl-2 ml-2">
+              &quot;{turn.place.place.rule}&quot;
+            </p>
+          </div>
         )}
         <DrinkSelectionList
           availableDrinks={availableDrinks}
           selectedDrinks={turnDrinks}
           setSelectedDrinks={(fn) =>
-            setTurnDrinks((prev) => ({ ...prev, combined: fn(turnDrinks) }))
+            setTurnDrinks((prev) => ({
+              ...prev,
+              combined: fn(turnDrinks),
+              modified: true,
+            }))
           }
         />
+        {mustModify && (
+          <div className="text-lg -mb-4">
+            <em>Ruudun sääntö sisältää juomavaihtoehtoja. </em>
+            Lue sääntö huolella ja koske juomavalintoihin vahvistaaksesi vuoron.
+          </div>
+        )}
         <div className="flex justify-between px-4 py-4">
           <button
             type="button"
@@ -758,7 +789,7 @@ const AssistantRefereeDialogue = ({
             type="button"
             className="button text-xl p-4"
             onClick={handleSubmit}
-            disabled={pending || (showAyy && !turn.dice_ayy)}
+            disabled={pending || mustAyy || mustModify}
           >
             Vahvista vuoro
           </button>
@@ -798,6 +829,7 @@ export function DrinkSelectionList<T extends Drink>({
               drink: selected,
               n: 1,
               on_table: 0,
+              optional: false,
             },
           ],
         };
@@ -823,7 +855,6 @@ export function DrinkSelectionList<T extends Drink>({
             key={drink.drink.id}
             turnDrink={drink}
             updateDrinks={setSelectedDrinks}
-            favorite={drink.drink.favorite}
           />
         ))}
       </div>
@@ -834,25 +865,15 @@ export function DrinkSelectionList<T extends Drink>({
 export function DrinkSelectionCard({
   turnDrink,
   updateDrinks,
-  favorite = false,
 }: {
   turnDrink: TurnDrink;
   updateDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
-  favorite?: boolean;
 }): JSX.Element {
   const updateN = (change: number) => {
     updateDrinks((dr) => {
       const newN = turnDrink.n + change;
       // Don't go below 0
       if (newN < 0) return dr;
-      // Delete non-favorite, non-on-table drinks when going below 1
-      if (newN < 1 && !favorite && !turnDrink.on_table) {
-        return {
-          drinks: dr.drinks.filter(
-            (drink) => drink.drink.id !== turnDrink.drink.id,
-          ),
-        };
-      }
       return {
         drinks: dr.drinks.map((existingDrink) =>
           existingDrink.drink.id === turnDrink.drink.id
@@ -875,6 +896,11 @@ export function DrinkSelectionCard({
         {turnDrink.on_table > 0 && (
           <div className="text-base text-left">
             Ruudussa: {turnDrink.on_table} kpl
+          </div>
+        )}
+        {turnDrink.optional && (
+          <div className="text-base text-left">
+            <em>Valinnainen</em>
           </div>
         )}
       </div>

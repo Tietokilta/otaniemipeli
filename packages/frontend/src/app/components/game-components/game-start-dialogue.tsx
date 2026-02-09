@@ -34,6 +34,7 @@ export default function GameStartDialogue({
           drink: d,
           n: 0,
           on_table: 0,
+          optional: false,
         }));
       if (favoriteDrinks.length > 0) {
         setSelectedDrinks({ drinks: favoriteDrinks });

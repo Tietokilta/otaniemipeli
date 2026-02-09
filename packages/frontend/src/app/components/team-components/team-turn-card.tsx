@@ -41,7 +41,7 @@ function sumByDrinkId(rows: TurnDrink[]) {
       existing.n += n; // add up
       existing.on_table += on_table;
     } else {
-      byId.set(drink.id, { drink, n, on_table });
+      byId.set(drink.id, { drink, n, on_table, optional: false });
     }
   }
   return { drinks: Array.from(byId.values()), total_drinks };

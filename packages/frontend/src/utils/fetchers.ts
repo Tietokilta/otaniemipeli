@@ -289,11 +289,11 @@ export async function updatePlace(place: Place): Promise<number> {
   );
 }
 
-export async function addDrinksToPlace(drinks: PlaceDrinks): Promise<number> {
+export async function setPlaceDrinks(drinks: PlaceDrinks): Promise<number> {
   return apiFetch<number>(
     `${API_URL}/boards/places/drinks`,
     {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify(drinks),
     },
     true,

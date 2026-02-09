@@ -214,8 +214,14 @@ pub async fn set_turn_drinks(
     for drink in &drinks.drinks {
         client
             .execute(
-                "INSERT INTO turn_drinks (turn_id, drink_id, n, on_table) VALUES ($1, $2, $3, $4)",
-                &[&turn_id, &drink.drink.id, &drink.n, &drink.on_table],
+                "INSERT INTO turn_drinks (turn_id, drink_id, n, on_table, optional) VALUES ($1, $2, $3, $4, $5)",
+                &[
+                    &turn_id,
+                    &drink.drink.id,
+                    &drink.n,
+                    &drink.on_table,
+                    &drink.optional,
+                ],
             )
             .await?;
     }

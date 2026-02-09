@@ -66,6 +66,7 @@ declare global {
     drink: Drink;
     n: number;
     on_table: number;
+    optional: boolean;
   }
 
   interface TurnDrinks {
@@ -277,6 +278,7 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
+
 }
 
 export {};

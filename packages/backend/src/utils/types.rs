@@ -132,7 +132,10 @@ pub struct Team {
 pub struct TurnDrink {
     pub drink: Drink,
     pub n: i32,
+    /// what number of this drink was picked up from the table and doesn't require IE involvement
     pub on_table: i32,
+    /// whether an assistant referee should do manual work to this drink; not used after confirming the turn
+    pub optional: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -346,7 +349,9 @@ pub struct PlaceDrink {
     pub board_id: BoardId,
     pub drink: Drink,
     pub refill: bool,
+    /// whether an assistant referee should do manual work to this drink; not used after confirming the turn
     pub optional: bool,
+    /// whether this drink is already on the table and doesn't require IE involvement
     pub on_table: bool,
     pub n: i32,
     pub n_update: String,
@@ -359,6 +364,7 @@ impl PlaceDrink {
             drink: self.drink.clone(),
             n,
             on_table: if self.on_table { min(n, self.n) } else { 0 },
+            optional: self.optional,
         }
     }
 }
