@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Otaniemipeli: IE",
 };
 
+const headerItems: HeaderItem[] = [{ text: "Juomat", href: "/drinks" }];
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -13,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <>
-      <GeneralHeader base_path="/ie" />
+      <GeneralHeader base_path="/ie" items={headerItems} />
       <div className="flex flex-col flex-1 min-h-0 p-4">{children}</div>
     </>
   );
