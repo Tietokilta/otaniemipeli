@@ -124,11 +124,11 @@ export default function GeneralHeader({
             />
           ))}
           <HeaderItemComponent
-            text="FS"
+            text="Fullscreen"
             onClick={() => document.documentElement.requestFullscreen()}
           />
-          <HeaderItemComponent text="Vaihda roolia" href="/" />
-          <HeaderItemComponent text="Kirjaudu ulos" onClick={handleLogout} />
+          <HeaderItemComponent text="Roolit" href="/" />
+          <HeaderItemComponent text="Logout" onClick={handleLogout} />
         </nav>
       </div>
     </div>

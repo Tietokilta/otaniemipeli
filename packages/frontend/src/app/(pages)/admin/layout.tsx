@@ -6,16 +6,17 @@ export const metadata: Metadata = {
   title: "Otaniemipeli: Admin",
 };
 
+const headerItems: HeaderItem[] = [
+  { text: "Pelilauta", href: "/board" },
+  { text: "Paikat", href: "/boards" },
+  { text: "Juomat", href: "/drinks" },
+];
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headerItems: HeaderItem[] = [
-    { text: "Pelilauta", href: "/board" },
-    { text: "Paikat", href: "/boards" },
-    { text: "Juomat", href: "/drinks" },
-  ];
   return (
     <>
       <GeneralHeader base_path="/admin" items={headerItems} />

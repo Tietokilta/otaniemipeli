@@ -17,33 +17,33 @@ export default async function PlacesList({
   }
   const places: Places = await res.json();
   return (
-    <div className={`${className} overflow-y-scroll`}>
-      <ul className="flex flex-col gap-2 px-4 py-2">
-        {places ? (
-          places.places.map((place: Place) => (
-            <li key={place.place_id}>
-              <PlaceCard
-                place={{
-                  board_id: -1,
-                  place,
-                  place_number: -1,
-                  drinks: {
-                    drinks: [],
-                  },
-                  connections: { connections: [] },
-                  start: false,
-                  area: "normal",
-                  end: false,
-                  x: -100,
-                  y: -100,
-                }}
-              />
-            </li>
-          ))
-        ) : (
-          <p>No places!</p>
-        )}
-      </ul>
-    </div>
+    <ul
+      className={`${className} flex flex-col gap-2 px-2 py-2 overflow-y-auto`}
+    >
+      {places ? (
+        places.places.map((place: Place) => (
+          <li key={place.place_id}>
+            <PlaceCard
+              place={{
+                board_id: -1,
+                place,
+                place_number: -1,
+                drinks: {
+                  drinks: [],
+                },
+                connections: { connections: [] },
+                start: false,
+                area: "normal",
+                end: false,
+                x: -100,
+                y: -100,
+              }}
+            />
+          </li>
+        ))
+      ) : (
+        <p>No places!</p>
+      )}
+    </ul>
   );
 }

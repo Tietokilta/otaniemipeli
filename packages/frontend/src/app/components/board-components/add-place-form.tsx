@@ -12,15 +12,15 @@ export default function AddPlaceForm({
 }): JSX.Element {
   const defaultPlace: Place = {
     place_id: -1,
-    place_name: "Paikan nimi",
-    rule: "Sääntö",
+    place_name: "",
+    rule: "",
     place_type: "Normal",
   };
   const router = useRouter();
 
   const [place, updatePlace] = useState<Place>(defaultPlace);
   const [selected, setSelected] = useState<PlaceType>("Normal");
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     createPlace(place);
     updatePlace(defaultPlace);
@@ -38,7 +38,8 @@ export default function AddPlaceForm({
       <h2 className="text-xl font-bold">Luo paikka</h2>
       <input
         type="text"
-        placeholder={place.place_name}
+        value={place.place_name}
+        placeholder="Paikan nimi"
         className="border border-primary-500 rounded-lg p-2 w-full"
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           updatePlace({
@@ -87,7 +88,8 @@ export default function AddPlaceForm({
         </select>
       </div>
       <textarea
-        placeholder={place.rule}
+        value={place.rule}
+        placeholder="Sääntö..."
         className="border border-primary-500 rounded-lg p-2 w-full"
         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
           updatePlace({

@@ -25,22 +25,22 @@ export default async function BoardPlacesList({
 
   const boardPlaces: BoardPlaces = await res.json();
   return (
-    <div className={`${className} max-h-screen`}>
-      <ul className="grid gap-2 overflow-y-scroll px-4 py-2">
-        {boardPlaces ? (
-          boardPlaces.places
-            .sort((i, b) => {
-              return b.place_number - i.place_number;
-            })
-            .map((boardPlace: BoardPlace) => (
-              <li key={boardPlace.place_number}>
-                <PlaceCard place={boardPlace} />
-              </li>
-            ))
-        ) : (
-          <p>No ingredients!</p>
-        )}
-      </ul>
-    </div>
+    <ul
+      className={`${className} flex flex-col gap-2 overflow-y-auto px-2 py-2`}
+    >
+      {boardPlaces ? (
+        boardPlaces.places
+          .sort((i, b) => {
+            return b.place_number - i.place_number;
+          })
+          .map((boardPlace: BoardPlace) => (
+            <li key={boardPlace.place_number}>
+              <PlaceCard place={boardPlace} />
+            </li>
+          ))
+      ) : (
+        <p>No ingredients!</p>
+      )}
+    </ul>
   );
 }

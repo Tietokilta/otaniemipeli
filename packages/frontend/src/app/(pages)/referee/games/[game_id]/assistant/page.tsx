@@ -43,7 +43,7 @@ export default function Page({
         <TeamList
           game={gameData.game}
           teams={gameData.teams}
-          className="w-full"
+          className="w-full flex-1 min-h-0"
           editTurn={gameData.game.started}
         />
         {!gameData.game.started && gameData.teams.length > 0 && (
