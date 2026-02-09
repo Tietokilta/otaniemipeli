@@ -188,7 +188,7 @@ def rust_to_py_dataclasses(src: str) -> str:
     out.append("from typing import Optional, Any, Literal, Union")
     out.append("import sys\n")
     out.append("""
-def _resolve_type(field_type, cls_globals):
+def _resolve_type(field_type: str | type, cls_globals: dict[str, Any]):
     \"\"\"Resolve a type that might be a string forward reference.\"\"\"
     if isinstance(field_type, str):
         return cls_globals.get(field_type, field_type)

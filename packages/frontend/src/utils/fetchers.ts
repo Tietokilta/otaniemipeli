@@ -331,12 +331,45 @@ export async function startGame(
   );
 }
 
-export async function createTeam(gameId: number, team: Team): Promise<void> {
+export async function createTeam(
+  gameId: number,
+  teamName: string,
+): Promise<void> {
+  const team: TeamNameUpdate = { team_name: teamName };
   return apiFetchVoid(
     `${API_URL}/games/${gameId}/teams`,
     {
       method: "POST",
       body: JSON.stringify(team),
+    },
+    true,
+  );
+}
+
+export async function updateTeam(
+  gameId: number,
+  teamId: number,
+  teamName: string,
+): Promise<void> {
+  const team: TeamNameUpdate = { team_name: teamName };
+  return apiFetchVoid(
+    `${API_URL}/games/${gameId}/teams/${teamId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(team),
+    },
+    true,
+  );
+}
+
+export async function deleteTeam(
+  gameId: number,
+  teamId: number,
+): Promise<void> {
+  return apiFetchVoid(
+    `${API_URL}/games/${gameId}/teams/${teamId}`,
+    {
+      method: "DELETE",
     },
     true,
   );

@@ -10,6 +10,7 @@ export default function TeamList({
   link,
   linkPrefix,
   editTurn,
+  editTeam,
   canAdd = true,
 }: {
   game: Game;
@@ -18,6 +19,7 @@ export default function TeamList({
   link?: boolean;
   linkPrefix?: string;
   editTurn?: boolean;
+  editTeam?: boolean;
   canAdd?: boolean;
 }) {
   return (
@@ -34,6 +36,7 @@ export default function TeamList({
           link={link}
           linkPrefix={linkPrefix}
           editTurn={editTurn}
+          editTeam={editTeam}
         />
       ))}
     </ItemList>

@@ -6,7 +6,7 @@ from typing import Optional, Any, Literal, Union
 import sys
 
 
-def _resolve_type(field_type, cls_globals):
+def _resolve_type(field_type: str | type, cls_globals: dict[str, Any]):
     """Resolve a type that might be a string forward reference."""
     if isinstance(field_type, str):
         return cls_globals.get(field_type, field_type)
@@ -170,6 +170,13 @@ class Team:
     team_hash: str
     double_tampere: bool
     moral_victory_eligible: bool
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class TeamNameUpdate:
+    team_name: str
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

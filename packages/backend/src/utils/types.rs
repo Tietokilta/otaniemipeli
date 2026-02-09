@@ -128,6 +128,12 @@ pub struct Team {
     pub moral_victory_eligible: bool,
 }
 
+/// Request body for creating or updating a team's name.
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TeamNameUpdate {
+    pub team_name: String,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TurnDrink {
     pub drink: Drink,
@@ -304,6 +310,7 @@ pub struct Place {
     pub place_name: String,
     pub rule: String,
     pub place_type: PlaceType,
+    pub special: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -354,7 +361,6 @@ pub struct PlaceDrink {
     /// whether this drink is already on the table and doesn't require IE involvement
     pub on_table: bool,
     pub n: i32,
-    pub n_update: String,
 }
 
 impl PlaceDrink {

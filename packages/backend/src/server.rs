@@ -39,6 +39,7 @@ pub async fn start() -> anyhow::Result<()> {
             Method::GET,
             Method::POST,
             Method::PUT,
+            Method::PATCH,
             Method::DELETE,
             Method::OPTIONS,
         ])

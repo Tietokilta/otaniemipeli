@@ -62,6 +62,10 @@ declare global {
     moral_victory_eligible: boolean;
   }
 
+  interface TeamNameUpdate {
+    team_name: string;
+  }
+
   interface TurnDrink {
     drink: Drink;
     n: number;
