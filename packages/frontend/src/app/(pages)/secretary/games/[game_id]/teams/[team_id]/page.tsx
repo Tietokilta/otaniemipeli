@@ -47,8 +47,8 @@ export default function Page({
       </h3>
       <AddTeamTurnButton
         team={team}
-        open={dialogueOpen}
-        setOpen={setDialogueOpen}
+        diceOpen={dialogueOpen}
+        setDiceOpen={setDialogueOpen}
         allowDice={true}
       />
       <ToggleMoralVictoryButton team={team} referee={false} />

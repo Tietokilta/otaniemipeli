@@ -17,6 +17,7 @@ import {
   confirmPenalty,
   setMoralVictoryEligible,
   confirmTurn,
+  setDrinkPrepStatus,
 } from "@/utils/fetchers";
 import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
 import SimpleConfirmedButton from "../simple-confirmed-button";
@@ -24,6 +25,9 @@ import PlaceCard from "../board-components/place-card";
 
 /** Set to true to show the dice selection dialog when creating turns. */
 const REFEREE_ENTERS_DICE = false;
+
+const ALLOW_REFEREE_TO_DELIVER_DRINKS = true;
+const KEEP_DIALOGUE_OPEN_ON_ACTIONS = true;
 
 /** Returns the unconfirmed penalty turn if one exists. */
 function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
@@ -106,9 +110,16 @@ export const EditTeamTurnDialogue = ({
     );
   }
 
-  const addTurnSetOpen = (open: boolean) => {
+  const setDiceOpen = (open: boolean) => {
     setChoice(open ? "turn" : null);
     setOpen(open);
+  };
+
+  const onActionDone = () => {
+    if (!KEEP_DIALOGUE_OPEN_ON_ACTIONS) {
+      setChoice(null);
+      setOpen(false);
+    }
   };
 
   return (
@@ -126,9 +137,10 @@ export const EditTeamTurnDialogue = ({
           team={team}
           referee
           allowDice={REFEREE_ENTERS_DICE}
-          open={choice === "turn"}
-          setOpen={addTurnSetOpen}
+          diceOpen={choice === "turn"}
+          setDiceOpen={setDiceOpen}
           onAssistant={() => setChoice("assistant")}
+          onActionDone={onActionDone}
         />
         <button
           className="button text-xl p-5"
@@ -197,8 +209,9 @@ const statusPriority: Record<TurnStatus, number> = {
 
 export const AddTeamTurnButton = ({
   team,
-  open,
-  setOpen,
+  diceOpen,
+  setDiceOpen,
+  onActionDone,
   onAssistant,
   pending: externalPending,
   setPending: setExternalPending,
@@ -206,8 +219,9 @@ export const AddTeamTurnButton = ({
   allowDice,
 }: {
   team: GameTeam;
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  diceOpen: boolean;
+  setDiceOpen: (open: boolean) => void;
+  onActionDone?: () => void;
   onAssistant?: () => void;
   pending?: boolean;
   setPending?: (pending: boolean) => void;
@@ -245,7 +259,7 @@ export const AddTeamTurnButton = ({
     await startTurn(postTurn);
     setLocalPending(false);
     setExternalPending?.(false);
-    setOpen(false);
+    onActionDone?.();
   };
 
   /** Ends all active turns for a team. */
@@ -255,7 +269,20 @@ export const AddTeamTurnButton = ({
     await endTurn(team.team.team_id);
     setLocalPending(false);
     setExternalPending?.(false);
-    setOpen(false);
+    onActionDone?.();
+  };
+
+  /** Marks the drinks as delivered for the current turn. */
+  const handleDrinksDelivered = async () => {
+    setLocalPending(true);
+    setExternalPending?.(true);
+    await setDrinkPrepStatus(
+      team.turns.find((turn) => !turn.delivered_at)!.turn_id,
+      "Delivered",
+    );
+    setLocalPending(false);
+    setExternalPending?.(false);
+    onActionDone?.();
   };
 
   return (
@@ -290,7 +317,7 @@ export const AddTeamTurnButton = ({
       ) : canDice ? (
         <button
           className="button text-xl p-5"
-          onClick={() => setOpen(true)}
+          onClick={() => setDiceOpen(true)}
           disabled={pending}
         >
           Kirjaa nopanheitto
@@ -303,6 +330,22 @@ export const AddTeamTurnButton = ({
         >
           Uusi vuoro (anna nopat)
         </button>
+      ) : ALLOW_REFEREE_TO_DELIVER_DRINKS &&
+        [
+          TurnStatus.WaitingForIE,
+          TurnStatus.Mixing,
+          TurnStatus.Delivering,
+        ].includes(currentStatus) &&
+        referee ? (
+        <button
+          className="button text-xl p-5"
+          onClick={handleDrinksDelivered}
+          disabled={pending}
+        >
+          Juomat toimitettu
+          <br />
+          (ohita IE ja sihteeri)
+        </button>
       ) : (
         <button className="button text-xl p-5" disabled>
           {currentStatus === TurnStatus.Ended
@@ -310,11 +353,11 @@ export const AddTeamTurnButton = ({
             : turnStatusTexts[currentStatus]}
         </button>
       )}
-      {open && canDice && (
+      {diceOpen && canDice && (
         <AddTeamTurnDialogue
           team={team}
           ongoingTurn={turnForDice}
-          onClose={() => setOpen(false)}
+          onClose={() => setDiceOpen(false)}
         />
       )}
       {!referee && (
@@ -644,6 +687,7 @@ const AssistantRefereeDialogue = ({
     };
     await confirmTurn(turn.turn_id, drinks);
     setPending(false);
+    // TODO issue #33
     setOpen(false);
   };
 
