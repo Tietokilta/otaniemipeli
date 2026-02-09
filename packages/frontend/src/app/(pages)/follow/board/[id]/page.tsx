@@ -46,7 +46,7 @@ export default function Page({
   }, [id]);
 
   return (
-    <div className="flex gap-1 w-full h-full justify-center">
+    <div className="flex gap-1 justify-center">
       {places && (
         <div className="flex-2">
           <BoardWithSquares
@@ -57,12 +57,9 @@ export default function Page({
           />
         </div>
       )}
-      <div className="flex flex-col flex-1 gap-2 h-full">
-        <DrinkList
-          className="flex-1 w-full h-full"
-          drinksList={focusedPlace.drinks.drinks}
-        />
-        <PlaceCard className="flex-1 w-full h-full" place={focusedPlace} />
+      <div className="flex flex-col flex-1 gap-2">
+        <PlaceCard place={focusedPlace} />
+        <DrinkList className="flex-1" drinksList={focusedPlace.drinks.drinks} />
       </div>
     </div>
   );
