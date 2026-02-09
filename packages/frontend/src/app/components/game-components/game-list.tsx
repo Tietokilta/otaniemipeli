@@ -7,10 +7,12 @@ import ItemList from "@/app/components/item-list";
 export default function GameList({
   className,
   relativePath,
+  refresh,
 }: {
   className?: string;
   /** If true, links to games will be relative to the current path. */
   relativePath?: boolean;
+  refresh?: unknown;
 }) {
   const [games, setGames] = useState<Games>({ games: [] });
 
@@ -18,7 +20,7 @@ export default function GameList({
     getGames().then((data) => {
       setGames(data);
     });
-  }, []);
+  }, [refresh]);
 
   return (
     <ItemList title="Pelit" addDialog={<></>} className={className}>

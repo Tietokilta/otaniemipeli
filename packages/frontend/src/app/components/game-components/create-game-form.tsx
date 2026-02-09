@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { getBoards, createGame } from "@/utils/fetchers";
 import DropdownMenu from "@/app/components/dropdown-menu";
 
-export default function CreateGameForm({ className }: { className?: string }) {
+export default function CreateGameForm({
+  className,
+  onCreate,
+}: {
+  className?: string;
+  onCreate: () => void;
+}) {
   const [name, setName] = useState<string>("");
   const [boards, setBoards] = useState<Boards>({ boards: [] });
   const [selectedBoard, setSelectedBoard] = useState<Board | undefined>(
@@ -30,6 +36,7 @@ export default function CreateGameForm({ className }: { className?: string }) {
     setActive(false);
     setName("");
     setSelectedBoard(undefined);
+    onCreate();
   };
 
   return (
