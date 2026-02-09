@@ -53,6 +53,7 @@ export default function IeTurnCard({
         shrink-0
         flex
         flex-col
+        gap-1
         transition
         ${turn.mixed_at ? "bg-slime-600/20" : ""}
         ${onStateChange && turn.mixed_at ? "animate-[ieturn-fade_5s_linear_1_forwards]" : ""}`}
@@ -67,7 +68,8 @@ export default function IeTurnCard({
         </p>
       ) : (
         <p>
-          Jonossa: <TimeSince timestamp={turn.confirmed_at!} />
+          {turn.mixing_at ? "Työn alla: " : "Jonossa: "}
+          <TimeSince timestamp={turn.confirmed_at!} />
         </p>
       )}
       {onStateChange && (
@@ -91,6 +93,11 @@ export default function IeTurnCard({
             Valmis
           </RadioButton>
         </div>
+      )}
+      {onStateChange && (
+        <p className="text-lg -mb-4">
+          {turn.place ? turn.place.place.place_name : "Sakko"}
+        </p>
       )}
       <TurnDrinksList
         drinks={turn.drinks.drinks}

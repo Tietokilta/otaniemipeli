@@ -20,9 +20,10 @@ function SecretaryTurnCard({ turn }: { turn: Turn }) {
 
   return (
     <div className="box p-0 flex flex-col">
-      {statusText && (
-        <p className="pt-2 px-2 -mb-4 animate-pulse">{statusText}</p>
-      )}
+      <p className="pt-2 px-2 animate-pulse">{statusText}</p>
+      <p className="px-2 -mb-4">
+        {turn.place ? `Ruutu: ${turn.place.place.place_name}` : "Sakko"}
+      </p>
       {turn.drinks.drinks.length > 0 ? (
         <div className="flex">
           <TurnDrinksList drinks={turn.drinks.drinks} className="flex-1" />
