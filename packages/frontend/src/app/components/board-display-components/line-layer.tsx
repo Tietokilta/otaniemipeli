@@ -63,6 +63,7 @@ export default function LineLayer({
       className="absolute top-0 left-0 w-full h-full pointer-events-none"
     >
       {size.w > 0 &&
+        // eslint-disable-next-line react-hooks/refs -- TODO: fix
         edges.map((e, i) => {
           /* convert % → px */
           const ax = (e.x1 / 100) * size.w;

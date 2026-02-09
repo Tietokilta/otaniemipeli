@@ -10,7 +10,7 @@ export default function ItemList({
   className?: string;
 }): JSX.Element {
   return (
-    <div className={`${className} box mb-auto h-full flex flex-col min-h-0`}>
+    <div className={`${className} box flex flex-col min-h-0`}>
       <div className="flex items-center justify-between px-2 gap-2 w-full shrink-0">
         <h1 className="text-center w-full">{title}</h1>
         {addDialog}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HorizontalList } from "../generic-list-components";
 import IeTurnCard, { DELIVERY_WARNING_SEC, TurnWithTeam } from "./ie-turn-card";
 import { setDrinkPrepStatus } from "@/utils/fetchers";
@@ -17,6 +17,12 @@ export default function IeTurnsList({
   const [recentlyChanged, setRecentlyChanged] = useState(
     () => new Map<number, number | boolean>(),
   );
+
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const handleStateChange = async (
     turn: TurnWithTeam,
@@ -67,12 +73,10 @@ export default function IeTurnsList({
           // If a delivery is delayed, prioritize it in the ready list
           const aDelayed =
             !a.delivered_at &&
-            Date.now() - new Date(a.mixed_at!).getTime() >
-              DELIVERY_WARNING_SEC * 1000;
+            now - new Date(a.mixed_at!).getTime() > DELIVERY_WARNING_SEC * 1000;
           const bDelayed =
             !b.delivered_at &&
-            Date.now() - new Date(b.mixed_at!).getTime() >
-              DELIVERY_WARNING_SEC * 1000;
+            now - new Date(b.mixed_at!).getTime() > DELIVERY_WARNING_SEC * 1000;
           if (aDelayed !== bDelayed) return aDelayed ? -1 : 1;
 
           // Sort by finishing time, newest first
@@ -82,7 +86,7 @@ export default function IeTurnsList({
           );
         }),
     ] as const;
-  }, [teams, recentlyChanged]);
+  }, [teams, recentlyChanged, now]);
 
   return (
     <>

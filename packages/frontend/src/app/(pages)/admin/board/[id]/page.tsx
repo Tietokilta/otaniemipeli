@@ -46,7 +46,7 @@ export default function BoardOverlay({
   }, [id]);
 
   return (
-    <div className="flex gap-2 w-full h-[86vh] h-max-[86vh] justify-center">
+    <div className="h-full flex gap-2 w-full justify-center">
       {places && (
         <div className="w-7/9 mr-auto">
           <BoardWithSquares
@@ -58,9 +58,7 @@ export default function BoardOverlay({
       )}
       <div className="flex flex-col gap-2 w-1/3 h-full">
         <PlaceCard place={focusedPlace} />
-        <div className="mb-auto h-full">
-          <AddDrinkToPlace place={focusedPlace} />
-        </div>
+        <AddDrinkToPlace place={focusedPlace} />
       </div>
     </div>
   );

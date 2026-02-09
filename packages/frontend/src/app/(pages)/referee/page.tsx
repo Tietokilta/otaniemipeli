@@ -7,7 +7,7 @@ import { useState } from "react";
 export default function Home() {
   const [refresh, setRefresh] = useState({});
   return (
-    <div className="flex flex-wrap lg:flex-nowrap gap-x-4 gap-y-10 overflow-auto">
+    <div className="flex-1 flex flex-wrap lg:flex-nowrap gap-x-4 gap-y-10 overflow-auto">
       <CreateUserForm className="w-full lg:w-100 box" />
       <CreateGameForm
         className="w-full lg:w-100"

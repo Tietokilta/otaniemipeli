@@ -27,16 +27,16 @@ export function TimeSince({
   timestamp: string;
   warnSec?: number;
 }): JSX.Element {
-  const [, rerender] = useState<unknown>({});
+  const [now, setNow] = useState(() => Date.now());
 
   // Force re-render every second
   useEffect(() => {
-    const id = window.setInterval(() => rerender({}), 1000);
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const date = dateFromDb(timestamp);
-  const elapsedMs = Date.now() - date.getTime();
+  const elapsedMs = now - date.getTime();
   const elapsed = formatShortDurationMs(elapsedMs);
 
   const warn = warnSec !== undefined && elapsedMs > warnSec * 1000;

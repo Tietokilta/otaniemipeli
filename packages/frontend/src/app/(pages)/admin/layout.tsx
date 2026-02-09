@@ -13,13 +13,13 @@ export default function RootLayout({
 }>) {
   const headerItems: HeaderItem[] = [
     { text: "Pelilauta", href: "/board" },
-    { text: "Laudat", href: "/boards" },
+    { text: "Paikat", href: "/boards" },
     { text: "Juomat", href: "/drinks" },
   ];
   return (
     <>
       <GeneralHeader base_path="/admin" items={headerItems} />
-      <div className="p-2 h-[90dvh] min-h-0">{children}</div>
+      <div className="flex-1 p-4 min-h-0">{children}</div>
     </>
   );
 }

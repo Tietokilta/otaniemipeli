@@ -43,7 +43,7 @@ export default function CreateGameForm({
     <div className={`${className} box`}>
       {!active ? (
         <button className="button w-full" onClick={() => setActive(true)}>
-          <h1>Aloita uusi peli</h1>
+          <h1 className="m-0 p-2">Aloita uusi peli</h1>
         </button>
       ) : (
         <h1>Aloita uusi peli</h1>

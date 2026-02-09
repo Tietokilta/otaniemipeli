@@ -35,12 +35,12 @@ export default function AddPlaceForm({
       className={`${className} flex flex-col center gap-2`}
       onSubmit={handleSubmit}
     >
-      <h2 className="text-xl font-bold">Lisää paikka</h2>
+      <h2 className="text-xl font-bold">Luo paikka</h2>
       <input
         type="text"
         placeholder={place.place_name}
         className="border border-primary-500 rounded-lg p-2 w-full"
-        onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           updatePlace({
             ...place,
             place_name: e.target.value,
@@ -89,18 +89,15 @@ export default function AddPlaceForm({
       <textarea
         placeholder={place.rule}
         className="border border-primary-500 rounded-lg p-2 w-full"
-        onInput={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
           updatePlace({
             ...place,
             rule: e.target.value,
           });
         }}
       />
-      <button
-        type="submit"
-        className="bg-primary-500 text-white rounded-lg p-2 hover:bg-primary-900 transition-colors"
-      >
-        Lisää paikka
+      <button type="submit" className="button text-lg">
+        Luo paikka
       </button>
     </form>
   );

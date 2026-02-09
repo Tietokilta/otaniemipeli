@@ -120,7 +120,7 @@ export default function AddPlaceToBoard({
 
       <input
         type="number"
-        value={value}
+        value={String(value)}
         onChange={handleChange}
         className="border rounded p-2"
         placeholder="Paikka numero"
@@ -146,11 +146,7 @@ export default function AddPlaceToBoard({
           End
         </label>
       </div>
-
-      <button
-        type="submit"
-        className="bg-primary-500 text-white p-2 rounded hover:bg-primary-900 transition-colors"
-      >
+      <button type="submit" className="button text-lg self-center">
         Lisää
       </button>
     </form>
