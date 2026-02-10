@@ -7,11 +7,10 @@ import { HorizontalList } from "@/app/components/generic-list-components";
 import TeamTurnCard, {
   computeTotals,
 } from "@/app/components/team-components/team-turn-card";
-import { useGameData } from "@/app/hooks/useGameData";
+import { useGameBoard, useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
-import { getBoardPlaces } from "@/utils/fetchers";
 import Link from "next/link";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo } from "react";
 
 export default function Page({
   params,
@@ -21,6 +20,7 @@ export default function Page({
   const { team_id, game_id } = use(params);
   const socket = useSocket();
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
+  const board = useGameBoard(gameData);
 
   const team = useMemo(() => {
     const team = gameData?.teams.find(
@@ -28,20 +28,6 @@ export default function Page({
     );
     return team && computeTotals(team);
   }, [gameData, team_id]);
-
-  const [board, setBoard] = useState<BoardPlaces | undefined>();
-  useEffect(() => {
-    // get board places
-    if (gameData) {
-      let cancelled = false;
-      getBoardPlaces(gameData.game.board.id).then((b) => {
-        if (!cancelled) setBoard(b);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-  }, [gameData]);
 
   if (isLoading) {
     return <GameLoadingSpinner />;

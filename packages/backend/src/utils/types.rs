@@ -254,6 +254,12 @@ pub struct SetDrinkPrepStatusBody {
     pub status: DrinkPrepStatus,
 }
 
+/// Request body for POST /teams/{team_id}/teleport
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct TeleportTeamBody {
+    pub location: i32, // place_number
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlaceThrow {
     pub place: BoardPlace,

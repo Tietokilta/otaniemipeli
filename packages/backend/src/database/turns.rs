@@ -98,6 +98,26 @@ pub async fn start_turn(client: &Client, turn: PostStartTurn) -> Result<Turn, Ap
     Ok(build_turn(&row))
 }
 
+/// Creates a teleport turn that is instantly confirmed, delivered, and ended
+pub async fn teleport_team(
+    client: &Client,
+    game_id: GameId,
+    team_id: TeamId,
+    location: i32,
+) -> Result<Turn, AppError> {
+    let row = client
+        .query_one(
+            "INSERT INTO turns (team_id, game_id, penalty, place_number,
+                start_time, thrown_at, confirmed_at, mixing_at, mixed_at, delivered_at, end_time)
+             VALUES ($1, $2, true, $3, NOW(), NOW(), NOW(), NOW(), NOW(), NOW(), NOW())
+             RETURNING *",
+            &[&team_id, &game_id, &location],
+        )
+        .await?;
+
+    Ok(build_turn(&row))
+}
+
 /// Updates the dice values for an existing turn and sets thrown_at
 pub async fn update_turn_dice(
     client: &Client,

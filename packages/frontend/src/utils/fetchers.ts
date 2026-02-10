@@ -454,6 +454,20 @@ export async function endTurn(teamId: number): Promise<void> {
   );
 }
 
+export async function teleportTeam(
+  teamId: number,
+  location: number,
+): Promise<Turn> {
+  return apiFetch<Turn>(
+    `${API_URL}/teams/${teamId}/teleport`,
+    {
+      method: "POST",
+      body: JSON.stringify({ location }),
+    },
+    true,
+  );
+}
+
 export async function confirmPenalty(
   turnId: number,
   drinks: TurnDrinks,

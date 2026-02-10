@@ -9,7 +9,7 @@ import GameStartDialogue from "@/app/components/game-components/game-start-dialo
 import GameTeamTurnsList from "@/app/components/team-components/game-team-turns-list";
 import TeamList from "@/app/components/team-components/team-list";
 import { computeTotals } from "@/app/components/team-components/team-turn-card";
-import { useGameData } from "@/app/hooks/useGameData";
+import { useGameBoard, useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
 import Link from "next/link";
 import { use, useMemo } from "react";
@@ -22,6 +22,7 @@ export default function Page({
   const { game_id } = use(params);
   const socket = useSocket();
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
+  const board = useGameBoard(gameData);
 
   const preppedTeams = useMemo(
     () => gameData && gameData.teams.map((team) => computeTotals(team)),
@@ -42,6 +43,7 @@ export default function Page({
         <GameCard game={gameData.game} className="w-full" />
         <TeamList
           game={gameData.game}
+          board={board}
           teams={gameData.teams}
           className="w-full flex-1 min-h-0"
           editTurn={gameData.game.started && !gameData.game.finished}

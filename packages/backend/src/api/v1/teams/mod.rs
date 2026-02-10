@@ -12,4 +12,5 @@ pub fn router() -> Router<AppState> {
             put(set_moral_victory_eligible),
         )
         .route("/{team_id}/end-turn", post(end_turn))
+        .route("/{team_id}/teleport", post(teleport_team))
 }

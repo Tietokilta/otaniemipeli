@@ -291,6 +291,13 @@ class SetDrinkPrepStatusBody:
 
 
 @dataclass
+class TeleportTeamBody:
+    location: int
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
 class PlaceThrow:
     place: 'BoardPlace'
     throw: tuple[int, int]

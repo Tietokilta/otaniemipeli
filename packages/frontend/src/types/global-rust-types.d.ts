@@ -142,6 +142,10 @@ declare global {
     status: DrinkPrepStatus;
   }
 
+  interface TeleportTeamBody {
+    location: number;
+  }
+
   interface PlaceThrow {
     place: BoardPlace;
     throw: [number, number];

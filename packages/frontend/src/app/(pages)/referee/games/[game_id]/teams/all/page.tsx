@@ -10,11 +10,10 @@ import {
 import TeamTurnCard, {
   computeTotals,
 } from "@/app/components/team-components/team-turn-card";
-import { useGameData } from "@/app/hooks/useGameData";
+import { useGameBoard, useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
-import { getBoardPlaces } from "@/utils/fetchers";
 import Link from "next/link";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo } from "react";
 
 export default function Page({
   params,
@@ -24,13 +23,7 @@ export default function Page({
   const socket = useSocket();
   const { game_id } = use(params);
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
-  const [board, setBoard] = useState<BoardPlaces | undefined>();
-
-  useEffect(() => {
-    // get board places
-    if (gameData) getBoardPlaces(gameData.game.board.id).then(setBoard);
-  }, [gameData]);
-  console.log("BOARD IS", board);
+  const board = useGameBoard(gameData);
 
   const preppedTeams = useMemo(
     () => gameData && gameData.teams.map((team) => computeTotals(team)),

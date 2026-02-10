@@ -1,18 +1,18 @@
 "use client";
 
-import { use, useMemo } from "react";
 import GameCard from "@/app/components/game-components/game-card";
-import { useSocket } from "@/app/template";
-import TeamList from "@/app/components/team-components/team-list";
+import {
+  GameErrorDisplay,
+  GameLoadingSpinner,
+} from "@/app/components/game-components/game-loading-states";
 import GameStartDialogue from "@/app/components/game-components/game-start-dialogue";
 import GameTeamTurnsList from "@/app/components/team-components/game-team-turns-list";
-import { useGameData } from "@/app/hooks/useGameData";
-import {
-  GameLoadingSpinner,
-  GameErrorDisplay,
-} from "@/app/components/game-components/game-loading-states";
-import Link from "next/link";
+import TeamList from "@/app/components/team-components/team-list";
 import { computeTotals } from "@/app/components/team-components/team-turn-card";
+import { useGameBoard, useGameData } from "@/app/hooks/useGameData";
+import { useSocket } from "@/app/template";
+import Link from "next/link";
+import { use, useMemo } from "react";
 
 export default function Page({
   params,
@@ -22,6 +22,7 @@ export default function Page({
   const { game_id } = use(params);
   const socket = useSocket();
   const { gameData, error, isLoading } = useGameData(socket, Number(game_id));
+  const board = useGameBoard(gameData);
 
   const preppedTeams = useMemo(
     () => gameData && gameData.teams.map((team) => computeTotals(team)),
@@ -42,6 +43,7 @@ export default function Page({
         <GameCard game={gameData.game} className="w-full" />
         <TeamList
           game={gameData.game}
+          board={board}
           teams={gameData.teams}
           className="w-full flex-1 min-h-0"
           editTurn={gameData.game.started && !gameData.game.finished}
@@ -66,7 +68,11 @@ export default function Page({
         )}
       </div>
       <div className="flex flex-col gap-2 flex-3 w-0 min-h-0">
-        <GameTeamTurnsList teams={preppedTeams} className="max-h-1/2" />
+        <GameTeamTurnsList
+          teams={preppedTeams}
+          board={board}
+          className="max-h-1/2"
+        />
         <GameTeamTurnsList
           teams={preppedTeams}
           collect

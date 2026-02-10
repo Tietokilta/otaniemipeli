@@ -48,11 +48,11 @@ export default function Home() {
   }, [loggedIn]);
 
   return (
-    <div className="flex flex-col items-center gap-3.5 max-h-[90dvh] sm:px-10 sm:py-4 font-[family-name:var(--font-geist-sans)]">
-      <h1 className="text-2xl font-mono">
+    <div className="flex flex-col items-center gap-3.5 max-h-[90dvh] p-4 sm:px-10 sm:py-4 font-[family-name:var(--font-geist-sans)]">
+      <h1 className="text-2xl font-mono text-center mb-4">
         Tervetuloa Otaniemipelin hallintapaneeliin!
       </h1>
-      <p>{text}</p>
+      <p className="text-center">{text}</p>
       {loggedIn ? (
         <SelectMode setLoginAction={setLogin} />
       ) : firstUserExists ? (

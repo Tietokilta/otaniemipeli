@@ -1,5 +1,6 @@
 "use client";
 
+import { getBoardPlaces } from "@/utils/fetchers";
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
@@ -79,4 +80,14 @@ export function useGameData(
   }, [socket, gameId]);
 
   return { gameData, error, isLoading, setGameData };
+}
+
+export function useGameBoard(gameData: GameData | undefined) {
+  const [board, setBoard] = useState<BoardPlaces | undefined>();
+  useEffect(() => {
+    // get board places
+    if (gameData?.game.board.id)
+      getBoardPlaces(gameData.game.board.id).then(setBoard);
+  }, [gameData?.game.board.id]);
+  return board;
 }

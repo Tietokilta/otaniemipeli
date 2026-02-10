@@ -26,7 +26,7 @@ import threading
 import time
 from datetime import datetime
 from threading import Event, Lock
-from typing import Any, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import requests as rq
 import socketio
@@ -41,7 +41,6 @@ from rust_types import (
     TurnDrink,
     FirstTurnPost,
     PostStartTurn,
-    EndTurn as EndTurnPayload,
     PostGame,
     Drink,
 )
@@ -116,12 +115,12 @@ def wait_or_raise(waiter: WaitAny, timeout: float, *, context: str) -> WaitResul
     return res
 
 
-def retry_operation(
-    func,
+def retry_operation[R](
+    func: Callable[..., R],
     max_retries: int = 3,
     base_delay: float = 1.0,
     context: str = "operation",
-):
+) -> R:
     """Retry an operation with exponential backoff."""
     last_error = None
     for attempt in range(max_retries):
@@ -247,6 +246,7 @@ def do_start_turn(
         team_id=team_id,
         dice1=d1,
         dice2=d2,
+        penalty=False,
     )
 
     print(f"  start-turn team_id={team_id} dice=({d1},{d2})")

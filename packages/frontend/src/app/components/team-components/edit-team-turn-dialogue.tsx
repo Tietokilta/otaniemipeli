@@ -18,6 +18,7 @@ import {
   setMoralVictoryEligible,
   confirmTurn,
   setDrinkPrepStatus,
+  teleportTeam,
 } from "@/utils/fetchers";
 import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
 import SimpleConfirmedButton from "../simple-confirmed-button";
@@ -52,9 +53,9 @@ export const EditTeamTurnDialogue = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   assistant?: boolean;
 }) => {
-  const [choice, setChoice] = useState<"penalty" | "turn" | "assistant" | null>(
-    null,
-  );
+  const [choice, setChoice] = useState<
+    "penalty" | "turn" | "assistant" | "teleport" | null
+  >(null);
   const [pendingPenaltyTurnId, setPendingPenaltyTurnId] = useState<
     number | null
   >(null);
@@ -115,6 +116,19 @@ export const EditTeamTurnDialogue = ({
     );
   }
 
+  if (choice === "teleport") {
+    return (
+      <TeleportDialogue
+        team={team}
+        board={board}
+        setOpen={() => {
+          setChoice(null);
+          setOpen(false);
+        }}
+      />
+    );
+  }
+
   const setDiceOpen = (open: boolean) => {
     setChoice(open ? "turn" : null);
     setOpen(open);
@@ -155,6 +169,14 @@ export const EditTeamTurnDialogue = ({
           {unconfirmedPenalty ? "Jatka sakon luontia" : "Lisää sakko"}
         </button>
         <ToggleMoralVictoryButton team={team} referee />
+        {ALLOW_TELEPORT && (
+          <button
+            className="button text-xl p-5"
+            onClick={() => setChoice("teleport")}
+          >
+            Teleporttaa joukkue
+          </button>
+        )}
         {unconfirmedPenalty && (
           <p className="text-lg text-center">
             <em>HUOM!</em> Joukkueelle ollaan jo lisäämässä sakkoa!
@@ -633,6 +655,63 @@ function addFavorites(
     ? turnDrinks
     : { drinks: [...turnDrinks.drinks, ...toAdd] };
 }
+
+const TeleportDialogue = ({
+  team,
+  board,
+  setOpen,
+}: {
+  team: GameTeam;
+  board?: BoardPlaces;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+}) => {
+  const [selected, setSelected] = useState<number>(-1);
+
+  const handleTeleport = async () => {
+    if (selected === -1) return;
+    await teleportTeam(team.team.team_id, selected);
+    setOpen(false);
+  };
+
+  return (
+    <PopUpDialogue
+      setOpen={setOpen}
+      title={`Teleporttaa: ${team.team.team_name}`}
+    >
+      <div className="p-4 flex flex-col gap-4">
+        <select
+          id="placeType"
+          value={selected}
+          onChange={(e) => setSelected(+e.target.value)}
+          className={`
+          rounded-2xl
+          border-4
+          px-5 py-4
+          w-full
+          border-[var(--place-color)]
+          focus:outline-none
+          focus:border-[var(--place-color-selected)]`}
+        >
+          <option value={-1} disabled>
+            Valitse kohde...
+          </option>
+          {board?.places.map((place) => (
+            <option key={place.place_number} value={place.place_number}>
+              {place.place.place_name} (#{place.place_number})
+            </option>
+          ))}
+        </select>
+        <button
+          className="button text-xl p-4"
+          onClick={handleTeleport}
+          disabled={selected === -1}
+        >
+          Hyppää Harri!
+        </button>
+      </div>
+    </PopUpDialogue>
+  );
+};
 
 const AssistantRefereeDialogue = ({
   team,
