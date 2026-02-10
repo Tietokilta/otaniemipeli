@@ -24,6 +24,7 @@ export default function BoardOverlay({
       place_name: "No selected place",
       rule: "",
       place_type: "Normal",
+      special: null,
     },
     connections: { connections: [] },
     drinks: {

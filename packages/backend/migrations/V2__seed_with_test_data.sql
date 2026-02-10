@@ -100,174 +100,174 @@ VALUES (1, 1, 33),
        (26, 12, 2),
        (27, 24, 4);
 
-INSERT INTO public.places (place_name, rule, place_type)
+INSERT INTO public.places (place_name, rule, place_type, special)
 VALUES ('Metroasema',
         'Matkanne kohti T-taloa alkaa Tietotien metroaseman luona olevalta pysäkiltä. Pelin aloittamisjärjestyksen selvittämiseksi jokainen joukkue juo tuomarin päätöksen mukaisen määrän tuomarin päättämää juomaa. Tuomari voi päättää aloitusjärjestyksestä myös muilla tavoin.',
-        'Special'),
-       ('Normaaliruutu', 'Normaalista ruudusta löydät kaljan. Ruutua ei täytetä', 'Normal'),
+        'Special', NULL),
+       ('Normaaliruutu', 'Normaalista ruudusta löydät kaljan. Ruutua ei täytetä', 'Normal', NULL),
        ('A-bloc',
         'Joukkue saapuu A Blocille. Pelin alkuvaiheessa vatsaa on hyvä täydentää ruualla. Tarjolla on siis shotti hyytelöä!',
-        'Food'),
+        'Food', NULL),
        ('Raide-Jokeri',
         'Olette saapuneet Raide-Jokerin pysäkille. Päätätte hypätä kyytiin, ja pian löydättekin itsenne Maarinsolmun K-marketin pihalta. Kauppias tarjoaa teille matkaevästä, ja pääsette nauttimaan yhden shotin hyytelöä.',
-        'Special'),
-       ('Oikeustalo', 'Absintti', 'Special'),
+        'Special', NULL),
+       ('Oikeustalo', 'Absintti', 'Special', NULL),
        ('Lintutorni',
         'Joukkue erottaa tarkoilla korvillaan pöllön huhuilua ja ansaitsee lasin jaloviinaa.',
-        'Special'),
+        'Special', NULL),
        ('Suo',
         'Lintutornista selvittyään joukkue joutuu vielä kahlaamaan suon läpi ja nauttimaan annoksen suohautaa.',
-        'Special'),
+        'Special', NULL),
        ('Alvari',
         'Joukkue saapuu nälkäisenä Alvarille. Onneksi matkassa on mukana ripaus onnea, eikä joukkue joudu poistumaan tyhjin vatsoin. Siispä joukkue pääsee nauttimaan yhden shotin hyytelöä.',
-        'Food'),
+        'Food', NULL),
        ('Prodekon kiltahuone',
         'Joukkue saapuu TUAS talolle ja päättää ensimmäiseksi vierailla Prodekon luona. Yhtäkkiä maa vavahtaa, ja sisäpihalla välähtää salama. Onnekseen joukkue löytää kiltahuoneelta ukkosen myös nestemäisessä muodossa, ja saa nautittavakseen tuopillisen Thunderia (33cl). Thunder ei tunnetusti lopu tarpeeksi ajoissa.',
-        'Guild'),
+        'Guild', NULL),
        ('OLOhuone',
         'Joukkue astelee T-talon aulaan. Samalla hetkellä tuttu Athenelainen vilkuttaa OLOhuoneelta, ja kutsuu kyläilemään. Hän tarjoaa joukkueelle yhden shotin tequilaa! (4 cl)',
-        'Guild'),
+        'Guild', NULL),
        ('Database',
         'Joukkue päättää kurkata sisään Data Guildin kiltahuoneelle Databaseen. Kenkähyllyssä he huomaavat glitteripurkin, ja päättävät kaataa sitä vieressä odottavaan Trocaderopulloon (33cl). Lisäksi he kysyvät paikallaolijoilta, pitäisikö annokseen lisätä myös viinaa (4cl). Yleisön vaatiessa näin tehdään.',
-        'Guild'),
+        'Guild', NULL),
        ('SIKin kiltahuone',
         'Joukkue kuulee sähkön suloääniä, ja päättää astua sisään SIKin kiltahuoneelle. Kiltahuoneella heille tarjoillaan annos kuulalaakeria (2 cl jallu, 2 cl punssi)',
-        'Guild'),
+        'Guild', NULL),
        ('ASki',
         'Joukkue saapuu AS:n kiltahuoneelle, ja heidän kutsutaan mukaan pelaamaan AShuikkaa. Siispä ruudussa on tuoppi sisältäen kaljaa, siideriä ja punkkua. (11 cl kaljaa, 11 cl siideriä, 11 cl punkkua)',
-        'Guild'),
+        'Guild', NULL),
        ('TUASin ruokala',
         'TUASin ruokalaan saapuvaa joukkuetta odottaa tavalliseen tapaan lasillinen hyytelöä. (H)',
-        'Food'),
+        'Food', NULL),
        ('T-talon ruokala',
         'T-talon ruokalaan saapuvaa joukkuetta odottaa tavalliseen tapaan lasillinen hyytelöä. (H)',
-        'Food'),
+        'Food', NULL),
        ('Design Factory',
         'Joukkue pöhisee, ja haluaa keksiä uuden startup-idean. Täten he pääsevät suunnittelemaan seuraavalle saapuvalle joukkueelle drinkin isännän ja emännän ilmoittamasta ainesosavalikoimasta.',
-        'Special'),
+        'Special', NULL),
        ('Sähkölaitos',
         'Joukkue saapuu sähkölaitokselle ja saa kaljan sijaan piristävän energiajuoman. (33 cl)',
-        'Special'),
+        'Special', NULL),
        ('Vanha kiltis',
         'Vanhan kiltahuoneen muistoksi ruudussa on aluksi yksi kalja. Ruutu täydennetään jokaisen joukkueen jälkeen. Jokaisen käynnin jälkeen ruutuun ilmestyy yksi kalja enemmän kuin edellisellä kerralla! (33 · n cl)',
-        'Guild'),
+        'Guild', 'N+1'),
        ('IK:n kiltis',
         'Joukkue saapuu Rakennusinsinöörikillan kiltahuoneelle ja päättää pelata pikaisen Norske Kimblen. Joukkue heittää kahta noppaa ja saa pienemmän silmäluvun mukaisen määrän kaljapulloja juotavakseen. (33 · x cl)',
-        'Guild'),
+        'Guild', 'MIN(D2)'),
        ('Ossinlampi',
         'Joukkue saapuu Ossinlammen rannalle. Koska tunnelma on lämmin, päättää joukkue käydä viilentymässä Ossinlammessa ja nauttien samalla lasillisen lammen vettä. (33 cl Lonkero, 4 cl jekku)',
-        'Special'),
+        'Special', NULL),
        ('Kvarkki',
         'Joukkue muistaa yllättäen, että tänään on kvarkkipäivä! Kvarkkipäivää joukkue päättää juhlistaa lasillisella hyytelöä. (H)',
-        'Food'),
+        'Food', NULL),
        ('Maarintalo, excubussi',
         'Joukkue saapuu uuden Otaparkin pihaan. Otaparkin eteen pysähtyneen excubussin kuljettaja vaatii joukkuetta astumaan sisään bussiin. Hetken kuluttua joukkue löytää itsensä matkalta kohti Tamperetta. Onneksi bussista löytyy tuttuja, joilta joukkue voi pyytää matkajuomia: (33 cl kola | 33 cl kalja | 33 cl siideri | 12 cl punkku).',
-        'Special'),
+        'Special', NULL),
        ('Miinusmaa',
         'Joukkue pysähtyy pelaamaan kyykkää. Harmillisesti karttu lentää aivan mihin sattuu, ja joukkue saa rangaistukseksi annoksen haukea. (4 cl)',
-        'Special'),
+        'Special', NULL),
        ('Ylioppilaiden terveydenhuoltosäätiö',
         'Eräs joukkueen jäsen alkaa valittelemaan tulehtunutta varvastaan, joka vaatii desinfiointia. Onneksi YTHS:n lääkäri on joukkueelle suotuisa, ja tarjoaa kaljapullon sijasta juotavakseen snapsilasillisen pirtua. Hätätilassa käy myös esim. A12-denaturoitu sprii tai kasari. (4 cl)',
-        'Special'),
+        'Special', NULL),
        ('Tietokillan varasto',
         'Joukkue toteaa olevansa janoinen ja päättää suunnata Tietokillan varastolle.  Siellä heitä odottavat vastassa IE, jotka kannustavat kaikkia joukkueita mukaan pelaamaan ykköstä.',
-        'Special'),
+        'Special', NULL),
        ('Taikametsä',
         'Joukkue astelee taikametsään. Taikametsässä ei voi koskaan tietää, mitä edestänsä löytää, joten joukkue pääsee nauttimaan noppien silmäluvun osoittaman taikajuoman. Kullekin silmälukuyhdistelmälle kuuluvan juoman päättävät isäntä ja emäntä ennen peliä.',
-        'Special'),
+        'Special', 'IE'),
        ('Kappeli',
         'Kappelissa joukkueelle tarjotaan tavanomaisen kaljan sijaan lasillinen ehtoollisviiniä, joka tulee nauttia ennen matkan jatkamista. (12 cl)',
-        'Special'),
+        'Special', NULL),
        ('Rantasauna',
         'Matka on ollut pitkä ja joukkue kaipaa puhdistautumista. Joukkue päättää siis vierailla rantsulla ja hypätä paljuun nauttimaan yhden kaljan. (33 cl) Rantsun kaljalähde on loputon, joten ruutu täydennetään joukkueen jälkeen.',
-        'Sauna'),
+        'Sauna', NULL),
        ('Gorsu',
         'Joukkue saapuu Gorsulle ja päättää jäädä hetkeksi saunomaan, nauttien samalla yhden kaljan. (33 cl). Gorsulta ei kalja lopu, eli ruutu täytetään jokaisen joukkueen jälkeen.',
-        'Sauna'),
+        'Sauna', NULL),
        ('Smökki',
         'Joukkue astelee sisään smökin ovista ja liittyy mukaan sitsaamaan. Tarjolla on tietysti ruokaa ja juomaa eli yksi olut ja yksi hyytelö. (33 cl olut, H)',
-        'Special'),
-       ('Ossinsauna', 'Ossinsaunalta ei kalja lopu. Ruutu täytetään jokaisen joukkueen jälkeen. (33 cl)', 'Sauna'),
-       ('OK20', 'OK20:n saunoilla ilta jatkuu yli puolen yön eikä kalja lopu! (33 cl)', 'Sauna'),
+        'Special', NULL),
+       ('Ossinsauna', 'Ossinsaunalta ei kalja lopu. Ruutu täytetään jokaisen joukkueen jälkeen. (33 cl)', 'Sauna', NULL),
+       ('OK20', 'OK20:n saunoilla ilta jatkuu yli puolen yön eikä kalja lopu! (33 cl)', 'Sauna', NULL),
        ('JMT1 aula',
         'Törmäät aulassa vanhaan tuttuun, joka haluaa pullostansa eroon. Hän tarjoaa joukkueelle Ferraa. (4 cl)',
-        'Special'),
+        'Special', NULL),
        ('JMT3',
         '3A:n saunastakaan ei kalja lopu, eli ruutu täytetään jokaisen joukkueen jälkeen. (33 cl)',
-        'Sauna'),
+        'Sauna', NULL),
        ('Otaranta 8',
         'Myöskään Otarannan kattosaunalta ei kalja lopu kesken. Ruutu täytetään jokaisen joukkueen jälkeen. (33 cl)',
-        'Sauna'),
-       ('Täffä', 'Täffällä ei olekaan spagettipäivä vaan hyytelöpäivä. (H)', 'Food'),
+        'Sauna', NULL),
+       ('Täffä', 'Täffällä ei olekaan spagettipäivä vaan hyytelöpäivä. (H)', 'Food', NULL),
        ('Dipoli',
         'Dipolissa törmäät rehtoriin, joka kutsuu joukkueen lounaalle. Joukkue saa hyytelöä. (H)',
-        'Food'),
-       ('X-burger', 'X-Burgerilta joukkue hankkii itselleen annoksen hyytelöä. (H)', 'Food'),
+        'Food', NULL),
+       ('X-burger', 'X-Burgerilta joukkue hankkii itselleen annoksen hyytelöä. (H)', 'Food', NULL),
        ('Vanha ostari',
         'Vanhan ostarin monipuolinen tarjonta innoittaa joukkueen hankkimaan sekä lasillisen hyytelöä että oluenpalanpainikkeeksi. (33 cl kalja, H)',
-        'Food'),
+        'Food', NULL),
        ('Aalto-yliopiston Ylioppilaskunta',
         'Joukkue eksyy AYY:n keskustoimistolle ja vapaaehtoishommat vievät yllättäen mennessään. Joukkue heittää yhtä noppaa ja siirtyy silmäluvun mukaan taaksepäin. Tuplilla taaksepäin liikutaan tietenkin tuplat.',
-        'Special'),
+        'Special', '-D1'),
        ('Fyssan kiltis',
         'Fyysikkokillan kiltiksellä joukkueelle on tarjolla asteen pöhkömpää taksia. (2 cl Vihreä mehukatti 2 cl kasari)',
-        'Guild'),
+        'Guild', NULL),
        ('Inkubion kiltis',
         'Inkubion kiltahuoneella tarjolla on Apoptoosia. (2 cl Banaanilikööri, 2 cl salmari)',
-        'Guild'),
+        'Guild', NULL),
        ('Koneen kiltis',
         'Koneinsinöörikillan kiltahuoneella joukkue juo tuopin korjaussarjaa. (4 cl kossu, 16 cl appelsiinimehu)',
-        'Guild'),
+        'Guild', NULL),
        ('Kiltis',
         'Ensimmäisenä Tietokillan kiltahuoneelle tasaluvulla saapuva joukkue voittaa pelin!',
-        'Special'),
+        'Special', NULL),
        ('Mikontalo',
         'Mikontalo tekee kiljua Kioton sopimusta uhmaten! Joukkue juo lasin kotiviiniä (12 cl).',
-        'Special'),
-       ('Kultainen apina', 'Kapinasta ei kalja lopu. Joukkue juo yhden oluen. (33 cl)', 'Special'),
+        'Special', NULL),
+       ('Kultainen apina', 'Kapinasta ei kalja lopu. Joukkue juo yhden oluen. (33 cl)', 'Special', NULL),
        ('TiTen kiltahuone',
         'Kiltahuone muuttaa Kolaa koodiksi. Joukkue juo lasin kolaa. Terästettynä yleisön vaatiessa. (33 cl)',
-        'Guild'),
+        'Guild', NULL),
        ('Teekkarisauna',
         'Joukkue on päätynyt teekkarisaunalle, jossa ohjelmassa on teekkarisauna™. Joukkue joutuu nauttimaan kolme pulloa kaljaa seka lasillisen hyytelöä ennen kuin voi jatkaa matkaa. (33 cl kalja, H)',
-        'Sauna'),
+        'Sauna', NULL),
        ('Tupsula',
         'Käyt padassa ja hörppäät patavettä. Varo kortsuja! Ryhmä juo lämmintä lonkeroa, jossa saattaa olla kondomi. (33 cl Lonkero, Kondomi)',
-        'Special'),
+        'Special', NULL),
        ('Etuparkki. excubussi',
         'Joukkueen päästessä tähän ruutuun (yli menevät heitot lasketaan) excubussi vie takaisin Otaniemeen.  Joukkue voi halutessaan tilata bussimatkalle juotavaa (33 cl kola | 33 cl kalja | 33 cl siideri | 12 cl punkku).',
-        'Special'),
+        'Special', NULL),
        ('Maarinsolmu',
         'Olette saapuneet raide-jokerin pysäkille. Päätätte hypätä kyytiin, ja pian löydättekin itsenne Maarinsolmun K-marketin pihalta. Kauppias tarjoaa teille matkaevästä, ja pääsette nauttimaan yhden shotin hyytelöä.',
-        'Food'),
+        'Food', NULL),
        ('Urheilukenttä',
         'Urheilukentän kohdalla sinne ensimmäiseksi saapunut joukkue suorittaa 110 metrin aidat eli juo kolme pulloa olutta, ennen kuin pääsee jatkamaan. (3 · 33 cl) Ruutua ei täydennetä!',
-        'Special'),
+        'Special', NULL),
        ('Ostari',
         'Otariisto, R-Kioski ja Jamoi. Kalja ei kaupasta lopu. Ruutu täydennetään jokaisen joukkueen jälkeen!',
-        'Sauna'),
+        'Sauna', NULL),
        ('Puunjalostajakillan kiltahuone',
         'Vierailu puunjalostajien kiltahuoneella. Ruutu täydennetään jokaisen joukkueen jälkeen!',
-        'Guild'),
+        'Guild', NULL),
        ('Vuorilafkan ruokala',
         'Vuoren ruokalaan saapuvaa joukkuetta odottaa tavalliseen tapaan lasillinen hyytelöä.',
-        'Food'),
-       ('Kemman lafkan kuppila', 'Kemman lafkan kuppilaan saapuvaa odottaa tavalliseen tapaan lasillinen hyytelöä.', 'Food'),
-       ('Koneen kiltahuone', 'Vierailu koneen kiltahuoneella. Ruutu täydennetään jokaisen joukkueen jälkeen!', 'Guild'),
-       ('Fyssan ruokala', 'Fyssan ruokalaan saapuvaa odottaa tavalliseen tapaan lasillinen hyytelöä.', 'Food'),
+        'Food', NULL),
+       ('Kemman lafkan kuppila', 'Kemman lafkan kuppilaan saapuvaa odottaa tavalliseen tapaan lasillinen hyytelöä.', 'Food', NULL),
+       ('Koneen kiltahuone', 'Vierailu koneen kiltahuoneella. Ruutu täydennetään jokaisen joukkueen jälkeen!', 'Guild', NULL),
+       ('Fyssan ruokala', 'Fyssan ruokalaan saapuvaa odottaa tavalliseen tapaan lasillinen hyytelöä.', 'Food', NULL),
        ('Sähkön ruokala',
         'Sähkön ruokalaan saapuvaa joukkuetta odottaa tavalliseen tapaan lasillinen hyytelöä. Ruutu täytetään jokaisen joukkueen jälkeen!',
-        'Food'),
+        'Food', NULL),
        ('Uimahalli',
         'Uimahallilla juodaankin kaljan sijasta vissyä. Uimahallista ei myöskään juotava lopu.',
-        'Special'),
-       ('Pub jälkipeli', 'Pub Jälkipelistä ei kalja lopu, eli ruutu täytetään jokaisen joukkueen jälkeen.', 'Special'),
+        'Special', NULL),
+       ('Pub jälkipeli', 'Pub Jälkipelistä ei kalja lopu, eli ruutu täytetään jokaisen joukkueen jälkeen.', 'Special', NULL),
        ('Keltsu',
         'Keltsuun saapuva joukkue joutuu nauttimaan kolme pulloa kaljaa sekä lasillisen hyytelöä, ennenkuin voi jatkaa matkaa. Ruutu täytetään jokaisen joukkueen jälkeen! Keltsusta ei juoma eikä ruoka lopu!',
-        'Special'),
+        'Special', NULL),
        ('OUBS',
         'OUBS:iin saapuvaa joukkuetta odottaa kaljapullon sijasta snapsillinen Fernet-Brancaa (voidaan hätätapauksissa korvata Minttu-Fernetillä).',
-        'Special');
+        'Special', NULL);
 
 
 COPY public.board_places (board_id, place_number, place_id, area, start, "end", x, y) FROM stdin;
@@ -560,196 +560,196 @@ COPY public.place_connections (board_id, origin, target, on_land, backwards, das
 1	64	63	f	t	f
 \.
 
-COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n, n_update, on_table) FROM stdin;
-26	1	39	t	f	1	1	f
-9	1	15	t	f	1	1	f
-13	1	16	t	f	1	1	f
-20	1	13	t	t	1	1	f
-19	1	13	t	t	1	1	f
-7	1	12	t	f	1	1	f
-3	1	7	t	f	1	1	f
-3	1	4	t	f	1	1	f
-2	1	17	t	f	1	1	f
-3	1	18	t	f	1	1	f
-3	1	19	t	f	1	1	f
-12	1	23	t	f	1	1	f
-1	1	24	t	f	1	N+1	f
-1	1	25	t	f	1	MIN(D2)	f
-16	1	28	t	f	1	1	f
-3	1	30	t	f	1	1	f
-1	1	31	t	t	1	1	f
-25	1	31	t	t	1	1	f
-6	1	31	t	t	1	1	f
-5	1	31	t	t	1	1	f
-27	1	32	t	f	1	1	f
-11	1	36	t	f	1	1	f
-6	1	41	t	f	1	1	f
-1	1	43	t	f	1	1	f
-1	1	44	t	f	1	1	f
-3	1	45	t	f	1	1	f
-1	1	45	t	f	1	1	f
-1	1	46	t	f	1	1	f
-1	1	48	t	f	1	1	f
-8	1	49	t	f	1	1	f
-1	1	50	t	f	1	1	f
-1	1	51	t	f	1	1	f
-1	1	53	f	f	3	1	t
-3	1	54	t	f	1	1	f
-3	1	55	t	f	1	1	f
-1	1	58	t	f	1	1	f
-3	1	58	t	f	1	1	f
-3	1	57	t	f	1	1	f
-22	1	62	t	f	1	1	f
-23	1	63	t	f	1	1	f
-14	1	64	t	f	1	1	f
-3	1	69	t	f	1	1	f
-21	1	71	t	f	1	1	f
-18	1	75	t	f	1	1	f
-17	1	77	t	f	1	1	f
-6	1	80	t	f	1	1	f
-1	1	82	t	f	1	1	f
-25	1	84	t	t	1	1	f
-4	1	84	t	t	1	1	f
-1	1	85	t	f	3	1	f
-3	1	85	t	f	1	1	f
-24	1	87	t	f	1	1	f
-1	1	91	t	t	1	1	f
-25	1	91	t	t	1	1	f
-6	1	91	t	t	1	1	f
-5	1	91	t	t	1	1	f
-1	2	5	t	f	1	1	f
-1	2	12	t	f	1	1	f
-3	2	16	t	f	1	1	f
-3	2	18	t	f	1	1	f
-3	2	22	t	f	1	1	f
-7	2	25	t	f	1	1	f
-3	2	26	t	f	1	1	f
-9	2	27	t	f	1	1	f
-2	2	28	t	f	1	1	f
-3	2	29	t	f	1	1	f
-1	2	31	t	f	1	1	f
-12	2	32	t	f	1	1	f
-1	2	33	t	t	1	1	f
-25	2	33	t	t	1	1	f
-5	2	33	t	t	1	1	f
-6	2	33	t	t	1	1	f
-3	2	34	t	f	1	1	f
-1	2	36	t	f	1	MIN(D2)	f
-3	2	38	t	f	1	1	f
-11	2	41	t	f	1	1	f
-6	2	45	t	f	1	1	f
-3	2	47	t	f	1	1	f
-1	2	47	t	f	1	1	f
-10	2	49	t	f	1	1	f
-1	2	50	t	f	1	1	f
-1	2	51	t	f	1	1	f
-1	2	52	t	f	1	1	f
-8	2	53	t	f	1	1	f
-1	2	54	t	f	1	1	f
-3	2	55	t	f	1	1	f
-1	2	57	f	f	3	1	t
-1	2	60	t	f	1	1	f
-1	2	62	t	f	3	1	f
-3	2	62	t	f	1	1	f
-1	2	66	t	f	1	N+1	f
-6	2	71	t	f	1	1	f
-1	2	73	t	f	1	1	f
-4	2	75	t	t	1	1	f
-25	2	75	t	t	1	1	f
-1	2	76	t	f	3	1	f
-3	2	76	t	f	1	1	f
-24	2	78	t	f	1	1	f
-1	2	82	t	t	1	1	f
-25	2	82	t	t	1	1	f
-6	2	82	t	t	1	1	f
-5	2	82	t	t	1	1	f
-29	1	21	t	f	1	1	f
-28	1	40	t	f	1	t	f
-1	1	1	f	f	1	1	t
-1	1	2	f	f	1	1	t
-1	1	3	f	f	1	1	t
-1	1	8	f	f	1	1	t
-1	1	9	f	f	1	1	t
-1	1	10	f	f	1	1	t
-1	1	11	f	f	1	1	t
-1	1	14	f	f	1	1	t
-1	1	20	f	f	1	1	t
-1	1	22	f	f	1	1	t
-1	1	26	f	f	1	1	t
-1	1	27	f	f	1	1	t
-1	1	29	f	f	1	1	t
-1	1	33	f	f	1	1	t
-1	1	34	f	f	1	1	t
-1	1	35	f	f	1	1	t
-1	1	37	f	f	1	1	t
-1	1	38	f	f	1	1	t
-1	1	42	f	f	1	1	t
-1	1	47	f	f	1	1	t
-1	1	52	f	f	1	1	t
-1	1	56	f	f	1	1	t
-1	1	60	f	f	1	1	t
-1	1	61	f	f	1	1	t
-1	1	65	f	f	1	1	t
-1	1	66	f	f	1	1	t
-1	1	67	f	f	1	1	t
-1	1	70	f	f	1	1	t
-1	1	72	f	f	1	1	t
-1	1	73	f	f	1	1	t
-1	1	74	f	f	1	1	t
-1	1	76	f	f	1	1	t
-1	1	78	f	f	1	1	t
-1	1	79	f	f	1	1	t
-1	1	81	f	f	1	1	t
-1	1	83	f	f	1	1	t
-1	1	86	f	f	1	1	t
-1	1	88	f	f	1	1	t
-1	1	89	f	f	1	1	t
-1	1	90	f	f	1	1	t
-1	2	0	f	f	1	1	t
-1	2	1	f	f	1	1	t
-1	2	2	f	f	1	1	t
-1	2	3	f	f	1	1	t
-1	2	4	f	f	1	1	t
-1	2	6	f	f	1	1	t
-1	2	7	f	f	1	1	t
-1	2	8	f	f	1	1	t
-1	2	9	f	f	1	1	t
-1	2	10	f	f	1	1	t
-1	2	11	f	f	1	1	t
-1	2	13	f	f	1	1	t
-1	2	14	f	f	1	1	t
-1	2	15	f	f	1	1	t
-1	2	17	f	f	1	1	t
-1	2	19	f	f	1	1	t
-1	2	20	f	f	1	1	t
-1	2	21	f	f	1	1	t
-1	2	24	f	f	1	1	t
-1	2	23	f	f	1	1	t
-1	2	30	f	f	1	1	t
-1	2	35	f	f	1	1	t
-1	2	37	f	f	1	1	t
-1	2	39	f	f	1	1	t
-1	2	40	f	f	1	1	t
-1	2	42	f	f	1	1	t
-1	2	43	f	f	1	1	t
-1	2	44	f	f	1	1	t
-1	2	46	f	f	1	1	t
-1	2	48	f	f	1	1	t
-1	2	56	f	f	1	1	t
-1	2	58	f	f	1	1	t
-1	2	59	f	f	1	1	t
-1	2	61	f	f	1	1	t
-1	2	63	f	f	1	1	t
-1	2	64	f	f	1	1	t
-1	2	65	f	f	1	1	t
-1	2	67	f	f	1	1	t
-1	2	68	f	f	1	1	t
-1	2	70	f	f	1	1	t
-1	2	72	f	f	1	1	t
-1	2	74	f	f	1	1	t
-1	2	77	f	f	1	1	t
-1	2	80	f	f	1	1	t
-1	2	79	f	f	1	1	t
-1	2	81	f	f	1	1	t
-1	1	5	f	f	1	1	t
+COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n, on_table) FROM stdin;
+26	1	39	t	f	1	f
+9	1	15	t	f	1	f
+13	1	16	t	f	1	f
+20	1	13	t	t	1	f
+19	1	13	t	t	1	f
+7	1	12	t	f	1	f
+3	1	7	t	f	1	f
+3	1	4	t	f	1	f
+2	1	17	t	f	1	f
+3	1	18	t	f	1	f
+3	1	19	t	f	1	f
+12	1	23	t	f	1	f
+1	1	24	t	f	1	f
+1	1	25	t	f	1	f
+16	1	28	t	f	1	f
+3	1	30	t	f	1	f
+1	1	31	t	t	1	f
+25	1	31	t	t	1	f
+6	1	31	t	t	1	f
+5	1	31	t	t	1	f
+27	1	32	t	f	1	f
+11	1	36	t	f	1	f
+6	1	41	t	f	1	f
+1	1	43	t	f	1	f
+1	1	44	t	f	1	f
+3	1	45	t	f	1	f
+1	1	45	t	f	1	f
+1	1	46	t	f	1	f
+1	1	48	t	f	1	f
+8	1	49	t	f	1	f
+1	1	50	t	f	1	f
+1	1	51	t	f	1	f
+1	1	53	f	f	3	t
+3	1	54	t	f	1	f
+3	1	55	t	f	1	f
+1	1	58	t	f	1	f
+3	1	58	t	f	1	f
+3	1	57	t	f	1	f
+22	1	62	t	f	1	f
+23	1	63	t	f	1	f
+14	1	64	t	f	1	f
+3	1	69	t	f	1	f
+21	1	71	t	f	1	f
+18	1	75	t	f	1	f
+17	1	77	t	f	1	f
+6	1	80	t	f	1	f
+1	1	82	t	f	1	f
+25	1	84	t	t	1	f
+4	1	84	t	t	1	f
+1	1	85	t	f	3	f
+3	1	85	t	f	1	f
+24	1	87	t	f	1	f
+1	1	91	t	t	1	f
+25	1	91	t	t	1	f
+6	1	91	t	t	1	f
+5	1	91	t	t	1	f
+1	2	5	t	f	1	f
+1	2	12	t	f	1	f
+3	2	16	t	f	1	f
+3	2	18	t	f	1	f
+3	2	22	t	f	1	f
+7	2	25	t	f	1	f
+3	2	26	t	f	1	f
+9	2	27	t	f	1	f
+2	2	28	t	f	1	f
+3	2	29	t	f	1	f
+1	2	31	t	f	1	f
+12	2	32	t	f	1	f
+1	2	33	t	t	1	f
+25	2	33	t	t	1	f
+5	2	33	t	t	1	f
+6	2	33	t	t	1	f
+3	2	34	t	f	1	f
+1	2	36	t	f	1	f
+3	2	38	t	f	1	f
+11	2	41	t	f	1	f
+6	2	45	t	f	1	f
+3	2	47	t	f	1	f
+1	2	47	t	f	1	f
+10	2	49	t	f	1	f
+1	2	50	t	f	1	f
+1	2	51	t	f	1	f
+1	2	52	t	f	1	f
+8	2	53	t	f	1	f
+1	2	54	t	f	1	f
+3	2	55	t	f	1	f
+1	2	57	f	f	3	t
+1	2	60	t	f	1	f
+1	2	62	t	f	3	f
+3	2	62	t	f	1	f
+1	2	66	t	f	1	f
+6	2	71	t	f	1	f
+1	2	73	t	f	1	f
+4	2	75	t	t	1	f
+25	2	75	t	t	1	f
+1	2	76	t	f	3	f
+3	2	76	t	f	1	f
+24	2	78	t	f	1	f
+1	2	82	t	t	1	f
+25	2	82	t	t	1	f
+6	2	82	t	t	1	f
+5	2	82	t	t	1	f
+29	1	21	t	f	1	f
+28	1	40	t	f	1	f
+1	1	1	f	f	1	t
+1	1	2	f	f	1	t
+1	1	3	f	f	1	t
+1	1	8	f	f	1	t
+1	1	9	f	f	1	t
+1	1	10	f	f	1	t
+1	1	11	f	f	1	t
+1	1	14	f	f	1	t
+1	1	20	f	f	1	t
+1	1	22	f	f	1	t
+1	1	26	f	f	1	t
+1	1	27	f	f	1	t
+1	1	29	f	f	1	t
+1	1	33	f	f	1	t
+1	1	34	f	f	1	t
+1	1	35	f	f	1	t
+1	1	37	f	f	1	t
+1	1	38	f	f	1	t
+1	1	42	f	f	1	t
+1	1	47	f	f	1	t
+1	1	52	f	f	1	t
+1	1	56	f	f	1	t
+1	1	60	f	f	1	t
+1	1	61	f	f	1	t
+1	1	65	f	f	1	t
+1	1	66	f	f	1	t
+1	1	67	f	f	1	t
+1	1	70	f	f	1	t
+1	1	72	f	f	1	t
+1	1	73	f	f	1	t
+1	1	74	f	f	1	t
+1	1	76	f	f	1	t
+1	1	78	f	f	1	t
+1	1	79	f	f	1	t
+1	1	81	f	f	1	t
+1	1	83	f	f	1	t
+1	1	86	f	f	1	t
+1	1	88	f	f	1	t
+1	1	89	f	f	1	t
+1	1	90	f	f	1	t
+1	2	0	f	f	1	t
+1	2	1	f	f	1	t
+1	2	2	f	f	1	t
+1	2	3	f	f	1	t
+1	2	4	f	f	1	t
+1	2	6	f	f	1	t
+1	2	7	f	f	1	t
+1	2	8	f	f	1	t
+1	2	9	f	f	1	t
+1	2	10	f	f	1	t
+1	2	11	f	f	1	t
+1	2	13	f	f	1	t
+1	2	14	f	f	1	t
+1	2	15	f	f	1	t
+1	2	17	f	f	1	t
+1	2	19	f	f	1	t
+1	2	20	f	f	1	t
+1	2	21	f	f	1	t
+1	2	24	f	f	1	t
+1	2	23	f	f	1	t
+1	2	30	f	f	1	t
+1	2	35	f	f	1	t
+1	2	37	f	f	1	t
+1	2	39	f	f	1	t
+1	2	40	f	f	1	t
+1	2	42	f	f	1	t
+1	2	43	f	f	1	t
+1	2	44	f	f	1	t
+1	2	46	f	f	1	t
+1	2	48	f	f	1	t
+1	2	56	f	f	1	t
+1	2	58	f	f	1	t
+1	2	59	f	f	1	t
+1	2	61	f	f	1	t
+1	2	63	f	f	1	t
+1	2	64	f	f	1	t
+1	2	65	f	f	1	t
+1	2	67	f	f	1	t
+1	2	68	f	f	1	t
+1	2	70	f	f	1	t
+1	2	72	f	f	1	t
+1	2	74	f	f	1	t
+1	2	77	f	f	1	t
+1	2	80	f	f	1	t
+1	2	79	f	f	1	t
+1	2	81	f	f	1	t
+1	1	5	f	f	1	t
 \.

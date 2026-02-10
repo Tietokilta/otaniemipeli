@@ -199,8 +199,10 @@ pub struct Turn {
     pub dice1: Option<i32>,
     /// dice number 2 (if thrown)
     pub dice2: Option<i32>,
-    /// dice for backwards movement when landing on AYY
-    pub dice_ayy: Option<i32>,
+    /// dice number 3 (if thrown)
+    pub dice3: Option<i32>,
+    /// dice number 4 (if thrown)
+    pub dice4: Option<i32>,
     /// where the player ended up (if dice thrown) - this is place_number, not PlaceId
     pub location: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)
@@ -218,8 +220,6 @@ pub struct PostStartTurn {
     pub dice1: Option<i32>,
     /// If None, turn is started without dice (thrown_at not set)
     pub dice2: Option<i32>,
-    /// Dice for backwards movement when landing on AYY
-    pub dice_ayy: Option<i32>,
     /// Whether this is a penalty turn
     #[serde(default)]
     pub penalty: bool,
@@ -230,7 +230,8 @@ pub struct PostStartTurn {
 pub struct ChangeDiceBody {
     pub dice1: i32,
     pub dice2: i32,
-    pub dice_ayy: Option<i32>,
+    pub dice3: Option<i32>,
+    pub dice4: Option<i32>,
 }
 
 /// Request body for POST /turns/{turn_id}/confirm and /turns/{turn_id}/penalty
@@ -344,12 +345,12 @@ pub struct PlaceDrinks {
 }
 
 impl PlaceDrinks {
-    pub fn to_turn_drinks(&self, visited: bool, multiplier: i32) -> TurnDrinks {
+    pub fn to_turn_drinks(&self, visited: i32, multiplier: i32) -> TurnDrinks {
         TurnDrinks {
             drinks: self
                 .drinks
                 .iter()
-                .filter(|pd| pd.refill || !visited)
+                .filter(|pd| pd.refill || visited == 0)
                 .map(|pd| pd.to_turn_drink(multiplier))
                 .collect(),
         }

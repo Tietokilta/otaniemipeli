@@ -6,11 +6,13 @@ import { useMemo } from "react";
 
 export default function GameTeamTurnsList({
   teams,
+  board,
   collect = false,
   assistant = false,
   className,
 }: {
   teams: GameTeamWithTotals[];
+  board?: BoardPlaces;
   /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
   collect?: boolean;
   assistant?: boolean;
@@ -92,13 +94,14 @@ export default function GameTeamTurnsList({
             <TeamTurnCard
               key={team.team.team_id}
               team={team}
+              board={board}
               collect={collect}
               assistant={assistant}
               teamTurns={team.turns}
             />
           );
         }),
-    [teams, collect, assistant],
+    [teams, board, collect, assistant],
   );
 
   return (

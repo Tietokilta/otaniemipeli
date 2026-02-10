@@ -112,7 +112,8 @@ declare global {
     end_time: string | null;
     dice1: number | null;
     dice2: number | null;
-    dice_ayy: number | null;
+    dice3: number | null;
+    dice4: number | null;
     location: number | null;
     penalty: boolean;
     drinks: TurnDrinks;
@@ -124,14 +125,14 @@ declare global {
     game_id: number;
     dice1: number | null;
     dice2: number | null;
-    dice_ayy: number | null;
     penalty: boolean;
   }
 
   interface ChangeDiceBody {
     dice1: number;
     dice2: number;
-    dice_ayy: number | null;
+    dice3: number | null;
+    dice4: number | null;
   }
 
   interface ConfirmTurnBody {
@@ -189,6 +190,7 @@ declare global {
     place_name: string;
     rule: string;
     place_type: PlaceType;
+    special: string | null;
   }
 
   interface Places {
@@ -220,7 +222,6 @@ declare global {
     optional: boolean;
     on_table: boolean;
     n: number;
-    n_update: string;
   }
 
   interface Connection {
@@ -286,7 +287,6 @@ declare global {
   interface IngredientIdQuery {
     ingredient_id: number;
   }
-
 }
 
 export {};

@@ -75,7 +75,6 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
                         optional: false,
                         on_table: false,
                         n: 0,
-                        n_update: "",
                       })
                     }
                   >
@@ -194,38 +193,28 @@ export function DrinkSelectionCard({
               ></p>
             </div>
           </div>
-          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-            <div className={`flex gap-2 w-1/2 box center`}>
-              <div className="w-1/3 center button p-1">
-                <p
-                  className="text-center w-full select-none"
-                  onClick={() => handleChange("n", placeDrink.n - 1)}
-                >
-                  -
-                </p>
-              </div>
-              <div className="w-1/3 center p-1">
-                <p className="text-sm text-center w-full">{placeDrink.n}</p>
-              </div>
-              <div className="w-1/3 center button p-1">
-                <p
-                  className="text-center w-full select-none"
-                  onClick={() => handleChange("n", placeDrink.n + 1)}
-                >
-                  +
-                </p>
-              </div>
+          <div
+            className="flex gap-2 box center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-1/3 center button p-1">
+              <p
+                className="text-center w-full select-none"
+                onClick={() => handleChange("n", placeDrink.n - 1)}
+              >
+                -
+              </p>
             </div>
-            <div className="flex flex-col gap-2 w-1/2 box center">
-              <p className="text-sm text-center w-full">Täyttösääntö</p>
-              <div className="center w-full p-1">
-                <input
-                  className="box w-full"
-                  type="text"
-                  value={placeDrink.n_update}
-                  onChange={(e) => handleChange("n_update", e.target.value)}
-                />
-              </div>
+            <div className="w-1/3 center p-1">
+              <p className="text-sm text-center w-full">{placeDrink.n}</p>
+            </div>
+            <div className="w-1/3 center button p-1">
+              <p
+                className="text-center w-full select-none"
+                onClick={() => handleChange("n", placeDrink.n + 1)}
+              >
+                +
+              </p>
             </div>
           </div>
         </>

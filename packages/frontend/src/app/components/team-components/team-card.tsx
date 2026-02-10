@@ -7,6 +7,7 @@ import { updateTeam, deleteTeam } from "@/utils/fetchers";
 
 export default function TeamCard({
   team,
+  board,
   className,
   link,
   linkPrefix = "",
@@ -14,6 +15,7 @@ export default function TeamCard({
   editTeam,
 }: {
   team: GameTeam;
+  board?: BoardPlaces;
   className?: string;
   link?: boolean;
   linkPrefix?: string;
@@ -45,7 +47,12 @@ export default function TeamCard({
   ) : (
     <>
       {editTurn && showDialogue && (
-        <EditTeamTurnDialogue team={team} open setOpen={setShowDialogue} />
+        <EditTeamTurnDialogue
+          team={team}
+          board={board}
+          open
+          setOpen={setShowDialogue}
+        />
       )}
       {editTeam && showDialogue && (
         <PopUpDialogue title="Muokkaa joukkuetta" setOpen={setShowDialogue}>

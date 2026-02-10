@@ -29,7 +29,7 @@ pub async fn get_boards(client: &Client) -> Result<Boards, AppError> {
 pub async fn get_places(client: &Client) -> Result<Places, AppError> {
     let query = client
         .query(
-            "SELECT place_id, place_name, place_type, rule FROM places;",
+            "SELECT place_id, place_name, place_type, rule, special FROM places;",
             &[],
         )
         .await?;
@@ -42,6 +42,7 @@ pub async fn get_places(client: &Client) -> Result<Places, AppError> {
                 place_name: row.get("place_name"),
                 place_type: row.get("place_type"),
                 rule: row.get("rule"),
+                special: row.get("special"),
             })
             .collect(),
     })
@@ -83,6 +84,7 @@ pub fn build_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
             place_name: row.get("place_name"),
             rule: row.get("rule"),
             place_type: row.get("place_type"),
+            special: row.get("special"),
         },
         place_number: row.get("place_number"),
         start: row.get("start"),
@@ -122,6 +124,7 @@ pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<Boar
         p.place_name,
         p.rule,
         p.place_type,
+        p.special,
         bp.place_number,
         bp.start,
         bp.end,
@@ -161,6 +164,7 @@ pub async fn get_board_place(
         p.place_name,
         p.rule,
         p.place_type,
+        p.special,
         bp.place_number,
         bp.start,
         bp.end,
@@ -195,8 +199,7 @@ pub async fn get_place_drinks(
         pd.refill,
         pd.optional,
         pd.on_table,
-        pd.n,
-        pd.n_update
+        pd.n
     FROM place_drinks AS pd
     LEFT JOIN drinks AS d
         ON d.drink_id = pd.drink_id
@@ -220,7 +223,6 @@ pub async fn get_place_drinks(
                 optional: row.get("optional"),
                 on_table: row.get("on_table"),
                 n: row.get("n"),
-                n_update: row.get("n_update"),
             })
             .collect(),
     })
@@ -250,7 +252,7 @@ pub async fn set_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
         .await?;
 
     let query_str = "\
-    INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, on_table, n, n_update) \
+    INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, on_table, n) \
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
 
     for drink in &drinks.drinks {
@@ -265,7 +267,6 @@ pub async fn set_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
                     &drink.optional,
                     &drink.on_table,
                     &drink.n,
-                    &drink.n_update,
                 ],
             )
             .await?;
@@ -302,13 +303,18 @@ pub async fn get_board_place_connections(
 /// Creates a new place definition.
 pub async fn add_place(client: &Client, place: Place) -> Result<u64, AppError> {
     let query_str = "\
-    INSERT INTO places (place_name, rule, place_type) \
-    VALUES ($1, $2, $3)";
+    INSERT INTO places (place_name, rule, place_type, special) \
+    VALUES ($1, $2, $3, $4)";
 
     Ok(client
         .execute(
             query_str,
-            &[&place.place_name, &place.rule, &place.place_type],
+            &[
+                &place.place_name,
+                &place.rule,
+                &place.place_type,
+                &place.special,
+            ],
         )
         .await?)
 }

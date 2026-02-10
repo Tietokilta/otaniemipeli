@@ -207,9 +207,9 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
             "SELECT
                 t.turn_id, t.team_id, t.game_id, t.start_time, t.thrown_at,
                 t.confirmed_at, t.mixing_at, t.mixed_at, t.delivered_at,
-                t.end_time, t.dice1, t.dice2, t.dice_ayy, t.place_number, t.penalty,
+                t.end_time, t.dice1, t.dice2, t.dice3, t.dice4, t.place_number, t.penalty,
                 bp.start, bp.area, bp.\"end\", bp.x, bp.y,
-                p.place_id, p.place_name, p.rule, p.place_type
+                p.place_id, p.place_name, p.rule, p.place_type, p.special
              FROM turns t
              LEFT JOIN board_places bp ON bp.board_id = $2 AND bp.place_number = t.place_number
              LEFT JOIN places p ON p.place_id = bp.place_id
@@ -279,14 +279,24 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
 }
 
 /// Validates that dice values are between 1 and 6
-pub fn check_dice(dice1: i32, dice2: i32) -> Result<(), AppError> {
-    if dice1 < 1 || dice1 > 6 || dice2 < 1 || dice2 > 6 {
-        return Err(AppError::Validation(format!(
-            "Dice values must be between 1 and 6, they were {} and {}",
-            dice1, dice2
-        )));
+pub fn check_dice(dice: i32) -> Result<i32, AppError> {
+    if dice < 1 || dice > 6 {
+        Err(AppError::Validation(format!(
+            "Dice value must be between 1 and 6, it was {}",
+            dice
+        )))
+    } else {
+        Ok(dice)
     }
-    Ok(())
+}
+
+/// Validates that optional dice values are between 1 and 6, treating 0 as None
+pub fn check_opt_dice(dice: Option<i32>) -> Result<Option<i32>, AppError> {
+    match dice {
+        Some(0) => Ok(None),
+        Some(d) => Ok(Some(check_dice(d)?)),
+        None => Ok(None),
+    }
 }
 
 /// Retrieves drinks associated with a turn
@@ -322,17 +332,19 @@ pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDri
 }
 
 /// Checks if a place has already been visited in a game
-pub async fn place_visited(
+pub async fn count_place_visits(
     client: &Client,
     game_id: GameId,
     place_number: i32,
-) -> Result<bool, AppError> {
-    let query_str = "\
-    SELECT * FROM turns WHERE game_id = $1 AND place_number = $2 LIMIT 1";
+) -> Result<i32, AppError> {
     Ok(client
-        .query_opt(query_str, &[&game_id, &place_number])
+        .query_one(
+            "SELECT COUNT(*)::integer FROM turns
+            WHERE game_id = $1 AND place_number = $2 AND confirmed_at IS NOT NULL",
+            &[&game_id, &place_number],
+        )
         .await?
-        .is_some())
+        .get(0))
 }
 
 /// Lightweight version of get_full_game_data that only fetches one team and their latest turn.

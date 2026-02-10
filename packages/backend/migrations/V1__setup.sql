@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS places
     place_id   SERIAL PRIMARY KEY,
     place_name TEXT      NOT NULL,
     rule       TEXT      NOT NULL DEFAULT '',
-    place_type PLACETYPE NOT NULL
+    place_type PLACETYPE NOT NULL,
+    special    TEXT
 );
 
 -- physical game boards
@@ -143,8 +144,9 @@ CREATE TABLE IF NOT EXISTS turns
     -- dice numbers (if thrown)
     dice1        INTEGER,
     dice2        INTEGER,
-    -- dice for backwards movement when landing on AYY
-    dice_ayy     INTEGER,
+    -- dice for special rules
+    dice3        INTEGER,
+    dice4        INTEGER,
     -- where the player ended up (if dice thrown)
     place_number INTEGER,
     -- whether this is a penalty turn (no dice thrown)
@@ -173,7 +175,6 @@ CREATE TABLE IF NOT EXISTS place_drinks
     optional     BOOLEAN NOT NULL DEFAULT FALSE,
     on_table     BOOLEAN NOT NULL DEFAULT FALSE,
     n            INTEGER NOT NULL DEFAULT 1,
-    n_update     TEXT    NOT NULL DEFAULT '',
     PRIMARY KEY (drink_id, board_id, place_number),
     FOREIGN KEY (board_id, place_number)
         REFERENCES board_places (board_id, place_number)

@@ -96,11 +96,12 @@ Drink (beverage recipe)
 - A physical game board with numbered places
 - `Board`: Basic board info (id, name)
 - `BoardPlace`: A place at a specific `place_number` on the board, includes:
-  - Reference to a reusable `Place` definition (place_name, rule, place_type)
+  - Reference to a reusable `Place` definition
   - Position data (`x`, `y`, `area`, `start`, `end`)
   - `connections`: Paths to adjacent places
   - `drinks`: Drinks awarded when landing here
-- Movement and board locations use `place_number` (position on board), not `place_id` (reusable place definition)
+- `Place`: Reusable place definition (`name`, `rule`, `type`, `special`)
+- Movement and board locations use `place_number` (position on board), not `place_id` (ID of reusable definition)
 
 **Team** (`Team`)
 - A team participating in a game
@@ -112,7 +113,7 @@ Drink (beverage recipe)
 - Lifecycle timestamps: `start_time` → `thrown_at` → `confirmed_at` → `mixing_at` → `mixed_at` → `delivered_at` → `end_time`
 - Fields:
   - `dice1`, `dice2`: Dice values (1-6, null or zero if not thrown yet)
-  - `dice_ayy`: Backwards movement dice (for AYY square)
+  - `dice3`, `dice4`: Dice for special place effects (e.g., AYY backwards movement, Norske Kimble)
   - `location`: The `place_number` where the turn ended (not a PlaceId)
   - `place`: Full `BoardPlace` object for the location
   - `drinks`: List of drinks awarded
@@ -132,7 +133,6 @@ Drink (beverage recipe)
 - Fields:
   - `drink`: The drink recipe to award
   - `n`: Base quantity of this drink
-  - `n_update`: Formula string for calculating quantity (e.g., "dice1 + dice2")
   - `refill`: If true, awarded on every visit; if false, only on first visit to this place
   - `optional`: If true, referee can choose whether to award this drink
   - `on_table`: If true, drink is already on the game board (immediately available); if false, needs to be ordered/mixed
@@ -178,19 +178,22 @@ Most game logic is in `packages/backend/src/api/v1/turns/utils.rs`:
 All movement logic is in `packages/backend/src/database/boards.rs`:
 
 - `move_forwards()` / `move_backwards()` traverse `Connection` paths
-- Movement respects connection flags (`on_land`, `backwards`)
+- If turn lands on `on_land` connection, it is auto-taken
+- `special` movement rules followed
 - Final `place_number` is stored in `Turn.location`
 
 ### Drink Flow (PlaceDrink → TurnDrink)
-- **At Confirmation**: `PlaceDrink` templates are converted to `TurnDrink` instances
-  - Applies `n_update` formula (e.g., calculates quantity from dice)
+- **After Throw:** `PlaceDrink` templates are converted to `TurnDrink` instances
+  - Applies `special` formula (e.g., calculates quantity from dice)
   - Applies `refill` rule (skip if place visited before and refill=false)
   - Applies multipliers (double dice and `double_tampere` double quantities)
-  - Referee can manually adjust drinks before/after confirmation
-- **Mixing Phase**: Only for drinks where `no_mix_required=false` AND `on_table=false`
+- **At Confirmation**:
+  - Referee can adjust drinks (add/remove/quantity) before confirming
   - `on_table=true`: Drink already exists on board, skip mixing and delivery → goes directly to delivered
   - `no_mix_required=true`: No mixing needed (e.g., beer), skip mixing → goes directly to delivery phase
-  - Otherwise: IE mixes the drink (`mixing_at` → `mixed_at` → `delivered_at`)
+  - Drinks where `no_mix_required=false` AND `on_table=false` are sent to IE for mixing
+- **Mixing & Delivery**:
+  - IE mixes the drink (`mixing_at` → `mixed_at` → `delivered_at`)
 - **End Turn**: Players raise hands when drinks consumed and turn is complete
 
 ## Code Style

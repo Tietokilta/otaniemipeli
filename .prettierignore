@@ -7,3 +7,4 @@ scripts
 pnpm-lock.yaml
 *.md
 prettierrc.json
+global-rust-types.d.ts

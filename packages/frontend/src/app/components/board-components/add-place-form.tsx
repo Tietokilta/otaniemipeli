@@ -15,6 +15,7 @@ export default function AddPlaceForm({
     place_name: "",
     rule: "",
     place_type: "Normal",
+    special: null,
   };
   const router = useRouter();
 
@@ -69,14 +70,13 @@ export default function AddPlaceForm({
             });
           }}
           className={`
-    rounded-2xl
-    border-4
-    px-5 py-4
-    w-full
-    border-[var(--place-color)]
-    focus:outline-none
-    focus:border-[var(--place-color-selected)]
-  `}
+            rounded-2xl
+            border-4
+            px-5 py-4
+            w-full
+            border-[var(--place-color)]
+            focus:outline-none
+            focus:border-[var(--place-color-selected)]`}
         >
           {(["Normal", "Food", "Sauna", "Special", "Guild"] as PlaceType[]).map(
             (type) => (
@@ -95,6 +95,20 @@ export default function AddPlaceForm({
           updatePlace({
             ...place,
             rule: e.target.value,
+          });
+        }}
+      />
+      <label htmlFor="placeSpecial">Paikan erikoissääntö:</label>
+      <input
+        type="text"
+        id="placeSpecial"
+        value={place.special ?? ""}
+        placeholder="MIN(D2), N+1, -D1, IE"
+        className="border border-primary-500 rounded-lg p-2 w-full"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          updatePlace({
+            ...place,
+            special: e.target.value || null,
           });
         }}
       />

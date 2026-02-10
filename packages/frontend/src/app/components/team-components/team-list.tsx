@@ -5,6 +5,7 @@ import TeamCard from "@/app/components/team-components/team-card";
 
 export default function TeamList({
   game,
+  board,
   teams,
   className,
   link,
@@ -14,6 +15,7 @@ export default function TeamList({
   canAdd = true,
 }: {
   game: Game;
+  board?: BoardPlaces;
   teams: GameTeam[];
   className?: string;
   link?: boolean;
@@ -30,8 +32,9 @@ export default function TeamList({
     >
       {teams.map((team) => (
         <TeamCard
-          team={team}
           key={team.team.team_id}
+          team={team}
+          board={board}
           className="w-full"
           link={link}
           linkPrefix={linkPrefix}

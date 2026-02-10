@@ -1,28 +1,28 @@
-import React, {
-  useEffect,
-  useState,
-  Dispatch,
-  SetStateAction,
-  useCallback,
-} from "react";
-import deepEqual from "fast-deep-equal";
-import PopUpDialogue from "../pop-up-dialogue";
 import DropdownMenu from "@/app/components/dropdown-menu";
 import {
-  endTurn,
-  startTurn,
-  changeDice,
   cancelTurn,
-  getDrinks,
+  changeDice,
   confirmPenalty,
-  setMoralVictoryEligible,
   confirmTurn,
+  endTurn,
+  getDrinks,
   setDrinkPrepStatus,
+  setMoralVictoryEligible,
+  startTurn,
   teleportTeam,
 } from "@/utils/fetchers";
 import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
-import SimpleConfirmedButton from "../simple-confirmed-button";
+import deepEqual from "fast-deep-equal";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import PlaceCard from "../board-components/place-card";
+import PopUpDialogue from "../pop-up-dialogue";
+import SimpleConfirmedButton from "../simple-confirmed-button";
 
 /** Set to false to show the dice selection dialog when creating turns. */
 const USE_SECRETARIES = true;
@@ -31,6 +31,7 @@ const USE_ASSISTANT_REFEREES = true;
 
 const ALLOW_REFEREE_TO_DELIVER_DRINKS = true;
 const KEEP_DIALOGUE_OPEN_ON_ACTIONS = true;
+const ALLOW_TELEPORT = true;
 
 /** Returns the unconfirmed penalty turn if one exists. */
 function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
@@ -44,11 +45,13 @@ function getUnconfirmedTurn(team: GameTeam): Turn | undefined {
 
 export const EditTeamTurnDialogue = ({
   team,
+  board,
   open,
   setOpen,
   assistant = false,
 }: {
   team: GameTeam;
+  board?: BoardPlaces;
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   assistant?: boolean;
@@ -81,7 +84,6 @@ export const EditTeamTurnDialogue = ({
       game_id: team.team.game_id,
       dice1: null,
       dice2: null,
-      dice_ayy: null,
       penalty: true,
     };
     const turn = await startTurn(postTurn);
@@ -190,9 +192,11 @@ export const EditTeamTurnDialogue = ({
 export const Dice = ({
   value,
   setValue,
+  small,
 }: {
   value: number;
   setValue: React.Dispatch<React.SetStateAction<number>>;
+  small?: boolean;
 }) => {
   return (
     <div className="flex flex-wrap mb-4 gap-x-2 gap-y-1 justify-center">
@@ -206,7 +210,7 @@ export const Dice = ({
             cursor-pointer
             border-2
             text-3xl
-            w-[24vw]
+            ${small ? "w-[12vw]" : "w-[24vw]"}
             md:w-[12vw]
             max-w-24
             aspect-square
@@ -216,7 +220,7 @@ export const Dice = ({
             {i}
           </button>
         ) : (
-          <div key="0" className="w-full md:hidden" />
+          <div key="0" className={`w-full ${small ? "hidden" : "md:hidden"}`} />
         ),
       )}
     </div>
@@ -280,7 +284,6 @@ export const AddTeamTurnButton = ({
       game_id: team.team.game_id,
       dice1: null,
       dice2: null,
-      dice_ayy: null,
       penalty: false,
     };
     await startTurn(postTurn);
@@ -409,6 +412,16 @@ const secretaryInstructions: Record<TurnStatus, string> = {
   [TurnStatus.Ended]: "Odotetaan päätuomaria aloittamaan joukkueen vuoro.",
 };
 
+export function needDice(turn: Turn | undefined): {
+  dice3: boolean;
+  dice4: boolean;
+} {
+  return {
+    dice3: !!turn?.dice3 || /\bD[12]\b/.test(turn?.place?.place.special ?? ""),
+    dice4: !!turn?.dice4 || /\bD2\b/.test(turn?.place?.place.special ?? ""),
+  };
+}
+
 const AddTeamTurnDialogue = ({
   team,
   ongoingTurn,
@@ -420,20 +433,23 @@ const AddTeamTurnDialogue = ({
 }) => {
   const [dice1, setDice1] = useState<number>(ongoingTurn?.dice1 || 0);
   const [dice2, setDice2] = useState<number>(ongoingTurn?.dice2 || 0);
-  const [dice_ayy, setDiceAyy] = useState<number>(ongoingTurn?.dice_ayy || 0);
+  const [dice3, setDice3] = useState<number>(ongoingTurn?.dice3 || 0);
+  const [dice4, setDice4] = useState<number>(ongoingTurn?.dice4 || 0);
   const [pending, setPending] = useState(false);
 
-  // TODO: unhardcode :D
-  const showAyy =
-    !!ongoingTurn?.dice_ayy ||
-    ongoingTurn?.place?.place.place_name === "Aalto-yliopiston Ylioppilaskunta";
+  const need = needDice(ongoingTurn);
 
   const submitTurn = async () => {
     setPending(true);
 
     if (ongoingTurn) {
       // Update existing turn with dice values
-      await changeDice(ongoingTurn.turn_id, { dice1, dice2, dice_ayy });
+      await changeDice(ongoingTurn.turn_id, {
+        dice1,
+        dice2,
+        dice3: dice3 || null,
+        dice4: dice4 || null,
+      });
     } else {
       // Create new turn with dice values
       const postTurn: PostStartTurn = {
@@ -441,7 +457,6 @@ const AddTeamTurnDialogue = ({
         game_id: team.team.game_id,
         dice1,
         dice2,
-        dice_ayy,
         penalty: false,
       };
       await startTurn(postTurn);
@@ -466,13 +481,35 @@ const AddTeamTurnDialogue = ({
         >
           <div className="flex flex-col w-full gap-2">
             <h2>Noppa 1:</h2>
-            <Dice value={dice1} setValue={setDice1} />
+            <Dice
+              value={dice1}
+              setValue={setDice1}
+              small={need.dice3 || need.dice4}
+            />
             <h2>Noppa 2:</h2>
-            <Dice value={dice2} setValue={setDice2} />
-            {showAyy && (
+            <Dice
+              value={dice2}
+              setValue={setDice2}
+              small={need.dice3 || need.dice4}
+            />
+            {need.dice3 && (
               <>
-                <h2>AYY ekstranoppa:</h2>
-                <Dice value={dice_ayy} setValue={setDiceAyy} />
+                <h2>Lisänoppa 1:</h2>
+                <Dice
+                  value={dice3}
+                  setValue={setDice3}
+                  small={need.dice3 || need.dice4}
+                />
+              </>
+            )}
+            {need.dice4 && (
+              <>
+                <h2>Lisänoppa 2:</h2>
+                <Dice
+                  value={dice4}
+                  setValue={setDice4}
+                  small={need.dice3 || need.dice4}
+                />
               </>
             )}
           </div>
@@ -753,7 +790,7 @@ const AssistantRefereeDialogue = ({
     availableDrinks.length > 0
   ) {
     setTurnDrinks({
-      combined: addFavorites(turnDrinks, availableDrinks),
+      combined: addFavorites(turn.drinks, availableDrinks),
       fromServer: turn.drinks,
       drinksLoaded: availableDrinks.length > 0,
       modified: false,
@@ -763,7 +800,7 @@ const AssistantRefereeDialogue = ({
   else if (!prevTurnDrinks.drinksLoaded && availableDrinks.length > 0) {
     setTurnDrinks({
       combined: addFavorites(turnDrinks, availableDrinks),
-      fromServer: turn.drinks,
+      fromServer: prevTurnDrinks.fromServer,
       drinksLoaded: availableDrinks.length > 0,
       modified: false,
     });
@@ -783,12 +820,9 @@ const AssistantRefereeDialogue = ({
     setOpen(false);
   };
 
-  // TODO: unhardcode :D
-  const showAyy =
-    !!turn.dice_ayy ||
-    turn.place?.place.place_name === "Aalto-yliopiston Ylioppilaskunta";
-  const mustAyy = showAyy && !turn.dice_ayy;
-
+  const need = needDice(turn);
+  const missingDice =
+    (need.dice3 && !turn.dice3) || (need.dice4 && !turn.dice4);
   return (
     <PopUpDialogue
       setOpen={setOpen}
@@ -812,10 +846,16 @@ const AssistantRefereeDialogue = ({
           <span>
             Heitot: {turn.dice1}&nbsp;+&nbsp;{turn.dice2}
           </span>
-          {mustAyy ? (
-            <em>AYY-nopanheitto vaaditaan.</em>
+          {missingDice ? (
+            <em>Lisänopanheittoja vaaditaan.</em>
           ) : (
-            showAyy && <em>AYY-noppa: {turn.dice_ayy}</em>
+            need.dice3 && (
+              <em>
+                {need.dice4
+                  ? `Lisäheitot: ${turn.dice3}\xA0+\xA0${turn.dice4}`
+                  : `Lisäheitto: ${turn.dice3}`}
+              </em>
+            )
           )}
           <button
             type="button"
@@ -868,7 +908,7 @@ const AssistantRefereeDialogue = ({
             type="button"
             className="button text-xl p-4"
             onClick={handleSubmit}
-            disabled={pending || mustAyy || mustModify}
+            disabled={pending || missingDice || mustModify}
           >
             Vahvista vuoro
           </button>

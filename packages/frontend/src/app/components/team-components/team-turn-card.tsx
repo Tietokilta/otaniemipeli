@@ -156,6 +156,7 @@ export default function TeamTurnCard({
       {showDialogue && (
         <EditTeamTurnDialogue
           team={team}
+          board={board}
           assistant={assistant}
           open
           setOpen={setShowDialogue}
