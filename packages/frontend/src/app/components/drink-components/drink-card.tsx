@@ -226,7 +226,8 @@ function TurnDrinkCard({
   const trivial =
     drinkIngredients?.ingredients.length === 1 &&
     drinkIngredients.ingredients[0].ingredient.name === drink.drink.name;
-  const showIngredients = drinkIngredients?.ingredients.length && !trivial;
+  const showIngredients =
+    drinkIngredients && drinkIngredients.ingredients.length > 0 && !trivial;
 
   return (
     <div className="flex flex-col w-full border-b border-primary-900">

@@ -18,6 +18,7 @@ import React, {
   SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import PlaceCard from "../board-components/place-card";
@@ -586,33 +587,10 @@ const AddTeamPenaltyDialogue = ({
   turnId: number;
   onClose: () => void;
 }) => {
-  const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
   const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
     drinks: [],
   });
   const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    getDrinks().then((drinks) => {
-      const drinkList = drinks.drink_ingredients.map((d) => d.drink);
-      setAvailableDrinks(drinkList);
-
-      // Add favorite drinks with n=0
-      const favoriteDrinks = drinkList
-        .filter((d) => d.favorite)
-        .map(
-          (d): TurnDrink => ({
-            drink: d,
-            n: 0,
-            on_table: 0,
-            optional: false,
-          }),
-        );
-      if (favoriteDrinks.length > 0) {
-        setPenaltyDrinks({ drinks: favoriteDrinks });
-      }
-    });
-  }, []);
 
   const handleSubmit = async () => {
     setPending(true);
@@ -646,7 +624,6 @@ const AddTeamPenaltyDialogue = ({
         }}
       >
         <DrinkSelectionList
-          availableDrinks={availableDrinks}
           selectedDrinks={penaltyDrinks}
           setSelectedDrinks={setPenaltyDrinks}
         />
@@ -759,55 +736,23 @@ const AssistantRefereeDialogue = ({
   turn: Turn;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
   const [pending, setPending] = useState(false);
   const [changingDice, setChangingDice] = useState(false);
+  const [turnDrinks, setTurnDrinks] = useState<TurnDrinks>(turn.drinks);
+  const [prevServerDrinks, setPrevServerDrinks] = useState<TurnDrinks>(
+    turn.drinks,
+  );
+  const [modified, setModified] = useState(false);
 
-  type TurnDrinksWithSources = {
-    combined: TurnDrinks;
-    fromServer: TurnDrinks;
-    drinksLoaded: boolean;
-    modified: boolean;
-  };
-  const [prevTurnDrinks, setTurnDrinks] = useState<TurnDrinksWithSources>({
-    combined: turn.drinks,
-    fromServer: turn.drinks,
-    drinksLoaded: false,
-    modified: false,
-  });
-  const { combined: turnDrinks } = prevTurnDrinks;
-
-  useEffect(() => {
-    getDrinks().then((drinks) => {
-      const drinkList = drinks.drink_ingredients.map((d) => d.drink);
-      setAvailableDrinks(drinkList);
-    });
-  }, []);
-
-  // Populate turnDrinks if the turn changed
-  if (
-    !deepEqual(turn.drinks, prevTurnDrinks.fromServer) &&
-    availableDrinks.length > 0
-  ) {
-    setTurnDrinks({
-      combined: addFavorites(turn.drinks, availableDrinks),
-      fromServer: turn.drinks,
-      drinksLoaded: availableDrinks.length > 0,
-      modified: false,
-    });
-  }
-  // Or if drinks just loaded and we haven't added favorites yet
-  else if (!prevTurnDrinks.drinksLoaded && availableDrinks.length > 0) {
-    setTurnDrinks({
-      combined: addFavorites(turnDrinks, availableDrinks),
-      fromServer: prevTurnDrinks.fromServer,
-      drinksLoaded: availableDrinks.length > 0,
-      modified: false,
-    });
+  // When server drinks change (e.g. after dice change), reset local state
+  if (!deepEqual(turn.drinks, prevServerDrinks)) {
+    setPrevServerDrinks(turn.drinks);
+    setTurnDrinks(turn.drinks);
+    setModified(false);
   }
 
   const hasOptionals = turnDrinks.drinks.some((d) => d.optional);
-  const mustModify = hasOptionals && !prevTurnDrinks.modified;
+  const mustModify = hasOptionals && !modified;
 
   const handleSubmit = async () => {
     setPending(true);
@@ -879,15 +824,11 @@ const AssistantRefereeDialogue = ({
           </div>
         )}
         <DrinkSelectionList
-          availableDrinks={availableDrinks}
           selectedDrinks={turnDrinks}
-          setSelectedDrinks={(fn) =>
-            setTurnDrinks((prev) => ({
-              ...prev,
-              combined: fn(turnDrinks),
-              modified: true,
-            }))
-          }
+          setSelectedDrinks={(fn) => {
+            setTurnDrinks(fn);
+            setModified(true);
+          }}
         />
         {mustModify && (
           <div className="text-lg -mb-4">
@@ -918,43 +859,63 @@ const AssistantRefereeDialogue = ({
   );
 };
 
-export function DrinkSelectionList<T extends Drink>({
-  availableDrinks,
+/** Drink selection list that fetches available drinks and merges favorites automatically.
+ *
+ * Favorites (with n=0) are shown in the display list but only pushed to
+ * `setSelectedDrinks` when the user explicitly edits a drink. This means
+ * auto-favorite-merging never triggers the caller's modification tracking.
+ */
+export function DrinkSelectionList({
   selectedDrinks,
   setSelectedDrinks,
   buttonText = "Lisää juoma",
 }: {
-  availableDrinks: T[];
   selectedDrinks: TurnDrinks;
   setSelectedDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
   buttonText?: string;
 }): JSX.Element {
-  // Filter out already-selected drinks from the dropdown
+  const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
+
+  useEffect(() => {
+    getDrinks().then((drinks) => {
+      setAvailableDrinks(drinks.drink_ingredients.map((d) => d.drink));
+    });
+  }, []);
+
+  // Merge favorites into the display list without touching parent state
+  const displayDrinks = useMemo(
+    () => addFavorites(selectedDrinks, availableDrinks),
+    [selectedDrinks, availableDrinks],
+  );
+
+  // Wraps setSelectedDrinks to operate on the merged (display) list,
+  // ensuring favorites are included when the user edits any drink.
+  const handleUpdate = useCallback(
+    (fn: (prev: TurnDrinks) => TurnDrinks) => {
+      setSelectedDrinks((prev) => fn(addFavorites(prev, availableDrinks)));
+    },
+    [setSelectedDrinks, availableDrinks],
+  );
+
+  // Filter dropdown to exclude drinks already shown (including favorites)
   const filteredDrinks = availableDrinks.filter(
-    (d) => !selectedDrinks.drinks.some((td) => td.drink.id === d.id),
+    (d) => !displayDrinks.drinks.some((td) => td.drink.id === d.id),
   );
 
   const onSelect = useCallback(
-    (selected: T | undefined) => {
+    (selected: Drink | undefined) => {
       if (!selected) return;
-      setSelectedDrinks((prev) => {
-        // Ensure we don't add the same drink twice (shouldn't occur normally with the filtering above)
+      handleUpdate((prev) => {
         if (prev.drinks.some((d) => d.drink.id === selected.id)) return prev;
-        // Add new drink with n=1
         return {
           drinks: [
             ...prev.drinks,
-            {
-              drink: selected,
-              n: 1,
-              on_table: 0,
-              optional: false,
-            },
+            { drink: selected, n: 1, on_table: 0, optional: false },
           ],
         };
       });
     },
-    [setSelectedDrinks],
+    [handleUpdate],
   );
 
   return (
@@ -966,14 +927,14 @@ export function DrinkSelectionList<T extends Drink>({
         setSelectedOption={onSelect}
       />
       <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
-        {selectedDrinks.drinks.length === 0 && (
+        {displayDrinks.drinks.length === 0 && (
           <p className="text-tertiary-500">Ei valittuja juomia</p>
         )}
-        {selectedDrinks.drinks.map((drink) => (
+        {displayDrinks.drinks.map((drink) => (
           <DrinkSelectionCard
             key={drink.drink.id}
             turnDrink={drink}
-            updateDrinks={setSelectedDrinks}
+            updateDrinks={handleUpdate}
           />
         ))}
       </div>

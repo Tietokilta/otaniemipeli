@@ -496,6 +496,21 @@ export async function setDrinkPrepStatus(
   );
 }
 
+/** Updates drinks on an already-confirmed turn (used by IE for "IE" special). */
+export async function editTurnDrinks(
+  turnId: number,
+  drinks: TurnDrinks,
+): Promise<void> {
+  return apiFetchVoid(
+    `${API_URL}/turns/${turnId}/drinks`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ drinks }),
+    },
+    true,
+  );
+}
+
 // Authentication operations
 
 export async function login(loginInfo: LoginInfo): Promise<UserSessionInfo> {

@@ -123,115 +123,6 @@ pub async fn process_start_turn(
     Ok(turn)
 }
 
-/// Changes dice for an existing turn and recomputes movement/drinks.
-pub async fn process_change_dice(
-    client: &Client,
-    turn_id: TurnId,
-    ChangeDiceBody {
-        dice1,
-        dice2,
-        dice3,
-        dice4,
-    }: ChangeDiceBody,
-) -> Result<Turn, AppError> {
-    let dice1 = check_dice(dice1)?;
-    let dice2 = check_dice(dice2)?;
-    let dice3 = check_opt_dice(dice3)?;
-    let dice4 = check_opt_dice(dice4)?;
-
-    let turn = update_turn_dice(client, turn_id, dice1, dice2, dice3, dice4).await?;
-
-    let team_data = get_team_latest_turn(client, turn.game_id, turn.team_id).await?;
-
-    let result =
-        compute_turn_result(client, turn.game_id, &team_data, dice1, dice2, dice3, dice4).await?;
-
-    set_end_place(client, result.place_after.place_number, turn.turn_id).await?;
-    set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
-
-    Ok(turn)
-}
-
-/// Confirms a turn: sets confirmed_at, replaces drinks, and applies side effects.
-pub async fn process_confirm_turn(
-    client: &Client,
-    turn_id: TurnId,
-    mut drinks: TurnDrinks,
-) -> Result<Turn, AppError> {
-    let turn = get_turn_with_drinks(client, turn_id).await?;
-
-    let (Some(location), Some(dice1), Some(dice2)) = (turn.location, turn.dice1, turn.dice2) else {
-        return Err(AppError::Validation(
-            "Turn must have location and dice to be confirmed".to_string(),
-        ));
-    };
-
-    let game = get_game_by_id(client, turn.game_id).await?;
-    let team_data = get_team_latest_turn(client, turn.game_id, turn.team_id).await?;
-
-    let Some(place_before) = team_data.location else {
-        return Err(AppError::Validation(
-            "Team must have a location before confirming turn".to_string(),
-        ));
-    };
-
-    let place_after = get_board_place(client, game.board.id, location).await?;
-
-    // Update on_table for each drink from the place
-    for td in drinks.drinks.iter_mut() {
-        // Find the corresponding place_drink to check on_table status
-        td.on_table = match place_after
-            .drinks
-            .drinks
-            .iter()
-            .find(|pd| pd.drink.id == td.drink.id)
-        {
-            // Set on_table to the number of the drink actually on the place
-            Some(pd) if pd.on_table => min(td.n, pd.n),
-            _ => 0,
-        };
-    }
-
-    set_turn_confirmed(client, turn_id).await?;
-
-    let is_double = dice1 == dice2;
-    if place_before.area == "normal" && place_after.area == "tampere" && is_double {
-        set_team_double_tampere(client, turn.team_id, true).await?;
-    } else if place_after.area == "normal" && team_data.team.double_tampere {
-        set_team_double_tampere(client, turn.team_id, false).await?;
-    }
-
-    set_turn_drinks(client, turn_id, drinks.clone()).await?;
-
-    // If the turn ended on a place with end=true, end the game immediately
-    if place_after.end {
-        end_game(client, turn.game_id).await?;
-    }
-    // Otherwise, end turn immediately if no drinks were awarded
-    else if drinks.drinks.is_empty() {
-        db_end_turn(client, turn_id).await?;
-    }
-    // Otherwise, store all drinks in this turn
-    else {
-        let has_ie_drinks = drinks.drinks.iter().any(|d| d.on_table < d.n);
-        let needs_mixing = drinks
-            .drinks
-            .iter()
-            .any(|d| d.on_table < d.n && !d.drink.no_mix_required);
-
-        if !has_ie_drinks {
-            // If all drinks are on_table (no IE drinks), mark as delivered immediately
-            db_set_drink_prep_status(client, turn_id, DrinkPrepStatus::Delivered).await?;
-        } else if !needs_mixing {
-            // Otherwise, if drinks don't require mixing, skip IE queue
-            db_set_drink_prep_status(client, turn_id, DrinkPrepStatus::Mixing).await?;
-        }
-        // Otherwise, turn goes through IE queue normally (on_table drinks delivered with IE drinks)
-    }
-
-    Ok(turn)
-}
-
 /// Confirms a penalty turn: sets confirmed_at, sets drinks, and applies mixing logic.
 pub async fn process_confirm_penalty(
     client: &Client,
@@ -292,7 +183,68 @@ pub async fn change_dice(
     Json(data): Json<ChangeDiceBody>,
 ) -> Result<(), AppError> {
     let client = state.db.get().await?;
-    let turn = process_change_dice(&client, turn_id, data).await?;
+    let dice1 = check_dice(data.dice1)?;
+    let dice2 = check_dice(data.dice2)?;
+    let dice3 = check_opt_dice(data.dice3)?;
+    let dice4 = check_opt_dice(data.dice4)?;
+
+    let turn = update_turn_dice(&client, turn_id, dice1, dice2, dice3, dice4).await?;
+    let team_data = get_team_latest_turn(&client, turn.game_id, turn.team_id).await?;
+    let result = compute_turn_result(
+        &client,
+        turn.game_id,
+        &team_data,
+        dice1,
+        dice2,
+        dice3,
+        dice4,
+    )
+    .await?;
+    set_end_place(&client, result.place_after.place_number, turn.turn_id).await?;
+    set_turn_drinks(&client, turn.turn_id, result.turn_drinks).await?;
+
+    let game_data = get_full_game_data(&client, turn.game_id).await?;
+    broadcast_game_update(&state.io, turn.game_id, &game_data).await;
+    Ok(())
+}
+
+/// Updates the on_table values of the drinks in a turn based on the current place's drinks, then stores the updated drinks in the database.
+fn sync_drinks_on_table(place: Option<&BoardPlace>, drinks: &mut TurnDrinks) {
+    // Update on_table for each drink from the place
+    for td in drinks.drinks.iter_mut() {
+        // Find the corresponding place_drink to check on_table status
+        td.on_table = match place.and_then(|place| {
+            place
+                .drinks
+                .drinks
+                .iter()
+                .find(|pd| pd.drink.id == td.drink.id)
+        }) {
+            // Set on_table to the number of the drink actually o   n the place
+            Some(pd) if pd.on_table => min(td.n, pd.n),
+            _ => 0,
+        };
+    }
+}
+
+/// PUT /turns/{turn_id}/drinks - Update drinks on an already-confirmed turn (used by IE for "IE" special).
+pub async fn edit_turn_drinks(
+    State(state): State<AppState>,
+    Path(turn_id): Path<TurnId>,
+    Json(mut data): Json<ConfirmTurnBody>,
+) -> Result<(), AppError> {
+    let client = state.db.get().await?;
+    let turn = get_turn_with_drinks(&client, turn_id).await?;
+
+    if turn.confirmed_at.is_none() {
+        return Err(AppError::Validation(
+            "Turn must be confirmed before editing drinks".to_string(),
+        ));
+    }
+
+    sync_drinks_on_table(turn.place.as_ref(), &mut data.drinks);
+    set_turn_drinks(&client, turn_id, data.drinks).await?;
+
     let game_data = get_full_game_data(&client, turn.game_id).await?;
     broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())
@@ -305,7 +257,65 @@ pub async fn confirm_turn(
     Json(data): Json<ConfirmTurnBody>,
 ) -> Result<(), AppError> {
     let client = state.db.get().await?;
-    let turn = process_confirm_turn(&client, turn_id, data.drinks).await?;
+    let mut drinks = data.drinks;
+
+    let turn = get_turn_with_drinks(&client, turn_id).await?;
+
+    let (Some(location), Some(dice1), Some(dice2)) = (turn.location, turn.dice1, turn.dice2) else {
+        return Err(AppError::Validation(
+            "Turn must have location and dice to be confirmed".to_string(),
+        ));
+    };
+
+    let game = get_game_by_id(&client, turn.game_id).await?;
+    let team_data = get_team_latest_turn(&client, turn.game_id, turn.team_id).await?;
+
+    let Some(place_before) = team_data.location else {
+        return Err(AppError::Validation(
+            "Team must have a location before confirming turn".to_string(),
+        ));
+    };
+
+    let place_after = get_board_place(&client, game.board.id, location).await?;
+
+    sync_drinks_on_table(Some(&place_after), &mut drinks);
+    set_turn_drinks(&client, turn_id, drinks.clone()).await?;
+
+    set_turn_confirmed(&client, turn_id).await?;
+
+    let is_double = dice1 == dice2;
+    if place_before.area == "normal" && place_after.area == "tampere" && is_double {
+        set_team_double_tampere(&client, turn.team_id, true).await?;
+    } else if place_after.area == "normal" && team_data.team.double_tampere {
+        set_team_double_tampere(&client, turn.team_id, false).await?;
+    }
+
+    // If the turn ended on a place with end=true, end the game immediately
+    if place_after.end {
+        end_game(&client, turn.game_id).await?;
+    }
+    // Otherwise, end turn immediately if no drinks were awarded
+    else if drinks.drinks.is_empty() {
+        db_end_turn(&client, turn_id).await?;
+    }
+    // Otherwise, store all drinks in this turn
+    else {
+        let has_ie_drinks = drinks.drinks.iter().any(|d| d.on_table < d.n);
+        let needs_mixing = drinks
+            .drinks
+            .iter()
+            .any(|d| d.on_table < d.n && !d.drink.no_mix_required);
+
+        if !has_ie_drinks {
+            // If all drinks are on_table (no IE drinks), mark as delivered immediately
+            db_set_drink_prep_status(&client, turn_id, DrinkPrepStatus::Delivered).await?;
+        } else if !needs_mixing {
+            // Otherwise, if drinks don't require mixing, skip IE queue
+            db_set_drink_prep_status(&client, turn_id, DrinkPrepStatus::Mixing).await?;
+        }
+        // Otherwise, turn goes through IE queue normally (on_table drinks delivered with IE drinks)
+    }
+
     let game_data = get_full_game_data(&client, turn.game_id).await?;
     broadcast_game_update(&state.io, turn.game_id, &game_data).await;
     Ok(())

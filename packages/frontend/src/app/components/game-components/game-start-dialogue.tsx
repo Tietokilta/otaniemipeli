@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import PopUpDialogue from "../pop-up-dialogue";
 import { DrinkSelectionList } from "../team-components/edit-team-turn-dialogue";
-import { getDrinks, startGame } from "@/utils/fetchers";
+import { startGame } from "@/utils/fetchers";
 
 export default function GameStartDialogue({
   game,
@@ -11,40 +11,13 @@ export default function GameStartDialogue({
   game: Game;
   className?: string;
 }) {
-  const [knownDrinks, setKnownDrinks] = useState<Drink[]>([]);
   const [selectedDrinks, setSelectedDrinks] = useState<TurnDrinks>({
     drinks: [],
   });
-
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    getDrinks().then((payload) => {
-      const list = payload.drink_ingredients?.map((d) => d.drink) ?? [];
-      const seen = new Set<number>();
-      const uniq = list.filter((d) =>
-        seen.has(d.id) ? false : (seen.add(d.id), true),
-      );
-      setKnownDrinks(uniq);
-
-      // Add favorite drinks with n=0
-      const favoriteDrinks = uniq
-        .filter((d) => d.favorite)
-        .map((d) => ({
-          drink: d,
-          n: 0,
-          on_table: 0,
-          optional: false,
-        }));
-      if (favoriteDrinks.length > 0) {
-        setSelectedDrinks({ drinks: favoriteDrinks });
-      }
-    });
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Filter out drinks with n=0
     const drinksToSubmit = selectedDrinks.drinks.filter((d) => d.n > 0);
     const firstTurn: FirstTurnPost = {
       game_id: game.id,
@@ -82,7 +55,6 @@ export default function GameStartDialogue({
               aloittamista!
             </p>
             <DrinkSelectionList
-              availableDrinks={knownDrinks}
               selectedDrinks={selectedDrinks}
               setSelectedDrinks={setSelectedDrinks}
             />
