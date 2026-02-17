@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <>
       <GeneralHeader base_path="/admin" items={headerItems} />
-      <div className="flex-1 p-4 min-h-0">{children}</div>
+      <div className="flex flex-col flex-1 p-4 min-h-0">{children}</div>
     </>
   );
 }

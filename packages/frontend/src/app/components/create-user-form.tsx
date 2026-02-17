@@ -8,10 +8,12 @@ export default function CreateUserForm({
   setLoginAction,
   firstUser = false,
   className,
+  onCreate,
 }: {
   setLoginAction?: (loggedIn: boolean) => void;
   firstUser?: boolean;
   className?: string;
+  onCreate?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -43,16 +45,18 @@ export default function CreateUserForm({
       user_type: userType,
       password,
     });
-    if (res) {
+    if (res && setLoginAction) {
+      // first user being created, log in immediately
       localStorage.setItem("auth_token", res.session.session_hash);
-      setLoginAction?.(true);
+      setLoginAction(true);
     }
+    onCreate?.();
     setUsername("");
     setEmail("");
     setUserType("Secretary");
     setPassword("");
     setPasswordConfirm("");
-  }, [setLoginAction, username, email, userType, password, pwsMatch]);
+  }, [setLoginAction, onCreate, username, email, userType, password, pwsMatch]);
 
   const onSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -60,7 +64,7 @@ export default function CreateUserForm({
   };
 
   return (
-    <div className={`${className} flex flex-col`}>
+    <div className={`${className} box flex flex-col`}>
       <h1>Luo {firstUser && "ensimmäinen"} käyttäjä</h1>
       <form className="flex flex-col gap-3.5" ref={formRef} onSubmit={onSubmit}>
         <input

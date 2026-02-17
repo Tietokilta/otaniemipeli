@@ -80,6 +80,20 @@ pub struct UserInfo {
     pub user_types: UsersTypes,
 }
 
+/// Public user info returned by the API (excludes email and password).
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct UserPublic {
+    pub uid: UserId,
+    pub username: String,
+    pub user_types: UsersTypes,
+}
+
+/// Wrapper for a list of public user info.
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct UsersPublic {
+    pub users: Vec<UserPublic>,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct UserCreateInfo {
     pub username: String,

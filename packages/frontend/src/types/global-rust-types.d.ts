@@ -31,6 +31,16 @@ declare global {
     user_types: UsersTypes;
   }
 
+  interface UserPublic {
+    uid: number;
+    username: string;
+    user_types: UsersTypes;
+  }
+
+  interface UsersPublic {
+    users: UserPublic[];
+  }
+
   interface UserCreateInfo {
     username: string;
     email: string;

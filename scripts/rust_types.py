@@ -129,6 +129,22 @@ class UserInfo:
 
 
 @dataclass
+class UserPublic:
+    uid: int
+    username: str
+    user_types: 'UsersTypes'
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
+class UsersPublic:
+    users: list['UserPublic'] = field(default_factory=list['UserPublic'])
+    @classmethod
+    def from_dict(cls, data: Any): return _from_dict(cls, data)
+
+
+@dataclass
 class UserCreateInfo:
     username: str
     email: str

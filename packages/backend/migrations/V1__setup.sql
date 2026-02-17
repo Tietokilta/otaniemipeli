@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS sessions
 CREATE TABLE IF NOT EXISTS expired_sessions
 (
     session_id  INTEGER PRIMARY KEY,
-    uid         INTEGER     NOT NULL REFERENCES users (uid),
+    uid         INTEGER     NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL,
     last_active TIMESTAMPTZ NOT NULL,
     expires     TIMESTAMPTZ NOT NULL,
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS place_connections
 );
 
 -- row-level trigger: only runs when a row is inserted
-CREATE OR REPLACE FUNCTION grant_secretary_row()
+CREATE OR REPLACE FUNCTION grant_lower_privs()
     RETURNS TRIGGER
     LANGUAGE plpgsql
 AS
@@ -229,11 +229,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER trg_grant_secretary
+CREATE OR REPLACE TRIGGER trg_grant_lower_privs
     AFTER INSERT
     ON user_types
     FOR EACH ROW
-EXECUTE FUNCTION grant_secretary_row();
+EXECUTE FUNCTION grant_lower_privs();
 
 CREATE OR REPLACE FUNCTION log_expired_or_deleted_session()
     RETURNS trigger

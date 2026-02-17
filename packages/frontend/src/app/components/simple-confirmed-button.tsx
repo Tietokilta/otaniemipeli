@@ -9,7 +9,7 @@ interface SimpleAddFormProps {
   dialogText?: string;
   buttonClassName?: string;
   disabled?: boolean;
-  onAccept: () => void;
+  onAccept: () => void | Promise<void>;
 }
 
 export default function SimpleConfirmedButton({
@@ -21,6 +21,17 @@ export default function SimpleConfirmedButton({
   onAccept,
 }: SimpleAddFormProps) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  const handleAccept = async () => {
+    setPending(true);
+    try {
+      await onAccept();
+      setOpen(false);
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <>
@@ -33,19 +44,27 @@ export default function SimpleConfirmedButton({
       </button>
 
       {open && (
-        <PopUpDialogue setOpen={setOpen} title={dialogTitle}>
-          <p className="text-lg">{dialogText}</p>
-          <div className="flex justify-between px-4 py-4">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="button"
-            >
-              Eiku
-            </button>
-            <button type="button" className="button" onClick={onAccept}>
-              Vahvista
-            </button>
+        <PopUpDialogue setOpen={setOpen} title={dialogTitle} disabled={pending}>
+          <div className="px-4 py-2">
+            <p className="text-lg">{dialogText}</p>
+            <div className="flex justify-between px-4 py-4">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={pending}
+                className="button"
+              >
+                Eiku
+              </button>
+              <button
+                type="button"
+                className="button"
+                disabled={pending}
+                onClick={handleAccept}
+              >
+                Vahvista
+              </button>
+            </div>
           </div>
         </PopUpDialogue>
       )}

@@ -8,6 +8,7 @@ pub mod games;
 pub mod ingredients;
 pub mod teams;
 pub mod turns;
+pub mod users;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -18,4 +19,5 @@ pub fn router() -> Router<AppState> {
         .nest("/game_data", game_data::router())
         .nest("/teams", teams::router())
         .nest("/turns", turns::router())
+        .nest("/users", users::router())
 }
