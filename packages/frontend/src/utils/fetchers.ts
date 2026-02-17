@@ -123,8 +123,8 @@ export async function addIngredient(
 export async function deleteIngredient(
   drink_id: number,
   ingredient_id: number,
-): Promise<number> {
-  return apiFetchStatus(
+): Promise<void> {
+  return apiFetchVoid(
     `${API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
     { method: "DELETE" },
     true,
@@ -509,6 +509,16 @@ export async function editTurnDrinks(
     },
     true,
   );
+}
+
+// User operations
+
+export async function getUsers(): Promise<UsersPublic> {
+  return apiFetch<UsersPublic>(`${API_URL}/users`, {}, true);
+}
+
+export async function deleteUser(uid: number): Promise<void> {
+  return apiFetchVoid(`${API_URL}/users/${uid}`, { method: "DELETE" }, true);
 }
 
 // Authentication operations
