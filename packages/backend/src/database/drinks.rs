@@ -27,27 +27,6 @@ pub async fn get_ingredients(client: &Client) -> Result<Ingredients, AppError> {
     Ok(Ingredients { ingredients })
 }
 
-/// Retrieves a single ingredient by ID.
-pub async fn get_ingredient(client: &Client, id: IngredientId) -> Result<Ingredient, AppError> {
-    let query_str = "\
-    SELECT ingredient_id, name, abv, carbonated FROM ingredients WHERE ingredient_id = $1";
-
-    match client.query_opt(query_str, &[&id]).await? {
-        None => Ok(Ingredient {
-            id: IngredientId(-1),
-            name: "NONE".to_string(),
-            abv: -1.0,
-            carbonated: false,
-        }),
-        Some(r) => Ok(Ingredient {
-            id: r.get("ingredient_id"),
-            name: r.get("name"),
-            abv: r.get("abv"),
-            carbonated: r.get("carbonated"),
-        }),
-    }
-}
-
 /// Inserts a new ingredient into the database.
 pub async fn post_ingredient(client: &Client, ingredient: Ingredient) -> Result<u64, AppError> {
     let query_str = "\
@@ -148,50 +127,77 @@ pub async fn add_ingredients(
 /// Retrieves all ingredients for a specific drink.
 pub async fn get_drink_ingredients(
     client: &Client,
-    drink: Drink,
+    drink_id: DrinkId,
 ) -> Result<DrinkIngredients, AppError> {
-    let query_str = "\
-    SELECT \
-        dr.drink_id, \
-        dr.name, \
-        di.ingredient_id, \
-        i.name, \
-        i.abv, \
-        i.carbonated, \
-        di.quantity \
-    FROM drinks as dr \
-    LEFT JOIN drink_ingredients AS di \
-        ON dr.drink_id = di.drink_id \
-    LEFT JOIN ingredients AS i \
-        ON di.ingredient_id = i.ingredient_id \
-    WHERE dr.drink_id = $1 \
+    let query_str = "
+    SELECT
+        dr.drink_id,
+        dr.name AS drink_name,
+        dr.favorite,
+        dr.no_mix_required,
+        di.ingredient_id,
+        i.name AS ingredient_name,
+        i.abv,
+        i.carbonated,
+        di.quantity
+    FROM drinks AS dr
+    LEFT JOIN drink_ingredients AS di
+        ON dr.drink_id = di.drink_id
+    LEFT JOIN ingredients AS i
+        ON di.ingredient_id = i.ingredient_id
+    WHERE dr.drink_id = $1
     ORDER BY dr.drink_id";
 
-    let mut drink_ingredients: DrinkIngredients = DrinkIngredients {
-        drink,
-        abv: 0.0,
-        quantity: 0.0,
-        ingredients: Vec::new(),
+    let query = client.query(query_str, &[&drink_id]).await?;
+
+    let Some(first_row) = query.first() else {
+        return Err(AppError::NotFound(format!(
+            "Drink with id {} not found!",
+            drink_id,
+        )));
+    };
+    let drink = Drink {
+        id: first_row.get("drink_id"),
+        name: first_row.get("drink_name"),
+        favorite: first_row.get("favorite"),
+        no_mix_required: first_row.get("no_mix_required"),
     };
 
-    let query = client
-        .query(query_str, &[&drink_ingredients.drink.id])
-        .await?;
-    for row in query {
-        match row.try_get::<usize, i32>(2) {
-            Ok(_) => drink_ingredients.ingredients.push(IngredientQty {
-                ingredient: Ingredient {
-                    id: row.get(2),
-                    name: row.get(3),
-                    abv: row.get(4),
-                    carbonated: row.get(5),
-                },
-                quantity: row.get(6),
-            }),
-            Err(_) => continue,
-        }
-    }
-    Ok(drink_ingredients)
+    let ingredients: Vec<_> = query
+        .into_iter()
+        .filter(|row| {
+            row.get::<_, Option<IngredientId>>("ingredient_id")
+                .is_some()
+        })
+        .map(|row| IngredientQty {
+            ingredient: Ingredient {
+                id: row.get("ingredient_id"),
+                name: row.get("ingredient_name"),
+                abv: row.get("abv"),
+                carbonated: row.get("carbonated"),
+            },
+            quantity: row.get("quantity"),
+        })
+        .collect();
+
+    let quantity = ingredients.iter().map(|iq| iq.quantity).sum::<f64>();
+    let alcohol = ingredients
+        .iter()
+        .map(|iq| iq.ingredient.abv * iq.quantity)
+        .sum::<f64>();
+    let abv = if quantity > 0.0 {
+        round(alcohol / quantity, 2)
+    } else {
+        0.0
+    };
+    let quantity = round(quantity, 2);
+
+    Ok(DrinkIngredients {
+        drink,
+        abv,
+        quantity,
+        ingredients,
+    })
 }
 
 /// Retrieves all drinks with their ingredients and calculated ABV.
@@ -199,15 +205,7 @@ pub async fn get_drinks_ingredients(client: &Client) -> Result<DrinksIngredients
     let mut drink_ingredients: Vec<DrinkIngredients> = Vec::new();
     let drinks = get_drinks(client).await?;
     for drink in drinks.drinks {
-        let mut drinks_ingredient: DrinkIngredients = get_drink_ingredients(client, drink).await?;
-        let ingr = drinks_ingredient.ingredients.iter();
-        let qty = ingr.clone().fold(0.0, |acc, iq| acc + iq.quantity);
-        let abv = ingr
-            .clone()
-            .fold(0.0, |acc, iq| acc + iq.ingredient.abv * iq.quantity);
-        drinks_ingredient.abv = round(abv / qty, 1);
-        drinks_ingredient.quantity = round(qty, 2);
-        drink_ingredients.push(drinks_ingredient);
+        drink_ingredients.push(get_drink_ingredients(client, drink.id).await?);
     }
     Ok(DrinksIngredients { drink_ingredients })
 }

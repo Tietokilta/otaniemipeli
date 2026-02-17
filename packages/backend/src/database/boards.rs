@@ -132,7 +132,7 @@ pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<Boar
         bp.y,
         bp.area
     FROM board_places AS bp
-    LEFT JOIN places AS p
+    INNER JOIN places AS p
         ON bp.place_id = p.place_id
     WHERE bp.board_id = $1
     ORDER BY bp.place_number";
@@ -172,7 +172,7 @@ pub async fn get_board_place(
         bp.y,
         bp.area
     FROM board_places AS bp
-    LEFT JOIN places AS p
+    INNER JOIN places AS p
         ON bp.place_id = p.place_id
     WHERE bp.board_id = $1 AND bp.place_number = $2";
     let row = client
@@ -201,7 +201,7 @@ pub async fn get_place_drinks(
         pd.on_table,
         pd.n
     FROM place_drinks AS pd
-    LEFT JOIN drinks AS d
+    INNER JOIN drinks AS d
         ON d.drink_id = pd.drink_id
     WHERE pd.place_number = $1 AND pd.board_id = $2";
 

@@ -1,10 +1,7 @@
 use crate::database::drinks::*;
 use crate::utils::ids::{DrinkId, IngredientId};
-use crate::utils::round;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{
-    Drink, DrinkIngredientsPost, Drinks, DrinksIngredients, Ingredient, IngredientIdQuery,
-};
+use crate::utils::types::{DrinkIngredientsPost, DrinksIngredients, IngredientIdQuery};
 use axum::extract::{Path, Query, State};
 use axum::{
     response::{IntoResponse, Response},
@@ -30,6 +27,7 @@ pub async fn drinks_ingredients_get(
         }
     }
 }
+
 pub async fn drink_ingredients_post(
     state: State<AppState>,
     Json(drink_ingredients): Json<DrinkIngredientsPost>,
@@ -45,81 +43,29 @@ pub async fn drink_ingredients_post(
         _ => Ok(Json(drink_ingredients)),
     }
 }
+
 pub async fn drink_ingredient_delete(
     Path(drink_id): Path<DrinkId>,
     state: State<AppState>,
     query: Query<IngredientIdQuery>,
-) -> Result<Json<Ingredient>, AppError> {
+) -> Result<Json<()>, AppError> {
     let ingredient_id: IngredientId = query.ingredient_id;
     let client: Client = state.db.get().await?;
-    match delete_ingredient_from_drink(&client, drink_id, ingredient_id).await {
-        Ok(_) => Ok(Json(match get_ingredient(&client, ingredient_id).await {
-            Ok(ingredient) => ingredient,
-            Err(e) => {
-                eprintln!("{}", e);
-                return Err(AppError::Database(format!(
-                    "Ingredient {} not in database!",
-                    ingredient_id
-                )));
-            }
-        })),
-        Err(_) => Err(AppError::Database(format!(
-            "Ingredient {ingredient_id} not in database!"
-        ))),
-    }
+    delete_ingredient_from_drink(&client, drink_id, ingredient_id).await?;
+    Ok(Json(()))
 }
+
 pub async fn drink_ingredients_get(
     Path(drink_id): Path<DrinkId>,
     state: State<AppState>,
 ) -> Result<Response, AppError> {
-    let client: Client = state.db.get().await?;
-    let drinks: Drinks = match get_drinks(&client).await {
-        Ok(drinks) => drinks,
-        Err(e) => {
-            eprintln!("{}", e);
-            return Err(AppError::Database(
-                "The server encountered an unexpected error!".to_string(),
-            ));
-        }
-    };
-    let mut drink: Option<Drink> = None;
-    for drink_from in drinks.drinks {
-        if drink_from.id == drink_id {
-            drink = Some(drink_from);
-        }
-    }
-    match drink {
-        Some(_) => {}
-        None => {
-            return Err(AppError::Database(
-                "The server encountered an unexpected error!".to_string(),
-            ))
-        }
-    }
-    match get_drink_ingredients(&client, drink.unwrap()).await {
-        Ok(mut drink_ingredients) => {
-            let mut quant: f64 = 0.0;
-            let mut temp: f64 = 0.0;
-            for drink_ingredient in &drink_ingredients.ingredients {
-                quant += &drink_ingredient.quantity;
-                temp += &drink_ingredient.quantity * &drink_ingredient.ingredient.abv;
-            }
-            let abv = temp / quant;
-            drink_ingredients.abv = round(abv, 1);
-            drink_ingredients.quantity = quant;
+    let client = state.db.get().await?;
+    let drink_ingredients = get_drink_ingredients(&client, drink_id).await?;
 
-            let mut resp = Json(drink_ingredients).into_response();
-            resp.headers_mut().insert(
-                header::CACHE_CONTROL,
-                HeaderValue::from_static("private, max-age=86400, stale-while-revalidate=3600"),
-            );
-            Ok(resp)
-        }
-        Err(e) => {
-            eprintln!("{}", e);
-            Err(AppError::Database(
-                "The server encountered an unexpected error!".to_string(),
-            ))
-        }
-    }
+    let mut resp = Json(drink_ingredients).into_response();
+    resp.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("private, max-age=86400, stale-while-revalidate=3600"),
+    );
+    Ok(resp)
 }

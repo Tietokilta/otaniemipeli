@@ -14,7 +14,6 @@ export default function CreateGameForm({
   const [selectedBoard, setSelectedBoard] = useState<Board | undefined>(
     undefined,
   );
-  const [active, setActive] = useState(false);
 
   useEffect(() => {
     getBoards().then((data) => setBoards(data));
@@ -22,7 +21,6 @@ export default function CreateGameForm({
 
   const handleSend = async () => {
     if (name === "" && !selectedBoard) {
-      setActive(false);
       return;
     } else if (name === "" || !selectedBoard) {
       alert("Please fill in all fields");
@@ -33,7 +31,6 @@ export default function CreateGameForm({
       board: selectedBoard.id,
     };
     await createGame(game);
-    setActive(false);
     setName("");
     setSelectedBoard(undefined);
     onCreate();
@@ -41,41 +38,33 @@ export default function CreateGameForm({
 
   return (
     <div className={`${className} box`}>
-      {!active ? (
-        <button className="button w-full" onClick={() => setActive(true)}>
-          <h1 className="m-0 p-2">Aloita uusi peli</h1>
-        </button>
-      ) : (
-        <h1>Aloita uusi peli</h1>
-      )}
-      {active && (
-        <div className="flex flex-col gap-3 w-full h-full">
-          <form className="flex flex-col gap-3 w-full">
-            <input
-              className="w-full text-center text-lg"
-              name="name"
-              required
-              placeholder="Name"
-              onChange={(e) => setName(e.target.value)}
-              type="text"
-              autoFocus
-            />
-            <DropdownMenu
-              buttonText="Valitse lauta"
-              options={boards.boards}
-              selectedOption={selectedBoard}
-              setSelectedOption={setSelectedBoard}
-            />
-            <button
-              type="button"
-              className="button w-full text-lg"
-              onClick={handleSend}
-            >
-              Create Game
-            </button>
-          </form>
-        </div>
-      )}
+      <h1>Aloita uusi peli</h1>
+      <div className="flex flex-col gap-3 w-full h-full">
+        <form className="flex flex-col gap-3 w-full">
+          <input
+            className="w-full text-center text-lg"
+            name="name"
+            required
+            placeholder="Name"
+            onChange={(e) => setName(e.target.value)}
+            type="text"
+          />
+          <DropdownMenu
+            buttonText="Valitse lauta"
+            options={boards.boards}
+            selectedOption={selectedBoard}
+            setSelectedOption={setSelectedBoard}
+          />
+          <button
+            type="button"
+            className="button w-full text-lg"
+            onClick={handleSend}
+            disabled={!name || !selectedBoard}
+          >
+            Create Game
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

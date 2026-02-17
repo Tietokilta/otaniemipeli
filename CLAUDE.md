@@ -36,6 +36,26 @@ pnpm build:backend                                     # Rust (cargo)
 docker compose -f docker-compose-prod.yml up --build   # Production
 ```
 
+## Code Style
+
+- Rust: `cargo fmt` for formatting, `clippy` for linting
+- TypeScript: Prettier for formatting, ESLint for linting (with `eslint --fix` for auto-fixing)
+- Always include brief doc comments for each function and struct on the module root. Callbacks and inner functions can omit comments if obvious.
+- Use a blank line between functions and struct definitions for readability. When modifying code, insert these where missing, but don't touch unrelated code.
+
+## Developing
+
+- Always format and lint when finished with a change, but avoid doing it unnecessarily.
+- Generate types after changing Rust types before making any frontend changes.
+- Make sure to update CLAUDE.md if you change core logic, data structures, or development commands.
+
+## Environment Setup
+
+Both `packages/backend/` and `packages/frontend/` require `.env` files (copy from `.sample.env`). The backend needs:
+- PostgreSQL credentials
+- 32-character password salt (generate with `openssl rand -hex 32`)
+- Port configuration
+
 ## Architecture
 
 ### Monorepo Structure
@@ -195,23 +215,3 @@ All movement logic is in `packages/backend/src/database/boards.rs`:
 - **Mixing & Delivery**:
   - IE mixes the drink (`mixing_at` → `mixed_at` → `delivered_at`)
 - **End Turn**: Players raise hands when drinks consumed and turn is complete
-
-## Code Style
-
-- Rust: `cargo fmt` for formatting, `clippy` for linting
-- TypeScript: Prettier for formatting, ESLint for linting (with `eslint --fix` for auto-fixing)
-- Always include brief doc comments for each function and struct on the module root. Callbacks and inner functions can omit comments if obvious.
-- Use a blank line between functions and struct definitions for readability. When modifying code, insert these where missing, but don't touch unrelated code.
-
-## Developing
-
-- Always format and lint when finished with a change, but avoid doing it unnecessarily.
-- Generate types after changing Rust types before making any frontend changes.
-- Make sure to update CLAUDE.md if you change core logic, data structures, or development commands.
-
-## Environment Setup
-
-Both `packages/backend/` and `packages/frontend/` require `.env` files (copy from `.sample.env`). The backend needs:
-- PostgreSQL credentials
-- 32-character password salt (generate with `openssl rand -hex 32`)
-- Port configuration
