@@ -14,7 +14,6 @@ export default function DrinkList({
   drinksList?: PlaceDrink[];
 }): JSX.Element {
   const [drinks, setDrinks] = useState<DrinkIngredients[] | null>([]);
-  const [, setEthanol] = useState<number>(0);
 
   const fetchDrinks = useCallback(async () => {
     if (!drinksList) {
@@ -23,20 +22,17 @@ export default function DrinkList({
     } else {
       // Fetch drink ingredients for place drinks
       const newDrinks: DrinkIngredients[] = [];
-      let eth = 0;
       for (const drink of drinksList) {
         try {
           const data: DrinkIngredients = await getDrinkIngredients(
             drink.drink.id,
           );
           newDrinks.push(data);
-          eth += drink.n * (data.abv / 100) * data.quantity;
         } catch (error) {
           console.error("Error fetching drink ingredients:", error);
         }
       }
       setDrinks(newDrinks);
-      setEthanol(eth);
     }
   }, [drinksList]);
 

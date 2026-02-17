@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { getPlacesNotInBoard, addBoardPlace } from "@/utils/fetchers";
+import { addBoardPlace, getPlacesNotInBoard } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
+import { SubmitEvent, useCallback, useEffect, useState } from "react";
 
 // Mocked data (replace with real fetch if needed)
 
@@ -23,19 +23,24 @@ export default function AddPlaceToBoard({
   const [end, setEnd] = useState<boolean>(false);
   const x = 0;
   const y = 0;
-  const [submitted, setSubmitted] = useState<boolean>(false);
   const router = useRouter();
-  useEffect(() => {
+
+  const fetchPlaces = useCallback(() => {
     getPlacesNotInBoard(boardId)
-      .then((data: { p: Places; bp: BoardPlaces }) => {
-        setPlaces(data.p);
-        setBoardPlaces(data.bp);
-        if (data.p.places.length > 0) {
-          setSelectedPlace(data.p.places[0]);
+      .then((data) => {
+        setPlaces(data.places);
+        setBoardPlaces(data.board);
+        if (data.places.places.length > 0) {
+          setSelectedPlace(data.places.places[0]);
         }
       })
       .catch((err) => console.error("Error fetching places:", err));
-  }, [submitted, boardId]);
+  }, [boardId]);
+
+  useEffect(() => {
+    fetchPlaces();
+  }, [fetchPlaces]);
+
   const [value, setValue] = useState<"" | number>("");
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +63,7 @@ export default function AddPlaceToBoard({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (selectedPlace === undefined) {
       console.error("No place selected");
@@ -76,7 +81,7 @@ export default function AddPlaceToBoard({
       connections: { connections: [] },
       drinks: { drinks: [] },
     };
-    setSubmitted(!submitted);
+    fetchPlaces();
     if (value === "") {
       setError("Paikka numero on pakollinen");
     } else {

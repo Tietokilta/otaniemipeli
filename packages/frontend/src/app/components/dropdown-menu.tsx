@@ -1,38 +1,59 @@
 "use client";
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { ReactNode } from "react";
 
-type PickerProps<T extends WithNameAndId> = {
+type TypedOptionProps<T extends WithNameAndId> = {
   buttonText: string;
-  options: T[] | string[];
+  options: T[];
   selectedOption: T | undefined;
   setSelectedOption: (selected: T | undefined) => void;
+  renderOption?: (option: T) => ReactNode;
 };
 
-export default function DropdownMenu<T extends WithNameAndId>({
+type StringOptionProps<T extends string> = {
+  buttonText: string;
+  options: T[];
+  selectedOption: T | undefined;
+  setSelectedOption: (selected: T | undefined) => void;
+  renderOption?: (option: T) => ReactNode;
+};
+
+const optId = (option: string | WithNameAndId) =>
+  typeof option === "string" ? option : option.id;
+const optName = (option: string | WithNameAndId) =>
+  typeof option === "string" ? option : option.name;
+
+export default function DropdownMenu<T extends WithNameAndId>(
+  props: TypedOptionProps<T>,
+): ReactNode;
+export default function DropdownMenu<T extends string>(
+  props: StringOptionProps<T>,
+): ReactNode;
+export default function DropdownMenu<
+  T extends WithNameAndId,
+  S extends string,
+>({
   buttonText,
   options,
+  selectedOption,
   setSelectedOption,
-}: PickerProps<T>) {
-  const trueOptions: T[] = options.map((option) => {
-    if (typeof option === "string") {
-      return { id: option, name: option } as T;
-    }
-    return option;
-  });
+  renderOption = optName,
+}: TypedOptionProps<T> | StringOptionProps<S>) {
   return (
     <Menu>
       <MenuButton className="w-full button center text-lg">
-        {buttonText}&nbsp;&#9660;
+        {selectedOption ? renderOption(selectedOption as T & S) : buttonText}
+        &nbsp;&#9660;
       </MenuButton>
       <MenuItems
-        anchor="right"
+        anchor="bottom"
         className="text-base text-tertiary-500 font-bold rounded-md z-50"
       >
-        {trueOptions
-          .sort((a, b) => a.name.localeCompare(b.name))
+        {options
+          .sort((a, b) => optName(a).localeCompare(optName(b)))
           .map((option) => (
-            <MenuItem key={option.id}>
+            <MenuItem key={optId(option)}>
               <div
                 className="w-full
                 bg-quaternary-500
@@ -41,9 +62,9 @@ export default function DropdownMenu<T extends WithNameAndId>({
                 data-focus:text-tertiary-900
                 p-3
                 cursor-pointer"
-                onClick={() => setSelectedOption(option)}
+                onClick={() => setSelectedOption(option as T & S)}
               >
-                <p>{option.name}</p>
+                {renderOption(option as T & S)}
               </div>
             </MenuItem>
           ))}

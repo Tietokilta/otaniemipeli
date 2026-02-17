@@ -1,4 +1,3 @@
-import DropdownMenu from "@/app/components/dropdown-menu";
 import {
   cancelTurn,
   changeDice,
@@ -22,6 +21,7 @@ import React, {
   useState,
 } from "react";
 import PlaceCard from "../board-components/place-card";
+import DrinkDropdown from "../drink-dropdown";
 import PopUpDialogue from "../pop-up-dialogue";
 import SimpleConfirmedButton from "../simple-confirmed-button";
 
@@ -618,7 +618,7 @@ const AddTeamPenaltyDialogue = ({
       disabled={pending}
     >
       <form
-        className="w-xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
+        className="w-[90vw] md:w-xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
         onSubmit={(e) => {
           e.preventDefault();
         }}
@@ -920,7 +920,7 @@ export function DrinkSelectionList({
 
   return (
     <>
-      <DropdownMenu
+      <DrinkDropdown
         buttonText={buttonText}
         options={filteredDrinks}
         selectedOption={undefined}

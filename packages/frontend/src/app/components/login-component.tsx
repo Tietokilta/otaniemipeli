@@ -1,31 +1,29 @@
 "use client";
-import React, { useState } from "react";
 import { login } from "@/utils/fetchers";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function LoginComponent({
   setLoginAction,
 }: {
-  setLoginAction: React.Dispatch<React.SetStateAction<boolean>>;
+  setLoginAction: (loggedIn: boolean) => void;
 }): JSX.Element {
   const [loginInfo, setLoginInfo] = useState<LoginInfo>({
     username: "",
     password: "",
   });
+  const [error, setError] = useState<string | null>(null);
 
   function handleLogin() {
     login(loginInfo).then((body) => {
-      if (!body) {
-        console.error("Login failed: No response body");
+      if (!body || !body.session || !body.session.session_hash) {
+        console.error("Login failed: ", body);
+        setError("Login failed");
         return;
       }
-      const session = body.session;
-      if (!session || !session.session_hash) {
-        console.error("Login failed: Invalid session data", body);
-        return;
-      }
-      localStorage.setItem("auth_token", session.session_hash);
+      localStorage.setItem("auth_token", body.session.session_hash);
       setLoginAction(true);
+      setError(null);
     });
   }
 
@@ -68,6 +66,7 @@ export default function LoginComponent({
           }
         />
       </div>
+      {error && <p className="text-center">{error}</p>}
       <button
         className="button select-none w-full"
         onClick={() => handleLogin()}

@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { UserTypeEnum } from "@/utils/helpers";
+import { userTypeNames } from "@/utils/helpers";
 import Link from "next/link";
 
 /** A single navigation item in the header. */
@@ -86,7 +86,7 @@ export default function GeneralHeader({
     ? "Päätuomari"
     : assistant
       ? "Aputuomari"
-      : UserTypeEnum[base_path.replace("/", "") as keyof typeof UserTypeEnum];
+      : userTypeNames[base_path.replace("/", "") as keyof typeof userTypeNames];
 
   return (
     <div className="flex items-end justify-right w-full h-min-content px-4 bg-quaternary-500">

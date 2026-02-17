@@ -1,7 +1,7 @@
 export default function getUnion<T>(arr1: T[], arr2: T[]): T[] {
   return Array.from(new Set([...arr1, ...arr2]));
 }
-export const UserTypeEnum = {
+export const userTypeNames = {
   admin: "Admin",
   ie: "IE",
   referee: "Tuomari",
@@ -11,7 +11,9 @@ export const UserTypeEnum = {
   Referee: "Tuomari",
   Secretary: "Sihteeri",
 } as const;
+
 export const UserTypes: UserType[] = ["Admin", "Ie", "Referee", "Secretary"];
+
 export function getUserTypeFromPath(pathname: string): UserType | null {
   const path = pathname.toLowerCase();
   for (const userType of UserTypes) {
@@ -21,6 +23,7 @@ export function getUserTypeFromPath(pathname: string): UserType | null {
   }
   return null;
 }
+
 export function teamsCurrentTurn(team: GameTeam): Turn | null {
   if (team.turns.length === 0) {
     return null;

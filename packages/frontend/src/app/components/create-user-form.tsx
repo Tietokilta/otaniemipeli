@@ -1,52 +1,26 @@
 "use client";
-import React, {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { createUser, verifySession } from "@/utils/fetchers";
-import { useRouter } from "next/navigation";
-import { UserTypeEnum, UserTypes } from "@/utils/helpers";
 import DropdownMenu from "@/app/components/dropdown-menu";
+import { createUser, verifySession } from "@/utils/fetchers";
+import { userTypeNames, UserTypes } from "@/utils/helpers";
+import { SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export default function CreateUserForm({
   setLoginAction,
   firstUser = false,
   className,
 }: {
-  setLoginAction?: Dispatch<SetStateAction<boolean>>;
+  setLoginAction?: (loggedIn: boolean) => void;
   firstUser?: boolean;
   className?: string;
 }) {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [session, setSession] = useState<SessionInfo | null>(null);
-  const [userType, setUserType] = useState<
-    { id: string; name: string } | undefined
-  >(undefined);
 
-  const [user, setUser] = useState<UserCreateInfo>({
-    username: "",
-    email: "",
-    password: "",
-    user_type: firstUser ? "Admin" : "Secretary",
-  });
-  const [passwordConfirm, setPasswordConfirm] = useState<{
-    pw: string;
-    pw_confirm: string;
-  }>({
-    pw: "",
-    pw_confirm: "",
-  });
-  const [pwsMatch, setPwsMatch] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!userType) return;
-    setUser((u) => ({ ...u, user_type: userType.name as UserType }));
-  }, [userType]);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [userType, setUserType] = useState<UserType>("Secretary");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
 
   useEffect(() => {
     if (firstUser) return;
@@ -56,52 +30,34 @@ export default function CreateUserForm({
     });
   }, [firstUser]);
 
-  useEffect(() => {
-    setPwsMatch(
-      passwordConfirm.pw === passwordConfirm.pw_confirm &&
-        passwordConfirm.pw.length > 0,
-    );
-  }, [passwordConfirm]);
+  const pwsMatch = passwordConfirm === password && password.length > 0;
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     if (!pwsMatch) {
       console.log("Passwords do not match");
       return;
     }
-    console.log(user);
-    createUser(user).then((res) => {
-      if (res && setLoginAction) {
-        localStorage.setItem("auth_token", res.session.session_hash);
-        setLoginAction(true);
-      }
+    const res = await createUser({
+      username,
+      email,
+      user_type: userType,
+      password,
     });
-    formRef.current?.reset();
-    setPasswordConfirm({ pw: "", pw_confirm: "" });
-    setUser((u) => ({ ...u, username: "", email: "", password: "" }));
-  }, [setLoginAction, user, pwsMatch]);
+    if (res) {
+      localStorage.setItem("auth_token", res.session.session_hash);
+      setLoginAction?.(true);
+    }
+    setUsername("");
+    setEmail("");
+    setUserType("Secretary");
+    setPassword("");
+    setPasswordConfirm("");
+  }, [setLoginAction, username, email, userType, password, pwsMatch]);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     handleSend();
   };
-
-  // Check for existing session on mount
-  useEffect(() => {
-    if (!setLoginAction) return;
-
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
-
-    verifySession(token).then((session) => {
-      if (session) {
-        setLoginAction(true);
-        router.refresh();
-      } else {
-        setLoginAction(false);
-        router.refresh();
-      }
-    });
-  }, [setLoginAction, router]);
 
   return (
     <div className={`${className} flex flex-col`}>
@@ -110,57 +66,39 @@ export default function CreateUserForm({
         <input
           type="text"
           placeholder="Käyttäjänimi"
-          onChange={(e) => {
-            setUser({ ...user, username: e.target.value });
-          }}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
         <input
           type="text"
           placeholder="Sähköposti"
-          onChange={(e) => {
-            setUser({ ...user, email: e.target.value });
-          }}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="password"
           placeholder="Salasana"
-          onChange={(e) => {
-            const pw = e.target.value;
-            setPasswordConfirm((p) => ({ ...p, pw }));
-            setUser((u) => ({ ...u, password: pw }));
-          }}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <input
           type="password"
           placeholder="Vahvista salasana"
-          onChange={(e) => {
-            setPasswordConfirm({
-              ...passwordConfirm,
-              pw_confirm: e.target.value,
-            });
-          }}
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
         />
-        {!pwsMatch && passwordConfirm.pw.length != 0 && (
+        {!pwsMatch && passwordConfirm.length != 0 && (
           <p className="text-alert-900">Salasanat eivät täsmää</p>
         )}
         {!firstUser && (
           <DropdownMenu
             buttonText="Käyttäjätyyppi"
-            options={
-              session
-                ? (session.user_types.user_types as string[])
-                : (UserTypes as string[])
-            }
-            selectedOption={{
-              id: user.user_type as string,
-              name: user.user_type as string,
-            }}
-            setSelectedOption={setUserType}
+            options={session ? session.user_types.user_types : UserTypes}
+            selectedOption={userType}
+            setSelectedOption={(option) => option && setUserType(option)}
+            renderOption={(option) => userTypeNames[option]}
           />
         )}
-        <p className="w-full text-center font-bold text-lg">
-          {UserTypeEnum[user.user_type]}
-        </p>
         <button type="submit" className="button text-lg">
           Luo käyttäjä
         </button>

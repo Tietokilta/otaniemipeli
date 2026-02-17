@@ -2,16 +2,17 @@
 import LoginComponent from "@/app/components/login-component";
 import { useEffect, useState } from "react";
 import SelectMode from "@/app/components/select-mode";
-import { usersExist } from "@/utils/fetchers";
+import { usersExist, verifySession } from "@/utils/fetchers";
 import CreateFirstUser from "@/app/components/create-user-form";
 import { GameLoadingSpinner } from "./components/game-components/game-loading-states";
 
 export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [loggedIn, setLogin] = useState<boolean>(false);
-  const [firstUserExists, setFirstUserExists] = useState<boolean>(false);
+  // Check for existing auth token on mount
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [firstUserExists, setFirstUserExists] = useState<boolean | null>(null);
   const [text, setText] = useState<string>("");
 
+  // Check server status on mount
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_BASE_URL;
     if (!base) {
@@ -26,26 +27,24 @@ export default function Home() {
       );
   }, []);
 
+  // Check for existing session on mount
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return;
+
+    verifySession(token)
+      .then((session) => setLoggedIn(!!session))
+      .catch(() => setLoggedIn(false));
+  }, []);
+
   // Check if users exist - only on mount
   useEffect(() => {
     usersExist()
-      .then((data: boolean) => {
-        setFirstUserExists(data);
-        setLoading(false);
-      })
+      .then(setFirstUserExists)
       .catch((error) => {
         setText("Error checking if users exist: " + error);
       });
   }, []);
-
-  // Check for existing auth token on mount and when loggedIn changes
-  useEffect(() => {
-    const userString = localStorage.getItem("auth_token") || "";
-    if (userString) {
-      setLogin(true);
-      setFirstUserExists(true);
-    }
-  }, [loggedIn]);
 
   return (
     <div className="flex flex-col items-center gap-3.5 max-h-[90dvh] p-4 sm:px-10 sm:py-4 font-[family-name:var(--font-geist-sans)]">
@@ -53,14 +52,14 @@ export default function Home() {
         Tervetuloa Otaniemipelin hallintapaneeliin!
       </h1>
       <p className="text-center">{text}</p>
-      {loggedIn ? (
-        <SelectMode setLoginAction={setLogin} />
-      ) : firstUserExists ? (
-        <LoginComponent setLoginAction={setLogin} />
-      ) : !loading ? (
-        <CreateFirstUser setLoginAction={setLogin} firstUser={true} />
-      ) : (
+      {loggedIn == null || firstUserExists == null ? (
         <GameLoadingSpinner />
+      ) : loggedIn ? (
+        <SelectMode setLoginAction={setLoggedIn} />
+      ) : firstUserExists ? (
+        <LoginComponent setLoginAction={setLoggedIn} />
+      ) : (
+        <CreateFirstUser setLoginAction={setLoggedIn} firstUser={true} />
       )}
     </div>
   );

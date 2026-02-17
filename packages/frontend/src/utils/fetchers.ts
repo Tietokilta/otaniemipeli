@@ -221,14 +221,14 @@ export async function getBoardPlaces(boardId: number): Promise<BoardPlaces> {
 
 export async function getPlacesNotInBoard(
   boardId: number,
-): Promise<{ p: Places; bp: BoardPlaces }> {
+): Promise<{ places: Places; board: BoardPlaces }> {
   const boardPlaces = await apiFetch<BoardPlaces>(
     `${API_URL}/boards/places/${boardId}`,
   );
   const allPlaces = await apiFetch<Places>(`${API_URL}/boards/places`);
 
   return {
-    p: {
+    places: {
       places: allPlaces.places.filter(
         (place: Place) =>
           !boardPlaces.places.some(
@@ -236,7 +236,7 @@ export async function getPlacesNotInBoard(
           ) || place.place_type === "Normal",
       ),
     },
-    bp: boardPlaces,
+    board: boardPlaces,
   };
 }
 

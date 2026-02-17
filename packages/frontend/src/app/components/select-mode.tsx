@@ -1,6 +1,6 @@
 "use client";
 import { verifySession } from "@/utils/fetchers";
-import { UserTypeEnum } from "@/utils/helpers";
+import { userTypeNames } from "@/utils/helpers";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
@@ -8,14 +8,12 @@ import React, { useEffect } from "react";
 export default function SelectMode({
   setLoginAction,
 }: {
-  setLoginAction: React.Dispatch<React.SetStateAction<boolean>>;
+  setLoginAction: (loggedIn: boolean) => void;
 }) {
   const router = useRouter();
   const [session, setSession] = React.useState<SessionInfo | null>(null);
-  const [, setLoading] = React.useState(true);
 
   useEffect(() => {
-    setLoading(true);
     const token = localStorage.getItem("auth_token");
     console.log(token);
     if (token) {
@@ -36,9 +34,6 @@ export default function SelectMode({
           setLoginAction(false);
           localStorage.removeItem("auth_token");
           router.refresh();
-        })
-        .finally(() => {
-          setLoading(false);
         });
     } else {
       setLoginAction(false);
@@ -79,7 +74,7 @@ export default function SelectMode({
               key={user_type}
               href={`/${user_type.toLowerCase()}`}
             >
-              {UserTypeEnum[user_type]}
+              {userTypeNames[user_type]}
             </Link>
           ))}
         <h2 className="text-tertiary-900 text-2xl font-bold">...tai...</h2>

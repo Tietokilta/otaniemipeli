@@ -66,9 +66,6 @@ export default function CreateGameForm({
               selectedOption={selectedBoard}
               setSelectedOption={setSelectedBoard}
             />
-            <p className="h-6 w-full font-bold center text-lg">
-              {selectedBoard && selectedBoard.name}
-            </p>
             <button
               type="button"
               className="button w-full text-lg"

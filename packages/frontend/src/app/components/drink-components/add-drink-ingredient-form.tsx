@@ -1,10 +1,10 @@
 "use client";
 
 import { DrinkCardNoIngredients } from "@/app/components/drink-components/drink-card";
-import DropdownMenu from "@/app/components/dropdown-menu";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
 import { addDrinkIngredient, getIngredients } from "@/utils/fetchers";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { SubmitEvent, useEffect, useMemo, useState } from "react";
+import DrinkDropdown from "../drink-dropdown";
 
 type Props = {
   drink: Drink;
@@ -25,28 +25,17 @@ export default function AddDrinkIngredientForm({
   const [open, setOpen] = useState(false);
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [picked, setPicked] = useState<Ingredient | undefined>(undefined);
 
   useEffect(() => {
     setSelectedIds(new Set(ingredientsStart.map((iq) => iq.ingredient.id)));
   }, [ingredientsStart]);
 
-  const loadIngredients = useCallback(async () => {
-    const data = await getIngredients();
-    setAllIngredients(data.ingredients);
-  }, []);
-
   // fetch when dialog opens
   useEffect(() => {
-    if (open) void loadIngredients();
-  }, [open, loadIngredients]);
-
-  // when user picks from dropdown, add to selection then clear pick
-  useEffect(() => {
-    if (!picked) return;
-    setSelectedIds((prev) => new Set(prev).add(picked.id));
-    setPicked(undefined);
-  }, [picked]);
+    if (open) {
+      getIngredients().then((data) => setAllIngredients(data.ingredients));
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,7 +60,12 @@ export default function AddDrinkIngredientForm({
     [allIngredients, selectedIds],
   );
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function setPicked(picked: Ingredient | undefined) {
+    if (!picked) return;
+    setSelectedIds((prev) => new Set(prev).add(picked.id));
+  }
+
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
 
@@ -120,10 +114,10 @@ export default function AddDrinkIngredientForm({
               Lisää ainesosa juomaan
             </h2>
             <DrinkCardNoIngredients drink={drink} className="mb-2" />
-            <DropdownMenu
+            <DrinkDropdown
               buttonText="Lisää ainesosa"
               options={available}
-              selectedOption={picked}
+              selectedOption={undefined}
               setSelectedOption={setPicked}
             />
             <div className="flex w-full mt-2 mb-4 border-2 border-primary-900 rounded-3xl p-2 h-80">
