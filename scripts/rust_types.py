@@ -315,15 +315,6 @@ class TeleportTeamBody:
 
 
 @dataclass
-class PlaceThrow:
-    place: 'BoardPlace'
-    throw: tuple[int, int]
-    team_id: int
-    @classmethod
-    def from_dict(cls, data: Any): return _from_dict(cls, data)
-
-
-@dataclass
 class Game:
     id: int
     name: str
@@ -433,7 +424,6 @@ class Connection:
     origin: int
     target: int
     on_land: bool
-    backwards: bool
     dashed: bool
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
@@ -441,7 +431,8 @@ class Connection:
 
 @dataclass
 class Connections:
-    connections: list['Connection'] = field(default_factory=list['Connection'])
+    forwards: list['Connection'] = field(default_factory=list['Connection'])
+    backwards: list['Connection'] = field(default_factory=list['Connection'])
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

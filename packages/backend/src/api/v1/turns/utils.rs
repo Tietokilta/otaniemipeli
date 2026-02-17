@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use crate::database::boards::{get_board_place, move_team, move_team_backwards};
+use crate::database::boards::{get_board_place, get_board_places, move_backwards, move_forwards};
 use crate::database::games::{
     check_dice, check_opt_dice, count_place_visits, end_game, get_full_game_data, get_game_by_id,
     get_team_latest_turn,
@@ -15,8 +15,8 @@ use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TurnId};
 use crate::utils::state::{AppError, AppState};
 use crate::utils::types::{
-    BoardPlace, ChangeDiceBody, ConfirmTurnBody, DrinkPrepStatus, GameData, PlaceThrow,
-    PostStartTurn, SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrinks,
+    BoardPlace, ChangeDiceBody, ConfirmTurnBody, DrinkPrepStatus, GameData, PostStartTurn,
+    SetDrinkPrepStatusBody, TeamLatestTurn, Turn, TurnDrinks,
 };
 use axum::extract::{Path, State};
 use axum::Json;
@@ -62,13 +62,10 @@ pub async fn compute_turn_result(
             team.team.team_id
         ))
     })?;
+    let board_places = get_board_places(client, current_place.board_id).await?;
 
-    let pl = PlaceThrow {
-        place: current_place,
-        throw,
-        team_id: team.team.team_id,
-    };
-    let mut place_after = move_team(client, pl).await?;
+    let throw: i8 = min(throw.0, throw.1);
+    let mut place_after = move_forwards(&current_place, &board_places, throw)?;
 
     let visited = count_place_visits(client, game_id, place_after.place_number).await?;
 
@@ -76,9 +73,11 @@ pub async fn compute_turn_result(
     let extra_multiplier = match (special, dice3, dice4) {
         // If landing at special=-D1, move backwards from current position by one die
         (Some("-D1"), Some(dice3), _) => {
-            place_after =
-                move_team_backwards(client, &place_after, (double_multiplier * dice3) as i8)
-                    .await?;
+            place_after = move_backwards(
+                &current_place,
+                &board_places,
+                (double_multiplier * dice3) as i8,
+            )?;
             1
         }
         // If landing at special=MIN(D2), multiply drinks by the value of the smaller die

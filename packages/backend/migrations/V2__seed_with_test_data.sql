@@ -447,117 +447,100 @@ COPY public.board_places (board_id, place_number, place_id, area, start, "end", 
 2	80	2	normal	f	f	95	78.2000000000001
 2	81	2	normal	f	f	90	66.7999999999999
 \.
-COPY public.place_connections (board_id, origin, target, on_land, backwards, dashed) FROM stdin;
-1	0	1	f	f	f
-1	1	2	f	f	f
-1	2	3	f	f	f
-1	3	4	f	f	f
-1	4	5	f	f	f
-1	5	6	f	f	f
-1	6	7	f	f	f
-1	7	8	f	f	f
-1	8	9	f	f	f
-1	9	10	f	f	f
-1	10	11	f	f	f
-1	11	12	f	f	f
-1	12	13	f	f	f
-1	13	14	f	f	f
-1	14	15	f	f	f
-1	15	16	f	f	f
-1	16	17	f	f	f
-1	17	18	f	f	f
-1	18	19	f	f	f
-1	19	20	f	f	f
-1	20	21	f	f	f
-1	21	22	f	f	f
-1	22	23	f	f	f
-1	23	24	f	f	f
-1	24	25	f	f	f
-1	25	26	f	f	f
-1	26	27	f	f	f
-1	27	28	f	f	f
-1	28	29	f	f	f
-1	29	30	f	f	f
-1	30	31	f	f	f
-1	31	32	f	f	f
-1	32	33	f	f	f
-1	33	34	f	f	f
-1	34	35	f	f	f
-1	35	36	f	f	f
-1	36	37	f	f	f
-1	37	38	f	f	f
-1	38	39	f	f	f
-1	39	40	f	f	f
-1	40	41	f	f	f
-1	41	42	f	f	f
-1	42	43	f	f	f
-1	43	44	f	f	f
-1	44	45	f	f	f
-1	45	46	f	f	f
-1	46	47	f	f	f
-1	47	48	f	f	f
-1	48	49	f	f	f
-1	49	50	f	f	f
-1	50	51	f	f	f
-1	51	52	f	f	f
-1	52	53	f	f	f
-1	53	54	f	f	f
-1	54	55	f	f	f
-1	55	56	f	f	f
-1	56	57	f	f	f
-1	57	58	f	f	f
-1	58	59	f	f	f
-1	59	60	f	f	f
-1	60	61	f	f	f
-1	61	62	f	f	f
-1	62	63	f	f	f
-1	63	64	f	f	f
-1	64	65	f	f	f
-1	65	66	f	f	f
-1	66	67	f	f	f
-1	67	68	f	f	f
-1	69	70	f	f	f
-1	70	71	f	f	f
-1	71	72	f	f	f
-1	72	73	f	f	f
-1	73	74	f	f	f
-1	74	75	f	f	f
-1	75	76	f	f	f
-1	76	77	f	f	f
-1	77	78	f	f	f
-1	78	16	f	f	f
-1	79	80	f	f	f
-1	80	81	f	f	f
-1	81	82	f	f	f
-1	82	83	f	f	f
-1	83	84	f	f	f
-1	84	85	f	f	f
-1	85	86	f	f	f
-1	86	87	f	f	f
-1	87	88	f	f	f
-1	88	89	f	f	f
-1	89	90	f	f	f
-1	90	91	f	f	f
-1	31	79	t	f	t
-1	6	69	t	f	t
-1	91	45	t	f	t
-1	59	58	t	t	f
-1	58	57	f	t	f
-1	57	56	f	t	f
-1	56	55	f	t	f
-1	55	54	f	t	f
-1	54	53	f	t	f
-1	53	52	f	t	f
-1	52	51	f	t	f
-1	51	50	f	t	f
-1	50	49	f	t	f
-1	49	48	f	t	f
-1	48	47	f	t	f
-1	68	67	f	t	f
-1	67	66	f	t	f
-1	66	65	f	t	f
-1	65	64	f	t	f
-1	64	63	f	t	f
+COPY public.place_connections (board_id, origin, target, on_land, dashed) FROM stdin;
+1	0	1	f	f
+1	1	2	f	f
+1	2	3	f	f
+1	3	4	f	f
+1	4	5	f	f
+1	5	6	f	f
+1	6	7	f	f
+1	7	8	f	f
+1	8	9	f	f
+1	9	10	f	f
+1	10	11	f	f
+1	11	12	f	f
+1	12	13	f	f
+1	13	14	f	f
+1	14	15	f	f
+1	15	16	f	f
+1	16	17	f	f
+1	17	18	f	f
+1	18	19	f	f
+1	19	20	f	f
+1	20	21	f	f
+1	21	22	f	f
+1	22	23	f	f
+1	23	24	f	f
+1	24	25	f	f
+1	25	26	f	f
+1	26	27	f	f
+1	27	28	f	f
+1	28	29	f	f
+1	29	30	f	f
+1	30	31	f	f
+1	31	32	f	f
+1	32	33	f	f
+1	33	34	f	f
+1	34	35	f	f
+1	35	36	f	f
+1	36	37	f	f
+1	37	38	f	f
+1	38	39	f	f
+1	39	40	f	f
+1	40	41	f	f
+1	41	42	f	f
+1	42	43	f	f
+1	43	44	f	f
+1	44	45	f	f
+1	45	46	f	f
+1	46	47	f	f
+1	47	48	f	f
+1	48	49	f	f
+1	49	50	f	f
+1	50	51	f	f
+1	51	52	f	f
+1	52	53	f	f
+1	53	54	f	f
+1	54	55	f	f
+1	55	56	f	f
+1	56	57	f	f
+1	57	58	f	f
+1	58	59	f	f
+1	59	60	f	f
+1	60	61	f	f
+1	61	62	f	f
+1	62	63	f	f
+1	63	64	f	f
+1	64	65	f	f
+1	65	66	f	f
+1	66	67	f	f
+1	67	68	f	f
+1	69	70	f	f
+1	70	71	f	f
+1	71	72	f	f
+1	72	73	f	f
+1	73	74	f	f
+1	74	75	f	f
+1	75	76	f	f
+1	76	77	f	f
+1	77	78	f	f
+1	78	16	f	f
+1	79	80	f	f
+1	80	81	f	f
+1	81	82	f	f
+1	82	83	f	f
+1	83	84	f	f
+1	84	85	f	f
+1	85	86	f	f
+1	86	87	f	f
+1	87	88	f	f
+1	88	89	f	f
+1	89	90	f	f
+1	90	91	f	f
+1	31	79	t	t
+1	6	69	t	t
+1	91	45	t	t
 \.
 
 COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n, on_table) FROM stdin;

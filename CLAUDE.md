@@ -168,12 +168,16 @@ Drink (beverage recipe)
 - Can be modified by referee after turn confirmation (adding/removing drinks, changing quantities)
 - Created from `PlaceDrink` templates when turn is confirmed, or manually specified for penalty turns
 
-**Connections** (`Connection`)
+**Connections** (`Connection`, `Connections`)
 - Defines paths between places on a board for movement calculation
-- Fields: `origin`, `target` (both are `place_number` values, not place IDs)
+- `Connection` fields: `origin`, `target` (both are `place_number` values, not place IDs)
+- `Connections` holds `forwards` and `backwards` lists for each place
+  - A DB row `(origin, target)` appears as a forward connection for origin and a backward connection (with swapped origin/target) for target
 - Movement flags:
-  - `on_land`: Auto-taken when landing on origin (used for Tampere, Raide-Jokeri shortcuts)
-  - `backwards`: Path for backwards movement (used at AYY square, end of board turnaround)
+  - `on_land`:
+    - Auto-taken when landing on origin (used for Tampere, Raide-Jokeri shortcuts)
+    - Ends turn if no other forward connections available (returning from Tampere)
+    - Never traversed backwards
   - `dashed`: Visual style hint for rendering the board
 
 ### Game Start Logic

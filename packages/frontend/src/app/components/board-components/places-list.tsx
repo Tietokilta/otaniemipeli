@@ -31,7 +31,7 @@ export default async function PlacesList({
                 drinks: {
                   drinks: [],
                 },
-                connections: { connections: [] },
+                connections: { forwards: [], backwards: [] },
                 start: false,
                 area: "normal",
                 end: false,

@@ -276,13 +276,6 @@ pub struct TeleportTeamBody {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PlaceThrow {
-    pub place: BoardPlace,
-    pub throw: (i8, i8),
-    pub team_id: TeamId,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Game {
     pub id: GameId,
     pub name: String,
@@ -401,27 +394,21 @@ pub struct Connection {
     pub board_id: BoardId,
     pub origin: i32, // place_number, not PlaceId
     pub target: i32, // place_number, not PlaceId
-    /// Used for various purposes:
-    /// - !on_land && !backwards: normal connection
-    /// - on_land && !backwards:
-    ///     - connection that is automatically taken when landing on the origin
-    ///     - if only an on_land connection is available, it ends the movement (returning from Tampere)
-    /// - on_land && backwards
-    ///     - indicates that starting from the target, the player moves backwards by default
-    ///       (for moves starting from AYY, except we've effectively replaced this by dice_ayy)
-    ///     - this combo is also required for starting backwards moves
-    /// - !on_land && backwards
-    ///     - connection that is only taken when already moving backwards
-    ///     - may also be taken if no forward non-on-land connections are available
+    /// When false: normal connection, also traversed when moving backwards.
+    ///
+    /// When true:
+    /// - never traversed when moving backwards
+    /// - when finishing a move on the origin, any on_land connection is taken from there
+    /// - if only an on_land connection is available, it ends the movement (returning from Tampere)
+    /// - drinks from before taking an on_land connection are applied (going and returning from Tampere)
     pub on_land: bool,
-    /// Whether this connection goes backwards
-    pub backwards: bool,
     pub dashed: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Connections {
-    pub connections: Vec<Connection>,
+    pub forwards: Vec<Connection>,
+    pub backwards: Vec<Connection>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

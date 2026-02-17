@@ -2,10 +2,10 @@ use crate::utils::ids::BoardId;
 use crate::utils::state::AppError;
 use crate::utils::types::{
     Board, BoardPlace, BoardPlaces, Boards, Connection, Connections, Drink, Place, PlaceDrink,
-    PlaceDrinks, PlaceThrow, Places,
+    PlaceDrinks, Places,
 };
 use deadpool_postgres::Client;
-use std::cmp::min;
+use std::collections::HashMap;
 use tokio_postgres::Row;
 
 /// Retrieves all game boards.
@@ -93,10 +93,62 @@ pub fn build_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
         x: row.get("x"),
         y: row.get("y"),
         connections: Connections {
-            connections: vec![],
+            forwards: vec![],
+            backwards: vec![],
         },
         drinks: PlaceDrinks { drinks: vec![] },
     }
+}
+
+/// Retrieves connections from and to a place, split into forwards and backwards.
+///
+/// Forward connections have origin = place_number.
+/// Backward connections have target = place_number (origin/target are swapped when reading).
+pub async fn get_board_place_connections(
+    client: &Client,
+    board_id: BoardId,
+    place_number: i32,
+) -> Result<Connections, AppError> {
+    let query_str = "\
+    SELECT origin, target, on_land, dashed
+    FROM place_connections
+    WHERE board_id = $1 AND (origin = $2 OR target = $2)
+    ORDER BY target";
+
+    let query = client.query(query_str, &[&board_id, &place_number]).await?;
+
+    let mut forwards = Vec::new();
+    let mut backwards = Vec::new();
+    for row in query {
+        let origin: i32 = row.get("origin");
+        let target: i32 = row.get("target");
+        let on_land: bool = row.get("on_land");
+        let dashed: bool = row.get("dashed");
+
+        if origin == place_number {
+            forwards.push(Connection {
+                board_id,
+                origin,
+                target,
+                on_land,
+                dashed,
+            });
+        }
+        if target == place_number {
+            backwards.push(Connection {
+                board_id,
+                origin: target,
+                target: origin,
+                on_land,
+                dashed,
+            });
+        }
+    }
+
+    Ok(Connections {
+        forwards,
+        backwards,
+    })
 }
 
 /// Builds a BoardPlace struct from a row and fetches its connections and drinks.
@@ -107,17 +159,18 @@ async fn build_board_place_and_get_connections(
     let board_id = row.get("board_id");
     let place_number: i32 = row.get("place_number");
     let mut place = build_board_place(row, board_id);
-    place.connections = Connections {
-        connections: get_board_place_connections(client, board_id, place_number).await?,
-    };
+    place.connections = get_board_place_connections(client, board_id, place_number).await?;
     place.drinks = get_place_drinks(client, place_number, board_id).await?;
     Ok(place)
 }
 
 /// Retrieves all places on a board with their connections and drinks.
+///
+/// Fetches all connections for the board in a single query for efficiency.
 pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<BoardPlaces, AppError> {
     let board: Board = get_board(client, board_id).await?;
-    let query_str = "\
+
+    let places_query_str = "\
     SELECT
         bp.board_id,
         p.place_id,
@@ -137,16 +190,71 @@ pub async fn get_board_places(client: &Client, board_id: BoardId) -> Result<Boar
     WHERE bp.board_id = $1
     ORDER BY bp.place_number";
 
-    let query = client.query(query_str, &[&board_id]).await?;
+    let conn_query_str = "\
+    SELECT board_id, origin, target, on_land, dashed
+    FROM place_connections
+    WHERE board_id = $1
+    ORDER BY origin, target";
 
-    let mut board_places: BoardPlaces = BoardPlaces {
+    let places_query = client.query(places_query_str, &[&board_id]).await?;
+    let conn_query = client.query(conn_query_str, &[&board_id]).await?;
+
+    // Build a map of place_number -> Connections from all connection rows
+    let mut connections_map: HashMap<i32, Connections> = HashMap::new();
+    for row in conn_query {
+        let origin: i32 = row.get("origin");
+        let target: i32 = row.get("target");
+        let on_land: bool = row.get("on_land");
+        let dashed: bool = row.get("dashed");
+
+        // Forward connection for origin
+        connections_map
+            .entry(origin)
+            .or_insert_with(|| Connections {
+                forwards: vec![],
+                backwards: vec![],
+            })
+            .forwards
+            .push(Connection {
+                board_id,
+                origin,
+                target,
+                on_land,
+                dashed,
+            });
+
+        // Backward connection for target (swap origin/target)
+        connections_map
+            .entry(target)
+            .or_insert_with(|| Connections {
+                forwards: vec![],
+                backwards: vec![],
+            })
+            .backwards
+            .push(Connection {
+                board_id,
+                origin: target,
+                target: origin,
+                on_land,
+                dashed,
+            });
+    }
+
+    let mut board_places = BoardPlaces {
         board,
-        places: Vec::with_capacity(query.len()),
+        places: Vec::with_capacity(places_query.len()),
     };
-    for row in query {
-        board_places
-            .places
-            .push(build_board_place_and_get_connections(client, &row).await?);
+    for row in &places_query {
+        let place_number: i32 = row.get("place_number");
+        let mut place = build_board_place(row, board_id);
+        place.connections = connections_map
+            .remove(&place_number)
+            .unwrap_or(Connections {
+                forwards: vec![],
+                backwards: vec![],
+            });
+        place.drinks = get_place_drinks(client, place_number, board_id).await?;
+        board_places.places.push(place);
     }
     Ok(board_places)
 }
@@ -274,32 +382,6 @@ pub async fn set_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
     Ok(drinks.drinks.len() as u64)
 }
 
-/// Retrieves connections from a place to adjacent places.
-pub async fn get_board_place_connections(
-    client: &Client,
-    board_id: BoardId,
-    place_number: i32,
-) -> Result<Vec<Connection>, AppError> {
-    let query_str = "\
-    SELECT board_id, origin, target, on_land, backwards, dashed
-    FROM place_connections
-    WHERE board_id = $1  AND origin = $2
-    ORDER BY target";
-
-    let query = client.query(query_str, &[&board_id, &place_number]).await?;
-    Ok(query
-        .into_iter()
-        .map(|row| Connection {
-            board_id: row.get("board_id"),
-            origin: row.get("origin"),
-            target: row.get("target"),
-            on_land: row.get("on_land"),
-            backwards: row.get("backwards"),
-            dashed: row.get("dashed"),
-        })
-        .collect())
-}
-
 /// Creates a new place definition.
 pub async fn add_place(client: &Client, place: Place) -> Result<u64, AppError> {
     let query_str = "\
@@ -362,81 +444,77 @@ pub async fn update_coordinates(
         .await?)
 }
 
-/// Calculates the destination place for a team based on their dice throw.
-pub async fn move_team(client: &Client, place: PlaceThrow) -> Result<BoardPlace, AppError> {
-    let board_places: BoardPlaces = get_board_places(client, place.place.board_id).await?;
-    let throw: i8 = min(place.throw.0, place.throw.1);
-
-    get_next_place(&place.place, &board_places, throw)
-}
-
-/// Moves a team backwards from their current position.
-pub async fn move_team_backwards(
-    client: &Client,
-    current_place: &BoardPlace,
-    throw: i8,
-) -> Result<BoardPlace, AppError> {
-    let board_places = get_board_places(client, current_place.board_id).await?;
-    move_backwards(current_place, &board_places, throw, false)
-}
-
-/// Selects a connection based on movement direction and terrain type.
-fn pick_connection(
-    connections: &[Connection],
-    backwards_mode: bool,
-    on_land: bool,
-) -> Option<&Connection> {
-    connections
-        .iter()
-        .find(|c| c.backwards == backwards_mode && c.on_land == on_land)
-}
-
 /// Moves a team forward on the board by the given throw amount.
-fn move_forwards<'a>(
+pub fn move_forwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
 ) -> Result<BoardPlace, AppError> {
     for step in 0..throw {
-        let conns = &current_place.connections.connections;
+        let conns = &current_place.connections;
 
-        if conns.is_empty() {
-            tracing::info!("No more connections, stopping movement.");
-            break;
-        }
-
-        // If there's only one connection and it's backwards, reverse direction for the remaining steps
-        // Used at end of board
-        if conns.len() == 1 && conns[0].backwards {
-            return move_backwards(current_place, board_places, throw - step as i8, true);
+        enum Choice<'a> {
+            Forward(&'a Connection),
+            OnLand,
+            Backward,
         }
 
         // Pick a forward, non-on-land connection if available
-        let chosen = pick_connection(conns, false, false)
-            // Otherwise pick a backward, non-on-land connection (when??)
-            .or_else(|| conns.iter().find(|c| !c.on_land))
-            // Fallback to an on-land connection if no other options (when??)
-            .unwrap_or_else(|| conns.first().unwrap());
+        let chosen = conns
+            .forwards
+            .iter()
+            .find(|c| !c.on_land)
+            .map(|c| Choice::Forward(c))
+            // Otherwise, pick a forward, on-land connection if available (e.g. returning from Tampere)
+            .or_else(|| conns.forwards.first().map(|_| Choice::OnLand))
+            // Otherwise, fall back to a backward non-on-land connection
+            // (never traverse on-land backwards connections)
+            .or_else(|| {
+                conns
+                    .backwards
+                    .iter()
+                    .find(|c| !c.on_land)
+                    .map(|_| Choice::Backward)
+            });
 
-        let next = board_places
-            .find_place(chosen.target)
-            .unwrap_or(current_place);
-
-        current_place = next;
-        // If the only connection is on_land, stop after taking it
-        // Used when returning from Tampere
-        if chosen.on_land {
-            break;
+        match chosen {
+            Some(Choice::Backward) => {
+                // If there's only a backwards connection, reverse direction for the remaining steps
+                // Used at end of board
+                return move_backwards(current_place, board_places, throw - step as i8);
+            }
+            Some(Choice::OnLand) => {
+                // If the only forward connection is on_land, stop here
+                // The code after the loop will take this connection
+                // Used when returning from Tampere
+                break;
+            }
+            Some(Choice::Forward(chosen)) => {
+                // Take the chosen forward connection
+                let next = board_places
+                    .find_place(chosen.target)
+                    .unwrap_or(current_place);
+                current_place = next;
+            }
+            None => {
+                // If there are no connections at all, stop here
+                // Should never happen if the board is properly designed
+                tracing::info!("No more connections, stopping movement.");
+                break;
+            }
         }
     }
     // If there are any forward on_land connections in the final resting spot, take the first one
     // Used to go to Tampere and Raide-Jokeri
-    let conns = &current_place.connections.connections;
-    if conns.iter().any(|c| c.on_land && !c.backwards) {
-        let on_land_conn = pick_connection(conns, false, true);
-        if let Some(olc) = on_land_conn {
-            current_place = board_places.find_place(olc.target).unwrap_or(current_place);
-        }
+    if let Some(on_land) = &current_place
+        .connections
+        .forwards
+        .iter()
+        .find(|c| c.on_land)
+    {
+        current_place = board_places
+            .find_place(on_land.target)
+            .unwrap_or(current_place);
     }
     Ok(current_place.clone())
 }
@@ -446,49 +524,24 @@ pub fn move_backwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
-    bumped: bool,
 ) -> Result<BoardPlace, AppError> {
-    let mut first = true;
-
     for _ in 0..throw {
-        let conns = &current_place.connections.connections;
-
-        let conn = if first && !bumped {
-            first = false;
-            // When taking the first backwards step, prefer on-land connections
-            pick_connection(conns, true, true)
-        } else {
-            pick_connection(conns, true, false)
+        // Pick a non-on-land backwards connection if available
+        let Some(conn) = &current_place
+            .connections
+            .backwards
+            .iter()
+            .find(|c| !c.on_land)
+        else {
+            return Err(AppError::NotFound(
+                "Not enough backwards connections found".to_string(),
+            ));
         };
-        current_place = match conn {
-            Some(c) => board_places.find_place(c.target).unwrap_or(current_place),
-            None => {
-                return Err(AppError::NotFound(
-                    "No valid backwards connection found".to_string(),
-                ));
-            }
-        };
+        current_place = board_places
+            .find_place(conn.target)
+            .unwrap_or(current_place);
     }
     Ok(current_place.clone())
-}
-
-/// Determines the next place based on current position and connections.
-fn get_next_place<'a>(
-    mut current_place: &'a BoardPlace,
-    board_places: &'a BoardPlaces,
-    throw: i8,
-) -> Result<BoardPlace, AppError> {
-    // This condition only applies to AYY, but it's handled by dice_ayy now.
-    if current_place
-        .connections
-        .connections
-        .iter()
-        .any(|c| c.on_land && c.backwards)
-    {
-        move_backwards(&mut current_place, board_places, throw, false)
-    } else {
-        move_forwards(&mut current_place, board_places, throw)
-    }
 }
 
 /// Gets the starting place number for a board.

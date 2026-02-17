@@ -188,7 +188,6 @@ CREATE TABLE IF NOT EXISTS place_connections
     origin    INTEGER NOT NULL,
     target    INTEGER NOT NULL,
     on_land   BOOLEAN NOT NULL DEFAULT FALSE,
-    backwards BOOLEAN NOT NULL DEFAULT FALSE,
     dashed    BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (board_id, origin, target),
     FOREIGN KEY (board_id, origin)

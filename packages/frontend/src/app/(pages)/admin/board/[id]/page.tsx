@@ -26,7 +26,7 @@ export default function BoardOverlay({
       place_type: "Normal",
       special: null,
     },
-    connections: { connections: [] },
+    connections: { forwards: [], backwards: [] },
     drinks: {
       drinks: [],
     },

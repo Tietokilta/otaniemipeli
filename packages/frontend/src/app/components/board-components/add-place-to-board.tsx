@@ -78,7 +78,7 @@ export default function AddPlaceToBoard({
       end,
       x,
       y,
-      connections: { connections: [] },
+      connections: { forwards: [], backwards: [] },
       drinks: { drinks: [] },
     };
     fetchPlaces();

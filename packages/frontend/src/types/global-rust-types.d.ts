@@ -157,12 +157,6 @@ declare global {
     location: number;
   }
 
-  interface PlaceThrow {
-    place: BoardPlace;
-    throw: [number, number];
-    team_id: number;
-  }
-
   interface Game {
     id: number;
     name: string;
@@ -239,12 +233,12 @@ declare global {
     origin: number;
     target: number;
     on_land: boolean;
-    backwards: boolean;
     dashed: boolean;
   }
 
   interface Connections {
-    connections: Connection[];
+    forwards: Connection[];
+    backwards: Connection[];
   }
 
   interface Ingredient {
