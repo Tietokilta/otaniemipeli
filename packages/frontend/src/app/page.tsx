@@ -30,7 +30,10 @@ export default function Home() {
   // Check for existing session on mount
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
-    if (!token) return;
+    if (!token) {
+      setLoggedIn(false);
+      return;
+    }
 
     verifySession(token)
       .then((session) => setLoggedIn(!!session))

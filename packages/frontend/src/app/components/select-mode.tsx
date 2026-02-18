@@ -19,7 +19,6 @@ export default function SelectMode({
     if (token) {
       verifySession(token)
         .then((response) => {
-          console.log("Response: ", response);
           if (response) {
             setSession(response);
           } else {
