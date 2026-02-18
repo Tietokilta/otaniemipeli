@@ -116,7 +116,6 @@ CREATE TABLE IF NOT EXISTS teams
     game_id         INTEGER NOT NULL REFERENCES games (game_id) ON DELETE CASCADE,
     team_name       TEXT NOT NULL,
     team_hash       TEXT NOT NULL,
-    double_tampere  BOOLEAN NOT NULL DEFAULT FALSE,
     moral_victory_eligible BOOLEAN NOT NULL DEFAULT TRUE
 );
 
@@ -152,7 +151,9 @@ CREATE TABLE IF NOT EXISTS turns
     -- intermediate place before an on_land connection was taken (if applicable)
     via_number   INTEGER,
     -- whether this is a penalty turn (no dice thrown)
-    penalty      BOOLEAN NOT NULL DEFAULT FALSE
+    penalty      BOOLEAN NOT NULL DEFAULT FALSE,
+    -- whether double tampere multiplier applies (set on confirm)
+    double_tampere BOOLEAN
 );
 
 -- what drinks are included in a turn

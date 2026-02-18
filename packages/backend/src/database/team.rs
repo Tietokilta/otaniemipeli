@@ -10,7 +10,6 @@ pub fn build_team_from_row(row: &tokio_postgres::Row) -> Team {
         game_id: row.get("game_id"),
         team_name: row.get("team_name"),
         team_hash: row.get("team_hash"),
-        double_tampere: row.get("double_tampere"),
         moral_victory_eligible: row.get("moral_victory_eligible"),
     }
 }
@@ -63,20 +62,6 @@ pub async fn get_team_by_id(client: &Client, team_id: TeamId) -> Result<Team, Ap
         .query_one("SELECT * FROM teams WHERE team_id = $1", &[&team_id])
         .await?;
     Ok(build_team_from_row(&row))
-}
-
-/// Sets the double Tampere flag for a team.
-pub async fn set_team_double_tampere(
-    client: &Client,
-    team_id: TeamId,
-    double_tampere: bool,
-) -> Result<(), AppError> {
-    let query_str = "\
-    UPDATE teams SET double_tampere = $2 WHERE team_id = $1";
-    client
-        .execute(query_str, &[&team_id, &double_tampere])
-        .await?;
-    Ok(())
 }
 
 /// Sets the moral victory eligible flag for a team.

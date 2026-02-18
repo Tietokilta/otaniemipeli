@@ -210,7 +210,7 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
                 t.turn_id, t.team_id, t.game_id, t.start_time, t.thrown_at,
                 t.confirmed_at, t.mixing_at, t.mixed_at, t.delivered_at,
                 t.end_time, t.dice1, t.dice2, t.dice3, t.dice4,
-                t.place_number, t.via_number, t.penalty,
+                t.place_number, t.via_number, t.penalty, t.double_tampere,
                 bp.start, bp.area, bp.\"end\", bp.x, bp.y,
                 p.place_id, p.place_name, p.rule, p.place_type, p.special,
                 vbp.start AS via_start, vbp.area AS via_area, vbp.\"end\" AS via_end,
@@ -278,10 +278,16 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
         .map(|team| {
             let turns = turns_by_team.remove(&team.team_id).unwrap_or_default();
             let location = turns.iter().rev().find_map(|t| t.place.clone());
+            let double_tampere = turns
+                .iter()
+                .rev()
+                .find_map(|t| t.double_tampere)
+                .unwrap_or(false);
             GameTeam {
                 team,
                 turns,
                 location,
+                double_tampere,
             }
         })
         .collect();
@@ -388,9 +394,15 @@ pub async fn get_team_latest_turn(
         None => None,
     };
 
+    let double_tampere = latest_turn
+        .as_ref()
+        .and_then(|t| t.double_tampere)
+        .unwrap_or(false);
+
     Ok(TeamLatestTurn {
         team,
         latest_turn,
         location,
+        double_tampere,
     })
 }

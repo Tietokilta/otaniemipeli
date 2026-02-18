@@ -18,6 +18,8 @@
     "format:check": "pnpm --filter frontend format:check && cargo fmt --manifest-path packages/backend/Cargo.toml --all --check --",
     "generate:types": "python3 scripts/generateTStypes.py && python3 scripts/generatePYclasses.py",
     "generate:turns": "python3 scripts/simulateTurns.py",
+    "check:backend": "cargo check --manifest-path=packages/backend/Cargo.toml",
+    "precommit": "pnpm format && pnpm typecheck && pnpm lint:fix && pnpm check:backend",
     "analyse": "python3 scripts/analysis.py"
   },
   "repository": {

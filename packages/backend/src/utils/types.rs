@@ -137,8 +137,6 @@ pub struct Team {
     pub game_id: GameId,
     pub team_name: String,
     pub team_hash: String,
-    // TODO: store elsewhere?
-    pub double_tampere: bool,
     pub moral_victory_eligible: bool,
 }
 
@@ -180,6 +178,7 @@ pub struct GameTeam {
     pub team: Team,
     pub turns: Vec<Turn>,
     pub location: Option<BoardPlace>,
+    pub double_tampere: bool,
 }
 
 /// Lightweight version of GameTeam with only the latest turn
@@ -188,6 +187,7 @@ pub struct TeamLatestTurn {
     pub team: Team,
     pub latest_turn: Option<Turn>,
     pub location: Option<BoardPlace>,
+    pub double_tampere: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -223,6 +223,8 @@ pub struct Turn {
     pub via_number: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)
     pub penalty: bool,
+    /// whether double tampere multiplier applies (set on confirm)
+    pub double_tampere: Option<bool>,
     pub drinks: TurnDrinks,
     /// the board place this turn ended on (if location is set)
     pub place: Option<BoardPlace>,

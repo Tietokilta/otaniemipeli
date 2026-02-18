@@ -5,11 +5,10 @@ use crate::database::games::{
     check_dice, check_opt_dice, count_place_visits, end_game, get_full_game_data, get_game_by_id,
     get_team_latest_turn,
 };
-use crate::database::team::set_team_double_tampere;
 use crate::database::turns::{
     cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks,
     set_drink_prep_status as db_set_drink_prep_status, set_end_place, set_turn_confirmed,
-    set_turn_drinks, start_turn as db_start_turn, update_turn_dice,
+    set_turn_double_tampere, set_turn_drinks, start_turn as db_start_turn, update_turn_dice,
 };
 use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TurnId};
@@ -40,10 +39,12 @@ pub struct TurnComputeResult {
     /// The intermediate place before an on_land connection was taken (if applicable).
     pub via: Option<BoardPlace>,
     pub turn_drinks: TurnDrinks,
+    /// Whether double tampere applies after this turn.
+    pub double_tampere: bool,
 }
 
 /// Computes the destination and drinks for a turn based on dice values.
-/// Does NOT apply side effects (double_tampere, end_game) - those happen on confirm.
+/// Does NOT apply side effects (end_game) - those happen on confirm.
 pub async fn compute_turn_result(
     client: &Client,
     game_id: GameId,
@@ -57,7 +58,7 @@ pub async fn compute_turn_result(
     let double_multiplier = if is_double { 2 } else { 1 };
     let throw = (dice1 as i8, dice2 as i8);
 
-    let double_tampere_multiplier = if team.team.double_tampere { 2 } else { 1 };
+    let double_tampere_multiplier = if team.double_tampere { 2 } else { 1 };
 
     let current_place = team.location.clone().ok_or_else(|| {
         AppError::NotFound(format!(
@@ -113,10 +114,20 @@ pub async fn compute_turn_result(
 
     let turn_drinks = TurnDrinks { drinks: all_drinks };
 
+    // Compute new double_tampere state based on movement
+    let double_tampere = if current_place.area == "normal" && end.area == "tampere" && is_double {
+        true
+    } else if end.area == "normal" {
+        false
+    } else {
+        team.double_tampere
+    };
+
     Ok(TurnComputeResult {
         end: end.clone(),
         via: via.cloned(),
         turn_drinks,
+        double_tampere,
     })
 }
 
@@ -145,6 +156,7 @@ pub async fn process_start_turn(
         )
         .await?;
         set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
+        set_turn_double_tampere(client, turn.turn_id, result.double_tampere).await?;
     }
 
     Ok(turn)
@@ -235,6 +247,7 @@ pub async fn change_dice(
     )
     .await?;
     set_turn_drinks(&client, turn.turn_id, result.turn_drinks).await?;
+    set_turn_double_tampere(&client, turn.turn_id, result.double_tampere).await?;
 
     let game_data = get_full_game_data(&client, turn.game_id).await?;
     broadcast_game_update(&state.io, turn.game_id, &game_data).await;
@@ -300,43 +313,27 @@ pub async fn confirm_turn(
     let mut drinks = data.drinks;
 
     let turn = get_turn_with_drinks(&client, turn_id).await?;
-
-    let (Some(location), Some(dice1), Some(dice2)) = (turn.place_number, turn.dice1, turn.dice2)
-    else {
-        return Err(AppError::Validation(
-            "Turn must have location and dice to be confirmed".to_string(),
-        ));
-    };
-
     let game = get_game_by_id(&client, turn.game_id).await?;
-    let team_data = get_team_latest_turn(&client, turn.game_id, turn.team_id).await?;
 
-    let Some(place_before) = team_data.location else {
-        return Err(AppError::Validation(
-            "Team must have a location before confirming turn".to_string(),
-        ));
+    let end_place = match turn.place_number {
+        Some(location) => get_board_place(&client, game.board.id, location).await?,
+        None => {
+            return Err(AppError::Validation(
+                "Turn must have location and dice to be confirmed".to_string(),
+            ))
+        }
     };
-
-    let place_after = get_board_place(&client, game.board.id, location).await?;
     let via_place = match turn.via_number {
         Some(via_num) => Some(get_board_place(&client, game.board.id, via_num).await?),
         None => None,
     };
 
-    sync_drinks_on_table(Some(&place_after), via_place.as_ref(), &mut drinks);
+    sync_drinks_on_table(Some(&end_place), via_place.as_ref(), &mut drinks);
     set_turn_drinks(&client, turn_id, drinks.clone()).await?;
-
     set_turn_confirmed(&client, turn_id).await?;
 
-    let is_double = dice1 == dice2;
-    if place_before.area == "normal" && place_after.area == "tampere" && is_double {
-        set_team_double_tampere(&client, turn.team_id, true).await?;
-    } else if place_after.area == "normal" && team_data.team.double_tampere {
-        set_team_double_tampere(&client, turn.team_id, false).await?;
-    }
-
     // If the turn ended on a place with end=true, end the game immediately
-    if place_after.end {
+    if end_place.end {
         end_game(&client, turn.game_id).await?;
     }
     // Otherwise, end turn immediately if no drinks were awarded

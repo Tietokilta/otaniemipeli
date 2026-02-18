@@ -826,7 +826,7 @@ const AssistantRefereeDialogue = ({
           >
             Muuta heittoja
           </button>
-          {team.team.double_tampere && <em>Tupla-Tampere!</em>}
+          {turn.double_tampere && <em className="text-xl">Tupla-Tampere!</em>}
         </div>
         {turn.via && (
           <>

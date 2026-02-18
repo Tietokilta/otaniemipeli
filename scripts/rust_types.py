@@ -184,7 +184,6 @@ class Team:
     game_id: int
     team_name: str
     team_hash: str
-    double_tampere: bool
     moral_victory_eligible: bool
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
@@ -233,6 +232,7 @@ class GameData:
 @dataclass
 class GameTeam:
     team: 'Team'
+    double_tampere: bool
     turns: list['Turn'] = field(default_factory=list['Turn'])
     location: Optional['BoardPlace'] = None
     @classmethod
@@ -242,6 +242,7 @@ class GameTeam:
 @dataclass
 class TeamLatestTurn:
     team: 'Team'
+    double_tampere: bool
     latest_turn: Optional['Turn'] = None
     location: Optional['BoardPlace'] = None
     @classmethod
@@ -268,6 +269,7 @@ class Turn:
     dice4: Optional[int] = None
     place_number: Optional[int] = None
     via_number: Optional[int] = None
+    double_tampere: Optional[bool] = None
     place: Optional['BoardPlace'] = None
     via: Optional['BoardPlace'] = None
     @classmethod

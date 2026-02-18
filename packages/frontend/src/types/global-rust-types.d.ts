@@ -68,7 +68,6 @@ declare global {
     game_id: number;
     team_name: string;
     team_hash: string;
-    double_tampere: boolean;
     moral_victory_eligible: boolean;
   }
 
@@ -101,12 +100,14 @@ declare global {
     team: Team;
     turns: Turn[];
     location: BoardPlace | null;
+    double_tampere: boolean;
   }
 
   interface TeamLatestTurn {
     team: Team;
     latest_turn: Turn | null;
     location: BoardPlace | null;
+    double_tampere: boolean;
   }
 
   interface Turn {
@@ -127,6 +128,7 @@ declare global {
     place_number: number | null;
     via_number: number | null;
     penalty: boolean;
+    double_tampere: boolean | null;
     drinks: TurnDrinks;
     place: BoardPlace | null;
     via: BoardPlace | null;

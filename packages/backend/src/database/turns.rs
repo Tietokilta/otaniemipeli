@@ -195,10 +195,26 @@ pub fn build_turn(row: &Row) -> Turn {
         place_number: row.get("place_number"),
         via_number: row.get("via_number"),
         penalty: row.get("penalty"),
+        double_tampere: row.get("double_tampere"),
         drinks: TurnDrinks { drinks: vec![] },
         place: None,
         via: None,
     }
+}
+
+/// Sets the double tampere flag on a turn.
+pub async fn set_turn_double_tampere(
+    client: &Client,
+    turn_id: TurnId,
+    double_tampere: bool,
+) -> Result<(), AppError> {
+    client
+        .execute(
+            "UPDATE turns SET double_tampere = $2 WHERE turn_id = $1",
+            &[&turn_id, &double_tampere],
+        )
+        .await?;
+    Ok(())
 }
 
 /// Updates a turn with the final location and optional via location

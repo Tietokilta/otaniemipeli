@@ -27,7 +27,13 @@ pnpm lint:fix       # ESLint fix
 pnpm format         # Prettier + cargo fmt
 
 # Type checking
-pnpm typecheck    # TypeScript + generated types validation
+pnpm typecheck      # TypeScript + generated types validation
+
+# Rust checks
+pnpm check:backend   # cargo check for Rust code
+
+# All checks (pre-commit)
+pnpm precommit       # Format, lint, typecheck, and cargo check
 
 # Build
 # Note: Claude should almost never run production builds since it's very slow
@@ -45,16 +51,10 @@ docker compose -f docker-compose-prod.yml up --build   # Production
 
 ## Developing
 
-- Always format and lint when finished with a change, but avoid doing it unnecessarily.
-- Generate types after changing Rust types before making any frontend changes.
+- Always run `pnpm format`, `pnpm lint:fix`, and `pnpm typecheck` when finished with a frontend change, but avoid doing it unnecessarily.
+- Always run `pnpm format` and `pnpm check:backend` when finished with a backend change, but avoid doing it unnecessarily.
+- Always run `pnpm generate:types` after changing Rust types BEFORE making any frontend changes.
 - Make sure to update CLAUDE.md if you change core logic, data structures, or development commands.
-
-## Environment Setup
-
-Both `packages/backend/` and `packages/frontend/` require `.env` files (copy from `.sample.env`). The backend needs:
-- PostgreSQL credentials
-- 32-character password salt (generate with `openssl rand -hex 32`)
-- Port configuration
 
 ## Architecture
 
@@ -125,7 +125,7 @@ Drink (beverage recipe)
 
 **Team** (`Team`)
 - A team participating in a game
-- Fields: `team_id`, `game_id`, `team_name`, `team_hash`, `double_tampere`, `moral_victory_eligible`
+- Fields: `team_id`, `game_id`, `team_name`, `team_hash`, `moral_victory_eligible`
 - Has many turns (chronological history)
 
 **Turn** (`Turn`)
@@ -140,6 +140,7 @@ Drink (beverage recipe)
   - `via`: Full `BoardPlace` object for the via location (if via_number is set)
   - `drinks`: List of drinks awarded (includes drinks from both via and final place when on_land applies)
   - `penalty`: Whether this is a penalty turn (no dice)
+  - `double_tampere`: Optional bool — whether double tampere multiplier is active after this turn (set on confirm, computed by `compute_turn_result`)
 
 **Drink** (`Drink`, `DrinkIngredients`, `Ingredient`)
 - Beverage recipe system
