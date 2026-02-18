@@ -100,6 +100,31 @@ pub fn build_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
     }
 }
 
+/// Builds a BoardPlace from aliased "via_" columns in a query row.
+pub fn build_via_board_place(row: &Row, board_id: BoardId) -> BoardPlace {
+    BoardPlace {
+        board_id,
+        place: Place {
+            place_id: row.get("via_place_id"),
+            place_name: row.get("via_place_name"),
+            rule: row.get("via_rule"),
+            place_type: row.get("via_place_type"),
+            special: row.get("via_special"),
+        },
+        place_number: row.get("via_number"),
+        start: row.get("via_start"),
+        area: row.get("via_area"),
+        end: row.get("via_end"),
+        x: row.get("via_x"),
+        y: row.get("via_y"),
+        connections: Connections {
+            forwards: vec![],
+            backwards: vec![],
+        },
+        drinks: PlaceDrinks { drinks: vec![] },
+    }
+}
+
 /// Retrieves connections from and to a place, split into forwards and backwards.
 ///
 /// Forward connections have origin = place_number.
@@ -445,11 +470,15 @@ pub async fn update_coordinates(
 }
 
 /// Moves a team forward on the board by the given throw amount.
+/// Returns (final_place, via_place) where via_place is set when the team passes through
+/// an intermediate place (on_land connection or -D1 special).
+/// `backward_throw` is the number of steps to move backwards if landing on a -D1 special.
 pub fn move_forwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
-) -> Result<BoardPlace, AppError> {
+    backward_throw: Option<i8>,
+) -> Result<(&'a BoardPlace, Option<&'a BoardPlace>), AppError> {
     for step in 0..throw {
         let conns = &current_place.connections;
 
@@ -481,7 +510,8 @@ pub fn move_forwards<'a>(
             Some(Choice::Backward) => {
                 // If there's only a backwards connection, reverse direction for the remaining steps
                 // Used at end of board
-                return move_backwards(current_place, board_places, throw - step as i8);
+                current_place = move_backwards(current_place, board_places, throw - step as i8)?;
+                break;
             }
             Some(Choice::OnLand) => {
                 // If the only forward connection is on_land, stop here
@@ -491,10 +521,9 @@ pub fn move_forwards<'a>(
             }
             Some(Choice::Forward(chosen)) => {
                 // Take the chosen forward connection
-                let next = board_places
+                current_place = board_places
                     .find_place(chosen.target)
                     .unwrap_or(current_place);
-                current_place = next;
             }
             None => {
                 // If there are no connections at all, stop here
@@ -504,19 +533,30 @@ pub fn move_forwards<'a>(
             }
         }
     }
+
+    // If landing on a -D1 special, move backwards from start position by backward_throw
+    if current_place.place.special.as_deref() == Some("-D1") {
+        if let Some(bt) = backward_throw {
+            let dest = move_backwards(current_place, board_places, bt)?;
+            return Ok((dest, Some(current_place)));
+        }
+    }
+
     // If there are any forward on_land connections in the final resting spot, take the first one
     // Used to go to Tampere and Raide-Jokeri
-    if let Some(on_land) = &current_place
+    if let Some(on_land) = current_place
         .connections
         .forwards
         .iter()
         .find(|c| c.on_land)
     {
-        current_place = board_places
+        let dest = board_places
             .find_place(on_land.target)
             .unwrap_or(current_place);
+        return Ok((dest, Some(current_place)));
     }
-    Ok(current_place.clone())
+
+    Ok((current_place, None))
 }
 
 /// Moves a team backward on the board by the given throw amount.
@@ -524,7 +564,7 @@ pub fn move_backwards<'a>(
     mut current_place: &'a BoardPlace,
     board_places: &'a BoardPlaces,
     throw: i8,
-) -> Result<BoardPlace, AppError> {
+) -> Result<&'a BoardPlace, AppError> {
     for _ in 0..throw {
         // Pick a non-on-land backwards connection if available
         let Some(conn) = &current_place
@@ -541,12 +581,12 @@ pub fn move_backwards<'a>(
             .find_place(conn.target)
             .unwrap_or(current_place);
     }
-    Ok(current_place.clone())
+    Ok(current_place)
 }
 
 /// Gets the starting place number for a board.
 pub async fn get_first_place(client: &Client, board_id: BoardId) -> Result<i32, AppError> {
-    let query_str = "\
+    let query_str = "
     SELECT place_number FROM board_places WHERE board_id = $1 AND start = TRUE";
     let row = client.query_one(query_str, &[&board_id]).await?;
     Ok(row.get(0))

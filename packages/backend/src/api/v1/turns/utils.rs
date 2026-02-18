@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use crate::database::boards::{get_board_place, get_board_places, move_backwards, move_forwards};
+use crate::database::boards::{get_board_place, get_board_places, move_forwards};
 use crate::database::games::{
     check_dice, check_opt_dice, count_place_visits, end_game, get_full_game_data, get_game_by_id,
     get_team_latest_turn,
@@ -35,7 +35,10 @@ pub async fn broadcast_game_update(io: &SocketIo, game_id: GameId, data: &GameDa
 
 /// Result of computing turn movement and drinks.
 pub struct TurnComputeResult {
-    pub place_after: BoardPlace,
+    /// The final place after movement.
+    pub end: BoardPlace,
+    /// The intermediate place before an on_land connection was taken (if applicable).
+    pub via: Option<BoardPlace>,
     pub turn_drinks: TurnDrinks,
 }
 
@@ -65,21 +68,13 @@ pub async fn compute_turn_result(
     let board_places = get_board_places(client, current_place.board_id).await?;
 
     let throw: i8 = min(throw.0, throw.1);
-    let mut place_after = move_forwards(&current_place, &board_places, throw)?;
+    let backward_throw = dice3.map(|d| (double_multiplier * d) as i8);
+    let (end, via) = move_forwards(&current_place, &board_places, throw, backward_throw)?;
 
-    let visited = count_place_visits(client, game_id, place_after.place_number).await?;
+    let visited = count_place_visits(client, game_id, end.place_number).await?;
 
-    let special = place_after.place.special.as_deref();
+    let special = end.place.special.as_deref();
     let extra_multiplier = match (special, dice3, dice4) {
-        // If landing at special=-D1, move backwards from current position by one die
-        (Some("-D1"), Some(dice3), _) => {
-            place_after = move_backwards(
-                &current_place,
-                &board_places,
-                (double_multiplier * dice3) as i8,
-            )?;
-            1
-        }
         // If landing at special=MIN(D2), multiply drinks by the value of the smaller die
         (Some("MIN(D2)"), Some(dice3), Some(dice4)) => min(dice3, dice4),
         // If landing at special=N+1, multiply drinks by the number of visits to that square + 1
@@ -87,13 +82,40 @@ pub async fn compute_turn_result(
         _ => 1,
     };
 
-    let turn_drinks = place_after.drinks.to_turn_drinks(
-        visited,
-        double_multiplier * double_tampere_multiplier * extra_multiplier,
-    );
+    let base_multiplier = double_multiplier * double_tampere_multiplier;
+
+    // Collect drinks from the via place (if we moved after the usual dice throw)
+    let mut all_drinks = if let Some(ref via_place) = via {
+        let via_visited = count_place_visits(client, game_id, via_place.place_number).await?;
+        via_place
+            .drinks
+            .to_turn_drinks(via_visited, base_multiplier)
+            .drinks
+    } else {
+        vec![]
+    };
+
+    // Add drinks from the final destination (with special formula multiplier)
+    let end_drinks = end
+        .drinks
+        .to_turn_drinks(visited, base_multiplier * extra_multiplier)
+        .drinks;
+    for drink in end_drinks {
+        // Merge duplicate drinks (same drink id) by summing n and on_table
+        if let Some(existing) = all_drinks.iter_mut().find(|d| d.drink.id == drink.drink.id) {
+            existing.n += drink.n;
+            existing.on_table += drink.on_table;
+            existing.optional = existing.optional || drink.optional;
+        } else {
+            all_drinks.push(drink);
+        }
+    }
+
+    let turn_drinks = TurnDrinks { drinks: all_drinks };
 
     Ok(TurnComputeResult {
-        place_after,
+        end: end.clone(),
+        via: via.cloned(),
         turn_drinks,
     })
 }
@@ -115,7 +137,13 @@ pub async fn process_start_turn(
     if let (Some(dice1), Some(dice2)) = (dice1, dice2) {
         let result =
             compute_turn_result(client, game_id, &team_data, dice1, dice2, None, None).await?;
-        set_end_place(client, result.place_after.place_number, turn.turn_id).await?;
+        set_end_place(
+            client,
+            result.end.place_number,
+            result.via.map(|p| p.place_number),
+            turn.turn_id,
+        )
+        .await?;
         set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
     }
 
@@ -199,7 +227,13 @@ pub async fn change_dice(
         dice4,
     )
     .await?;
-    set_end_place(&client, result.place_after.place_number, turn.turn_id).await?;
+    set_end_place(
+        &client,
+        result.end.place_number,
+        result.via.map(|p| p.place_number),
+        turn.turn_id,
+    )
+    .await?;
     set_turn_drinks(&client, turn.turn_id, result.turn_drinks).await?;
 
     let game_data = get_full_game_data(&client, turn.game_id).await?;
@@ -207,22 +241,29 @@ pub async fn change_dice(
     Ok(())
 }
 
-/// Updates the on_table values of the drinks in a turn based on the current place's drinks, then stores the updated drinks in the database.
-fn sync_drinks_on_table(place: Option<&BoardPlace>, drinks: &mut TurnDrinks) {
-    // Update on_table for each drink from the place
+/// Updates the on_table values of the drinks in a turn based on the place's drinks.
+/// Checks both the final place and the via place (if applicable), since drinks can come from either.
+fn sync_drinks_on_table(
+    place: Option<&BoardPlace>,
+    via: Option<&BoardPlace>,
+    drinks: &mut TurnDrinks,
+) {
+    let places: Vec<&BoardPlace> = [place, via].into_iter().flatten().collect();
+
     for td in drinks.drinks.iter_mut() {
-        // Find the corresponding place_drink to check on_table status
-        td.on_table = match place.and_then(|place| {
-            place
-                .drinks
-                .drinks
-                .iter()
-                .find(|pd| pd.drink.id == td.drink.id)
-        }) {
-            // Set on_table to the number of the drink actually o   n the place
-            Some(pd) if pd.on_table => min(td.n, pd.n),
-            _ => 0,
-        };
+        // Sum on_table contributions from all places (final + via)
+        let on_table_total: i32 = places
+            .iter()
+            .filter_map(|p| {
+                p.drinks
+                    .drinks
+                    .iter()
+                    .find(|pd| pd.drink.id == td.drink.id && pd.on_table)
+                    .map(|pd| pd.n)
+            })
+            .sum();
+
+        td.on_table = min(td.n, on_table_total);
     }
 }
 
@@ -241,7 +282,7 @@ pub async fn edit_turn_drinks(
         ));
     }
 
-    sync_drinks_on_table(turn.place.as_ref(), &mut data.drinks);
+    sync_drinks_on_table(turn.place.as_ref(), turn.via.as_ref(), &mut data.drinks);
     set_turn_drinks(&client, turn_id, data.drinks).await?;
 
     let game_data = get_full_game_data(&client, turn.game_id).await?;
@@ -260,7 +301,8 @@ pub async fn confirm_turn(
 
     let turn = get_turn_with_drinks(&client, turn_id).await?;
 
-    let (Some(location), Some(dice1), Some(dice2)) = (turn.location, turn.dice1, turn.dice2) else {
+    let (Some(location), Some(dice1), Some(dice2)) = (turn.place_number, turn.dice1, turn.dice2)
+    else {
         return Err(AppError::Validation(
             "Turn must have location and dice to be confirmed".to_string(),
         ));
@@ -276,8 +318,12 @@ pub async fn confirm_turn(
     };
 
     let place_after = get_board_place(&client, game.board.id, location).await?;
+    let via_place = match turn.via_number {
+        Some(via_num) => Some(get_board_place(&client, game.board.id, via_num).await?),
+        None => None,
+    };
 
-    sync_drinks_on_table(Some(&place_after), &mut drinks);
+    sync_drinks_on_table(Some(&place_after), via_place.as_ref(), &mut drinks);
     set_turn_drinks(&client, turn_id, drinks.clone()).await?;
 
     set_turn_confirmed(&client, turn_id).await?;

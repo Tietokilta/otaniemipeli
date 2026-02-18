@@ -192,23 +192,26 @@ pub fn build_turn(row: &Row) -> Turn {
         dice2: row.get("dice2"),
         dice3: row.get("dice3"),
         dice4: row.get("dice4"),
-        location: row.get("place_number"),
+        place_number: row.get("place_number"),
+        via_number: row.get("via_number"),
         penalty: row.get("penalty"),
         drinks: TurnDrinks { drinks: vec![] },
         place: None,
+        via: None,
     }
 }
 
-/// Updates a turn with the final location
+/// Updates a turn with the final location and optional via location
 pub async fn set_end_place(
     client: &Client,
     place_number: i32,
+    via_number: Option<i32>,
     turn_id: TurnId,
 ) -> Result<u64, AppError> {
     Ok(client
         .execute(
-            "UPDATE turns SET place_number = $1 WHERE turn_id = $2",
-            &[&place_number, &turn_id],
+            "UPDATE turns SET place_number = $1, via_number = $2 WHERE turn_id = $3",
+            &[&place_number, &via_number, &turn_id],
         )
         .await?)
 }

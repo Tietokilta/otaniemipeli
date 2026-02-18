@@ -154,7 +154,7 @@ pub struct TurnDrink {
     pub n: i32,
     /// what number of this drink was picked up from the table and doesn't require IE involvement
     pub on_table: i32,
-    /// whether an assistant referee should do manual work to this drink; not used after confirming the turn
+    /// whether this drink amount is expected to be modified by the assistant referee; not used after confirming the turn
     pub optional: bool,
 }
 
@@ -218,12 +218,16 @@ pub struct Turn {
     /// dice number 4 (if thrown)
     pub dice4: Option<i32>,
     /// where the player ended up (if dice thrown) - this is place_number, not PlaceId
-    pub location: Option<i32>,
+    pub place_number: Option<i32>,
+    /// intermediate place_number before an on_land connection was taken (if applicable)
+    pub via_number: Option<i32>,
     /// whether this is a penalty turn (no dice thrown)
     pub penalty: bool,
     pub drinks: TurnDrinks,
     /// the board place this turn ended on (if location is set)
     pub place: Option<BoardPlace>,
+    /// the board place passed through before an on_land connection (if via_number is set)
+    pub via: Option<BoardPlace>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -378,8 +382,14 @@ pub struct PlaceDrink {
 }
 
 impl PlaceDrink {
+    /// Converts a place drink template to a turn drink instance.
+    /// Optional drinks get n=0 so assistant referees can adjust them manually.
     pub fn to_turn_drink(&self, multiplier: i32) -> TurnDrink {
-        let n = self.n * multiplier;
+        let n = if self.optional {
+            0
+        } else {
+            self.n * multiplier
+        };
         TurnDrink {
             drink: self.drink.clone(),
             n,

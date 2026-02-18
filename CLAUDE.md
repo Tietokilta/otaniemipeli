@@ -135,8 +135,10 @@ Drink (beverage recipe)
   - `dice1`, `dice2`: Dice values (1-6, null or zero if not thrown yet)
   - `dice3`, `dice4`: Dice for special place effects (e.g., AYY backwards movement, Norske Kimble)
   - `location`: The `place_number` where the turn ended (not a PlaceId)
+  - `via_number`: The intermediate `place_number` before an on_land connection was taken (if applicable)
   - `place`: Full `BoardPlace` object for the location
-  - `drinks`: List of drinks awarded
+  - `via`: Full `BoardPlace` object for the via location (if via_number is set)
+  - `drinks`: List of drinks awarded (includes drinks from both via and final place when on_land applies)
   - `penalty`: Whether this is a penalty turn (no dice)
 
 **Drink** (`Drink`, `DrinkIngredients`, `Ingredient`)
@@ -165,6 +167,7 @@ Drink (beverage recipe)
   - `drink`: Reference to the drink recipe
   - `n`: Final quantity (after applying multipliers from double_tampere, dice formulas, etc.)
   - `on_table`: How many of the drinks were already on the game board (based on `PlaceDrink.on_table`)
+  - `optional`: Whether this drink amount is expected to be modified by the assistant referee (based on `PlaceDrink.optional`)
 - Can be modified by referee after turn confirmation (adding/removing drinks, changing quantities)
 - Created from `PlaceDrink` templates when turn is confirmed, or manually specified for penalty turns
 
@@ -202,9 +205,12 @@ Most game logic is in `packages/backend/src/api/v1/turns/utils.rs`:
 All movement logic is in `packages/backend/src/database/boards.rs`:
 
 - `move_forwards()` / `move_backwards()` traverse `Connection` paths
-- If turn lands on `on_land` connection, it is auto-taken
-- `special` movement rules followed
-- Final `place_number` is stored in `Turn.location`
+- `move_forwards()` returns `(final_place, Option<via_place>)` — via is set when an on_land connection or `-D1` special applies
+- If turn lands on `on_land` connection, it is auto-taken; the intermediate place is stored in `Turn.via_number`
+- If turn lands on `-D1` special, moves backwards from start by `backward_throw`; the `-D1` place becomes via
+- Drinks from both the via place and final place are combined into the turn's drink list
+- `special` movement rules (except `-D1`) followed in `compute_turn_result()`
+- Final `place_number` is stored in `Turn.place_number`
 
 ### Drink Flow (PlaceDrink → TurnDrink)
 - **After Throw:** `PlaceDrink` templates are converted to `TurnDrink` instances

@@ -134,9 +134,7 @@ export default function TeamTurnCard({
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
   const onClickAction = collect ? undefined : () => setShowDialogue(true);
 
-  const location = singleTurn
-    ? board?.places.find((p) => p.place_number === teamTurns[0].location)
-    : undefined;
+  const location = singleTurn ? teamTurns[0].place : undefined;
 
   if (!lastTurn) {
     return (

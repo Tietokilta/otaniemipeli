@@ -124,10 +124,12 @@ declare global {
     dice2: number | null;
     dice3: number | null;
     dice4: number | null;
-    location: number | null;
+    place_number: number | null;
+    via_number: number | null;
     penalty: boolean;
     drinks: TurnDrinks;
     place: BoardPlace | null;
+    via: BoardPlace | null;
   }
 
   interface PostStartTurn {

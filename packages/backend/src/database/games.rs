@@ -1,4 +1,6 @@
-use crate::database::boards::{build_board_place, get_board_place, get_first_place};
+use crate::database::boards::{
+    build_board_place, build_via_board_place, get_board_place, get_first_place,
+};
 use crate::database::team::{get_team_by_id, get_teams};
 use crate::database::turns::build_turn;
 use crate::utils::ids::{BoardId, GameId, PlaceId, TeamId, TurnId};
@@ -201,18 +203,25 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
     let teams = get_teams(client, game_id).await?;
     let board_id = game.board.id;
 
-    // Fetch all turns with place data (one row per turn)
+    // Fetch all turns with place data and via place data (one row per turn)
     let turn_rows = client
         .query(
             "SELECT
                 t.turn_id, t.team_id, t.game_id, t.start_time, t.thrown_at,
                 t.confirmed_at, t.mixing_at, t.mixed_at, t.delivered_at,
-                t.end_time, t.dice1, t.dice2, t.dice3, t.dice4, t.place_number, t.penalty,
+                t.end_time, t.dice1, t.dice2, t.dice3, t.dice4,
+                t.place_number, t.via_number, t.penalty,
                 bp.start, bp.area, bp.\"end\", bp.x, bp.y,
-                p.place_id, p.place_name, p.rule, p.place_type, p.special
+                p.place_id, p.place_name, p.rule, p.place_type, p.special,
+                vbp.start AS via_start, vbp.area AS via_area, vbp.\"end\" AS via_end,
+                vbp.x AS via_x, vbp.y AS via_y,
+                vp.place_id AS via_place_id, vp.place_name AS via_place_name,
+                vp.rule AS via_rule, vp.place_type AS via_place_type, vp.special AS via_special
              FROM turns t
              LEFT JOIN board_places bp ON bp.board_id = $2 AND bp.place_number = t.place_number
              LEFT JOIN places p ON p.place_id = bp.place_id
+             LEFT JOIN board_places vbp ON vbp.board_id = $2 AND vbp.place_number = t.via_number
+             LEFT JOIN places vp ON vp.place_id = vbp.place_id
              WHERE t.game_id = $1
              ORDER BY t.team_id, t.turn_id ASC",
             &[&game_id, &board_id],
@@ -251,12 +260,14 @@ pub async fn get_full_game_data(client: &Client, game_id: GameId) -> Result<Game
     // Build turns with place data
     let mut turns_by_team: HashMap<TeamId, Vec<Turn>> = HashMap::new();
     for row in &turn_rows {
-        let place_id: Option<PlaceId> = row.get("place_id");
-        let place = place_id.map(|_| build_board_place(row, board_id));
-
         let mut turn = build_turn(row);
         turn.drinks.drinks = drinks_by_turn.remove(&turn.turn_id).unwrap_or_default();
-        turn.place = place;
+        turn.place = row
+            .get::<_, Option<PlaceId>>("place_id")
+            .map(|_| build_board_place(row, board_id));
+        turn.via = row
+            .get::<_, Option<PlaceId>>("via_place_id")
+            .map(|_| build_via_board_place(row, board_id));
 
         turns_by_team.entry(turn.team_id).or_default().push(turn);
     }
@@ -370,7 +381,7 @@ pub async fn get_team_latest_turn(
         .map(|r| build_turn(&r));
 
     // Get location from latest confirmed turn
-    let location = match latest_turn.as_ref().and_then(|t| t.location) {
+    let location = match latest_turn.as_ref().and_then(|t| t.place_number) {
         Some(place_number) => get_board_place(client, game.board.id, place_number)
             .await
             .ok(),

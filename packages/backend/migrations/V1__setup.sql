@@ -149,6 +149,8 @@ CREATE TABLE IF NOT EXISTS turns
     dice4        INTEGER,
     -- where the player ended up (if dice thrown)
     place_number INTEGER,
+    -- intermediate place before an on_land connection was taken (if applicable)
+    via_number   INTEGER,
     -- whether this is a penalty turn (no dice thrown)
     penalty      BOOLEAN NOT NULL DEFAULT FALSE
 );

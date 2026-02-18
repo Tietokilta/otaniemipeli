@@ -782,26 +782,43 @@ const AssistantRefereeDialogue = ({
         />
       )}
       <form
-        className="w-[90vw] md:w-2xl flex flex-col gap-2 h-[80dvh] max-h-200 px-4 py-2"
+        className={`
+          w-[90dvw]
+          h-[90dvh]
+          max-w-6xl
+          grid
+          grid-cols-[auto_auto_1fr]
+          ${turn.via ? "grid-rows-[auto_auto_auto_1fr_auto]" : "grid-rows-[auto_auto_1fr_auto]"}
+          items-center
+          gap-2
+          px-4
+          py-2
+          overflow-y-auto`}
         onSubmit={(e) => {
           e.preventDefault();
         }}
       >
+        <em className="justify-self-end">Heitot</em>
+        <div className="border-l-2 self-stretch border-primary-900" />
         <div className="flex items-center gap-2">
-          <span>
-            Heitot: {turn.dice1}&nbsp;+&nbsp;{turn.dice2}
+          <span className="text-xl">
+            {turn.dice1}&nbsp;+&nbsp;{turn.dice2}
           </span>
           {missingDice ? (
             <em>Lisänopanheittoja vaaditaan.</em>
-          ) : (
-            need.dice3 && (
-              <em>
-                {need.dice4
-                  ? `Lisäheitot: ${turn.dice3}\xA0+\xA0${turn.dice4}`
-                  : `Lisäheitto: ${turn.dice3}`}
-              </em>
-            )
-          )}
+          ) : need.dice4 ? (
+            <>
+              <em>Lisäheitot:</em>
+              <span className="text-xl">
+                {turn.dice3}&nbsp;+&nbsp;{turn.dice4}
+              </span>
+            </>
+          ) : need.dice3 ? (
+            <>
+              <em>Lisäheitto:</em>
+              <span className="text-xl">{turn.dice3}</span>
+            </>
+          ) : null}
           <button
             type="button"
             className="button"
@@ -809,20 +826,40 @@ const AssistantRefereeDialogue = ({
           >
             Muuta heittoja
           </button>
+          {team.team.double_tampere && <em>Tupla-Tampere!</em>}
         </div>
-        {turn.place ? (
-          <PlaceCard place={turn.place} className="max-w-full" />
-        ) : (
-          <p>Paikkaa ei löydy!</p>
+        {turn.via && (
+          <>
+            <em className="justify-self-end">Välietappi</em>
+            <div className="border-l-2 self-stretch border-primary-900" />
+            <div className="flex flex-col gap-2 flex-1">
+              <PlaceCard place={turn.via} className="max-w-full" />
+              {turn.via.place.rule && (
+                <p className="text-lg text-left hyphens-auto">
+                  &quot;{turn.via.place.rule}&quot;
+                </p>
+              )}
+            </div>
+          </>
         )}
-        {turn.place?.place.rule && (
-          <div className="flex items-center">
-            <em>Sääntö</em>
-            <p className="text-lg text-left border-l-2 border-primary-900 pl-2 ml-2">
+        <em className="justify-self-end">
+          {turn.via ? "Päätepiste" : "Sääntö"}
+        </em>
+        <div className="border-l-2 self-stretch border-primary-900" />
+        <div className="flex flex-col gap-2 flex-1">
+          {turn.place ? (
+            <PlaceCard place={turn.place} className="max-w-full" />
+          ) : (
+            <p>Paikkaa ei löydy!</p>
+          )}
+          {turn.place?.place.rule && (
+            <p className="text-lg text-left hyphens-auto">
               &quot;{turn.place.place.rule}&quot;
             </p>
-          </div>
-        )}
+          )}
+        </div>
+        <em className="hidden lg:inline justify-self-end">Juomat</em>
+        <div className="hidden lg:inline border-l-2 self-stretch border-primary-900" />
         <DrinkSelectionList
           selectedDrinks={turnDrinks}
           setSelectedDrinks={(fn) => {
@@ -830,13 +867,7 @@ const AssistantRefereeDialogue = ({
             setModified(true);
           }}
         />
-        {mustModify && (
-          <div className="text-lg -mb-4">
-            <em>Ruudun sääntö sisältää juomavaihtoehtoja. </em>
-            Lue sääntö huolella ja koske juomavalintoihin vahvistaaksesi vuoron.
-          </div>
-        )}
-        <div className="flex justify-between px-4 py-4">
+        <div className="col-span-3 flex justify-between items-center px-4 py-4">
           <button
             type="button"
             className="button text-xl p-4"
@@ -845,14 +876,27 @@ const AssistantRefereeDialogue = ({
           >
             Eiku
           </button>
-          <button
-            type="button"
-            className="button text-xl p-4"
-            onClick={handleSubmit}
-            disabled={pending || missingDice || mustModify}
-          >
-            Vahvista vuoro
-          </button>
+          {missingDice ? (
+            <div className="text-lg">
+              Klikkaa <em>Muuta heittoja</em> ja lisää lisänopanheitot
+              vahvistaaksesi vuoron.
+            </div>
+          ) : mustModify ? (
+            <div className="text-lg">
+              <em>Ruutu sisältää vaihtoehtoja tai valinnaisia lisäjuomia. </em>
+              Lue säännöt <em>huolella</em> ja muuta juomavalintoja
+              vahvistaaksesi vuoron.
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="button text-xl p-4"
+              onClick={handleSubmit}
+              disabled={pending || missingDice || mustModify}
+            >
+              Vahvista vuoro
+            </button>
+          )}
         </div>
       </form>
     </PopUpDialogue>
@@ -919,14 +963,14 @@ export function DrinkSelectionList({
   );
 
   return (
-    <>
+    <div className="flex-1 self-stretch col-span-3 lg:col-span-1 flex flex-col min-h-40 w-full max-w-2xl mx-auto">
       <DrinkDropdown
         buttonText={buttonText}
         options={filteredDrinks}
         selectedOption={undefined}
         setSelectedOption={onSelect}
       />
-      <div className="flex-1 flex flex-col gap-1 py-2 overflow-y-auto">
+      <div className="flex-1 min-h-0 flex flex-col gap-1 py-2 overflow-y-auto">
         {displayDrinks.drinks.length === 0 && (
           <p className="text-tertiary-500">Ei valittuja juomia</p>
         )}
@@ -938,7 +982,7 @@ export function DrinkSelectionList({
           />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -968,21 +1012,23 @@ export function DrinkSelectionCard({
   };
 
   return (
-    <div className="flex gap-2 w-full box p-2 center">
+    <div className="flex gap-2 w-full box py-0 pr-0 center">
       <div className="w-1/2 flex flex-col">
         <div className="text-lg font-bold overflow-hidden text-ellipsis text-nowrap text-left">
           {turnDrink.drink.name}
         </div>
-        {turnDrink.on_table > 0 && (
-          <div className="text-base text-left">
-            Ruudussa: {turnDrink.on_table} kpl
-          </div>
-        )}
-        {turnDrink.optional && (
-          <div className="text-base text-left">
-            <em>Valinnainen</em>
-          </div>
-        )}
+        <div className="contents md:flex gap-2">
+          {turnDrink.on_table > 0 && (
+            <div className="text-base text-left">
+              Ruudussa: {turnDrink.on_table} kpl
+            </div>
+          )}
+          {turnDrink.optional && (
+            <div className="text-base text-left">
+              <em>Valintoja</em>
+            </div>
+          )}
+        </div>
       </div>
       <div
         className="flex gap-2 w-1/2 center"
