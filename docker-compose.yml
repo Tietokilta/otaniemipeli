@@ -38,8 +38,8 @@ services:
 
   web:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./packages/frontend/Dockerfile
       target: runtime
       args:
         API_URL: "http://app:2568/api/v1"

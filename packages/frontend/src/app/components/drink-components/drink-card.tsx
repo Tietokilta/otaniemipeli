@@ -8,7 +8,7 @@ import {
   updateDrink,
 } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
-import RefillSVG from "@/public/refill";
+import RefillSVG from "../../../../public/refill";
 import { VerticalList } from "../generic-list-components";
 
 export default function DrinkCard({

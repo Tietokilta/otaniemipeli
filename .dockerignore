@@ -1,0 +1,29 @@
+# Dependencies (will be installed in container)
+node_modules
+**/node_modules
+
+# Build outputs
+**/.next
+packages/backend/target
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Logs
+*.log
+
+# Python virtual env
+.venv
+__pycache__
+
+# Scripts (not needed for Docker build)
+scripts/
+
+# Backend not needed for frontend build
+packages/backend/
+

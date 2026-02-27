@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import TiKLogo from "@/public/TiKprofiilikuva.png";
+import TiKLogo from "../../../../public/TiKprofiilikuva.png";
 import React from "react";
 import { FlickerText } from "@/app/components/flicker-text";
 
