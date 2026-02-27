@@ -33,12 +33,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=${PORT}
 
-# Copy standalone server (includes server.js at packages/frontend level)
-COPY --from=builder /app/packages/frontend/.next/standalone/packages/frontend ./
+# Copy the entire standalone output (includes node_modules at root level)
+COPY --from=builder /app/packages/frontend/.next/standalone ./
 # Copy static assets
-COPY --from=builder /app/packages/frontend/.next/static ./.next/static
+COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
 # Copy public folder from source
-COPY --from=builder /app/packages/frontend/public ./public
+COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 
 USER node
+WORKDIR /app/packages/frontend
 CMD ["node", "server.js"]
