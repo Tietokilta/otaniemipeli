@@ -53,7 +53,7 @@ export default function CreateUserForm({
     onCreate?.();
     setUsername("");
     setEmail("");
-    setUserType(firstUser ? "Admin" : "Secretary");
+    setUserType(firstUser ? "Secretary" : "Admin");
     setPassword("");
     setPasswordConfirm("");
   }, [setLoginAction, onCreate, username, email, userType, password, pwsMatch]);
