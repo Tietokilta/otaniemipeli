@@ -59,6 +59,7 @@ pub async fn create_user(
 
     let client = state.db.get().await?;
     let any_users = users_exist(&client).await?;
+    println!("any users? {any_users}");
 
     if any_users {
         // Require a valid session with the right permissions
