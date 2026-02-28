@@ -1,6 +1,6 @@
 use crate::database::login::*;
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{LoginInfo, SessionInfo, UserCreateInfo, UserSessionInfo};
+use crate::utils::types::{LoginInfo, SessionInfo, UserCreateInfo, UserSessionInfo, UserType};
 use axum::extract::State;
 use axum::Json;
 
@@ -50,7 +50,7 @@ pub async fn exist_users(state: State<AppState>) -> Result<Json<bool>, AppError>
 pub async fn create_user(
     state: State<AppState>,
     session: Option<SessionInfo>,
-    Json(user_info): Json<UserCreateInfo>,
+    Json(mut user_info): Json<UserCreateInfo>,
 ) -> Result<Json<UserSessionInfo>, AppError> {
     println!("Hit function");
     if user_info.password.is_empty() || user_info.username.is_empty() || user_info.email.is_empty()
@@ -86,6 +86,9 @@ pub async fn create_user(
         Ok(Json(UserSessionInfo { user, session }))
     } else {
         println!("No users exist, creating first user without auth");
+      if user_info.user_type != UserType::Admin {
+            user_info.user_type = UserType::Admin;
+        }
         // First user — no auth required
         let (user, session) = user_create(&client, user_info).await?;
 
