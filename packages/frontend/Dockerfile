@@ -15,8 +15,10 @@ RUN pnpm install --frozen-lockfile
 # Copy frontend source files
 COPY packages/frontend/ packages/frontend/
 
-# Set build args
+# Set build args (NEXT_PUBLIC_* are baked into the JS bundle at build time)
+ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 
 # Build from frontend directory

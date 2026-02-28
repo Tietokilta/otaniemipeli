@@ -3,18 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "dotenv -e ../../.env -- next dev",
+    "build": "dotenv -e ../../.env -- next build",
+    "start": "dotenv -e ../../.env -- next start",
     "lint": "eslint ..",
     "lint:fix": "eslint .. --ext .js,.ts,.tsx --fix",
     "format": "prettier --write --list-different \"**/*.{js,ts,ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{js,ts,ts,tsx,md,json}\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next node_modules && pnpm install",
-    "precommit": "pnpm typecheck && pnpm lint && pnpm format && git add .. && echo '\n🤩  Pre-commit checks completed! 🤩'",
-    "remote": "cp .env.stash.remote .env",
-    "local": "cp .env.stash.local .env"
+    "precommit": "pnpm typecheck && pnpm lint && pnpm format && git add .. && echo '\n🤩  Pre-commit checks completed! 🤩'"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",

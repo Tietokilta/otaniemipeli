@@ -18,27 +18,19 @@ More information can be found from [here](https://www.tietokilta.fi/fi/kilta/ota
 git clone git@github.com:Tietokilta/otaniemipeli
 ```
 
-2. Go to the backend directory
-   `cd packages/backend`  
-    i. run `cp .sample.env .env`.  
-   ii. Generate a 32-character salt for password hashing with for example
+2. Copy the sample environment file and fill it in:
 
-```
-openssl rand -hex 32
+```bash
+cp .sample.env .env
 ```
 
-iii. Fill in the wanted DB credentials and use the same ones for the flyway credentials.
+   - Generate a salt for password hashing: `openssl rand -hex 32`
+   - Fill in the Postgres credentials (and mirror them for Flyway)
+   - The frontend and backend URLs/ports have sensible defaults
 
-3. Go to the frontend directory
-   `cd ../frontend`
-4. run `cp .sample.env .env`.
-5. Fill in the wanted urls and ports.
-6. Go back to the root directory
-7. Run ´cp .sample.env .env´
-8. Fill in the wanted ports with the same ones you chose for front- and backends.
-9. Run `pnpm install` in the root directory to install dependencies.
-10. Run `docker-compose up --build` to start the backend.
-11. Run `pnpm dev` to start the frontend.
+3. Run `pnpm install` in the root directory to install dependencies.
+4. Run `docker compose up --build` to start the backend.
+5. Run `pnpm dev` to start the frontend.
 
 For Production build docker image which contains front and backends run
 
@@ -56,7 +48,7 @@ Migrate:
 cd packages/backend
 docker run \
    --rm \
-   --env-file ./.env \
+   --env-file ../../.env \
    --network host \
    -v ./migrations:/flyway/sql \
    flyway/flyway \

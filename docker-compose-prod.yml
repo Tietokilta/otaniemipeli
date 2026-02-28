@@ -11,12 +11,12 @@ services:
     ports:
       - "${PUBLIC_PG_PORT}:${POSTGRES_PORT}"
     env_file:
-      - ./packages/backend/.env
+      - .env
 
   database-migrations:
     image: flyway/flyway:latest
     env_file:
-      - ./packages/backend/.env
+      - .env
     depends_on:
       database:
         condition: service_healthy
@@ -32,7 +32,7 @@ services:
       database:
         condition: service_healthy
     env_file:
-      - ./packages/backend/.env
+      - .env
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
 
