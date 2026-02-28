@@ -1,6 +1,6 @@
 "use client";
 import DropdownMenu from "@/app/components/dropdown-menu";
-import { createUser, verifySession } from "@/utils/fetchers";
+import { confirmTurn, createUser, verifySession } from "@/utils/fetchers";
 import { userTypeNames, UserTypes } from "@/utils/helpers";
 import { SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
 
@@ -53,7 +53,7 @@ export default function CreateUserForm({
     onCreate?.();
     setUsername("");
     setEmail("");
-    setUserType("Secretary");
+    setUserType(firstUser ? "Admin" : "Secretary");
     setPassword("");
     setPasswordConfirm("");
   }, [setLoginAction, onCreate, username, email, userType, password, pwsMatch]);
