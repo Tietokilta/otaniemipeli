@@ -20,7 +20,7 @@ async function apiFetch<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  if (requireAuth) {
+  if (requireAuth && getToken()) {
     headers.Authorization = getToken();
   }
 
