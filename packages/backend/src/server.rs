@@ -47,7 +47,7 @@ pub async fn start() -> anyhow::Result<()> {
             Method::OPTIONS,
         ])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
-        .allow_origin([origin, "https://otaniemipeli.seitamaki.fi".parse()?])
+        .allow_origin([origin, frontend_url.parse()?])
         .allow_credentials(true);
 
     let bind = format!("0.0.0.0:{}", port);
