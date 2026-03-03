@@ -1,11 +1,7 @@
 # Dependencies (will be installed in container)
 node_modules
-**/node_modules
-
 # Build outputs
 **/.next
-packages/backend/target
-
 # Git
 .git
 .gitignore
@@ -26,4 +22,6 @@ scripts/
 
 # Backend not needed for frontend build
 packages/backend/
+
+*.env
 
