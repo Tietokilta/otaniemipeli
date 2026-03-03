@@ -86,7 +86,7 @@ pub async fn create_user(
         Ok(Json(UserSessionInfo { user, session }))
     } else {
         println!("No users exist, creating first user without auth");
-      if user_info.user_type != UserType::Admin {
+        if user_info.user_type != UserType::Admin {
             user_info.user_type = UserType::Admin;
         }
         // First user — no auth required
