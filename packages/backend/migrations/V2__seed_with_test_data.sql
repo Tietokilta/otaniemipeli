@@ -267,7 +267,10 @@ VALUES ('Metroasema',
         'Special', NULL),
        ('OUBS',
         'OUBS:iin saapuvaa joukkuetta odottaa kaljapullon sijasta snapsillinen Fernet-Brancaa (voidaan hätätapauksissa korvata Minttu-Fernetillä).',
-        'Special', NULL);
+        'Special', NULL),
+        ('TAMPERE',
+        'Joukkue saapuu tampereelle. Ruudusta löytyy yksi kalja. Ruutua ei täydennetä.',
+        'Tampere', NULL);
 
 
 COPY public.board_places (board_id, place_number, place_id, area, start, "end", x, y) FROM stdin;
@@ -288,7 +291,7 @@ COPY public.board_places (board_id, place_number, place_id, area, start, "end", 
 1	76	2	normal	f	f	26.15000000000001	53.99999999999997
 1	77	7	normal	f	f	22.70000000000001	61.999999999999886
 1	78	2	normal	f	f	19.70000000000001	69.8
-1	79	2	tampere	f	f	19.50000000000001	21.69999999999998
+1	79	64	tampere	f	f	19.50000000000001	21.69999999999998
 1	80	45	tampere	f	f	15.200000000000006	20.599999999999984
 1	81	2	tampere	f	f	14.950000000000008	12.399999999999997
 1	82	46	tampere	f	f	16.35000000000001	3.4499999999999993

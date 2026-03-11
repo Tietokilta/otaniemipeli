@@ -8,7 +8,7 @@
     "dev": "pnpm --filter frontend dev",
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "cargo build --release --manifest-path=packages/backend/Cargo.toml",
-    "build:production": "docker compose -f docker-compose.prod.yml up --build",
+    "build:production": "docker compose -f docker-compose-prod.yml up --build",
     "backend": "docker compose up --build",
     "start": "pnpm --filter frontend start",
     "lint": "pnpm --filter frontend lint",
