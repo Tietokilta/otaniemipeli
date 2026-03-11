@@ -5,12 +5,12 @@ use crate::utils::types::{DrinkPrepStatus, PostStartTurn, Turn, TurnDrinks};
 use deadpool_postgres::Client;
 use tokio_postgres::Row;
 
-/// Ends the active turns for a given team in a game
+/// Ends the active turns for a given team in a game. Returns all ended turns.
 pub async fn end_active_turns(
     client: &Client,
     game_id: GameId,
     team_id: TeamId,
-) -> Result<Turn, AppError> {
+) -> Result<Vec<Turn>, AppError> {
     // This will intentionally fail due to chk_end_requires_delivered if there are
     // unmixed or undelivered drinks or unconfirmed turns.
     let rows = match client
@@ -40,7 +40,7 @@ pub async fn end_active_turns(
         )
         .into());
     }
-    Ok(build_turn(&rows[0]))
+    Ok(rows.iter().map(build_turn).collect())
 }
 
 /// Ends a specific turn by turn_id
@@ -194,6 +194,7 @@ pub fn build_turn(row: &Row) -> Turn {
         via_number: row.get("via_number"),
         penalty: row.get("penalty"),
         double_tampere: row.get("double_tampere"),
+        needs_extra_dice: row.get("needs_extra_dice"),
         drinks: TurnDrinks { drinks: vec![] },
         place: None,
         via: None,
@@ -215,17 +216,18 @@ pub async fn set_turn_double_tampere(
     Ok(())
 }
 
-/// Updates a turn with the final location and optional via location
+/// Updates a turn with the final location, optional via location, and extra dice needs
 pub async fn set_end_place(
     client: &Client,
     place_number: i32,
     via_number: Option<i32>,
+    needs_extra_dice: Option<i32>,
     turn_id: TurnId,
 ) -> Result<u64, AppError> {
     Ok(client
         .execute(
-            "UPDATE turns SET place_number = $1, via_number = $2 WHERE turn_id = $3",
-            &[&place_number, &via_number, &turn_id],
+            "UPDATE turns SET place_number = $1, via_number = $2, needs_extra_dice = $3 WHERE turn_id = $4",
+            &[&place_number, &via_number, &needs_extra_dice, &turn_id],
         )
         .await?)
 }

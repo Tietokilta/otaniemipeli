@@ -2,6 +2,8 @@
 import ItemList from "@/app/components/item-list";
 import AddTeamForm from "@/app/components/team-components/create-team-form";
 import TeamCard from "@/app/components/team-components/team-card";
+import { findAssistantRefereeTurnId } from "@/utils/turns";
+import { useMemo } from "react";
 
 export default function TeamList({
   game,
@@ -25,14 +27,10 @@ export default function TeamList({
   canAdd?: boolean;
 }) {
   // Find the first turn awaiting assistant referee input
-  const assistantRefereeTurnId = teams
-    .flatMap((team) =>
-      team.turns.find(
-        (turn) => turn.thrown_at && !turn.confirmed_at && !turn.penalty,
-      ),
-    )
-    .filter(Boolean)
-    .sort((a, b) => (a!.thrown_at! < b!.thrown_at! ? -1 : 1))[0]?.turn_id;
+  const assistantRefereeTurnId = useMemo(
+    () => findAssistantRefereeTurnId(teams),
+    [teams],
+  );
 
   return (
     <ItemList

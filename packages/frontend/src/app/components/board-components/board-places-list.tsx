@@ -1,46 +1,51 @@
-import React from "react";
+"use client";
+import { useEffect, useState } from "react";
 import PlaceCard from "@/app/components/board-components/place-card";
 import ErrorDisplay from "@/app/components/error-display";
+import { getBoardPlaces } from "@/utils/fetchers";
 
-export default async function BoardPlacesList({
+export default function BoardPlacesList({
   boardId,
   className,
 }: {
   boardId?: number;
   className?: string;
 }) {
-  const res = await fetch(process.env.API_URL + `/boards/places/${boardId}`, {
-    headers: { "Content-Type": "application/json" },
-  });
+  const [boardPlaces, setBoardPlaces] = useState<BoardPlaces | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!res.ok) {
+  useEffect(() => {
+    if (boardId == null) return;
+    getBoardPlaces(boardId)
+      .then(setBoardPlaces)
+      .catch((err) => setError(String(err)));
+  }, [boardId]);
+
+  if (error) {
     return (
       <ErrorDisplay
-        message="Error fetching ingredients!"
-        status={res.status}
+        message="Error fetching board places!"
+        status={error}
         className={className}
       />
     );
   }
 
-  const boardPlaces: BoardPlaces = await res.json();
+  if (!boardPlaces) return null;
+
   return (
     <ul
       className={`${className} flex flex-col gap-2 overflow-y-auto px-2 py-2`}
     >
-      {boardPlaces ? (
-        boardPlaces.places
-          .sort((i, b) => {
-            return b.place_number - i.place_number;
-          })
-          .map((boardPlace: BoardPlace) => (
-            <li key={boardPlace.place_number}>
-              <PlaceCard place={boardPlace} />
-            </li>
-          ))
-      ) : (
-        <p>No ingredients!</p>
-      )}
+      {boardPlaces.places
+        .sort((i, b) => {
+          return b.place_number - i.place_number;
+        })
+        .map((boardPlace: BoardPlace) => (
+          <li key={boardPlace.place_number}>
+            <PlaceCard place={boardPlace} />
+          </li>
+        ))}
     </ul>
   );
 }

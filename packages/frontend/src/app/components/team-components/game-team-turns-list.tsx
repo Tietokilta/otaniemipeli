@@ -3,6 +3,11 @@ import TeamTurnCard, {
 } from "@/app/components/team-components/team-turn-card";
 import { HorizontalList } from "@/app/components/generic-list-components";
 import { useMemo } from "react";
+import {
+  findAssistantRefereeTurnId,
+  getTurnNeedingAssistantReferee,
+  needsDice,
+} from "@/utils/turns";
 
 export default function GameTeamTurnsList({
   teams,
@@ -20,15 +25,7 @@ export default function GameTeamTurnsList({
 }): JSX.Element {
   // Find the first turn awaiting assistant referee input
   const assistantRefereeTurnId = useMemo(
-    () =>
-      teams
-        .flatMap((team) =>
-          team.turns.find(
-            (turn) => turn.thrown_at && !turn.confirmed_at && !turn.penalty,
-          ),
-        )
-        .filter(Boolean)
-        .sort((a, b) => (a!.thrown_at! < b!.thrown_at! ? -1 : 1))[0]?.turn_id,
+    () => findAssistantRefereeTurnId(teams),
     [teams],
   );
 
@@ -49,12 +46,8 @@ export default function GameTeamTurnsList({
 
         if (assistant) {
           // Find unconfirmed turn
-          const aUnconfirmed = a.turns.find(
-            (turn) => turn.thrown_at && !turn.confirmed_at,
-          );
-          const bUnconfirmed = b.turns.find(
-            (turn) => turn.thrown_at && !turn.confirmed_at,
-          );
+          const aUnconfirmed = getTurnNeedingAssistantReferee(a);
+          const bUnconfirmed = getTurnNeedingAssistantReferee(b);
 
           if (!aUnconfirmed) {
             if (!bUnconfirmed) {
@@ -77,8 +70,8 @@ export default function GameTeamTurnsList({
 
           // Sort teams by age of unconfirmed turn (oldest first)
           return (
-            new Date(aUnconfirmed.thrown_at!).getTime() -
-            new Date(bUnconfirmed.thrown_at!).getTime()
+            new Date(aUnconfirmed.start_time).getTime() -
+            new Date(bUnconfirmed.start_time).getTime()
           );
         }
 
@@ -87,12 +80,8 @@ export default function GameTeamTurnsList({
         if (!b.turns.length) return -1;
 
         // teams awaiting dice always go first
-        const aAwaitingDice = a.turns.some(
-          (turn) => turn.start_time && !turn.thrown_at,
-        );
-        const bAwaitingDice = b.turns.some(
-          (turn) => turn.start_time && !turn.thrown_at,
-        );
+        const aAwaitingDice = a.turns.some(needsDice);
+        const bAwaitingDice = b.turns.some(needsDice);
         if (aAwaitingDice && !bAwaitingDice) return -1;
         if (bAwaitingDice && !aAwaitingDice) return 1;
 

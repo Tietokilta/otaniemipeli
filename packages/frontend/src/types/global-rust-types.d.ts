@@ -129,6 +129,7 @@ declare global {
     via_number: number | null;
     penalty: boolean;
     double_tampere: boolean | null;
+    needs_extra_dice: number | null;
     drinks: TurnDrinks;
     place: BoardPlace | null;
     via: BoardPlace | null;

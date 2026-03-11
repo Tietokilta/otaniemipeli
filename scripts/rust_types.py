@@ -270,6 +270,7 @@ class Turn:
     place_number: Optional[int] = None
     via_number: Optional[int] = None
     double_tampere: Optional[bool] = None
+    needs_extra_dice: Optional[int] = None
     place: Optional['BoardPlace'] = None
     via: Optional['BoardPlace'] = None
     @classmethod

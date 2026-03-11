@@ -41,6 +41,8 @@ pub struct TurnComputeResult {
     pub turn_drinks: TurnDrinks,
     /// Whether double tampere applies after this turn.
     pub double_tampere: bool,
+    /// How many extra dice this turn needs (1 or 2), None if satisfied or not needed.
+    pub needs_extra_dice: Option<i32>,
 }
 
 /// Computes the destination and drinks for a turn based on dice values.
@@ -75,12 +77,18 @@ pub async fn compute_turn_result(
     let visited = count_place_visits(client, game_id, end.place_number).await?;
 
     let special = end.place.special.as_deref();
-    let extra_multiplier = match (special, dice3, dice4) {
+
+    // Determine special multipliers and how many extra dice are still needed based on the special field.
+    let (extra_multiplier, needs_extra_dice) = match (special, dice3, dice4) {
         // If landing at special=MIN(D2), multiply drinks by the value of the smaller die
-        (Some("MIN(D2)"), Some(dice3), Some(dice4)) => min(dice3, dice4),
+        (Some("MIN(D2)"), Some(dice3), Some(dice4)) => (min(dice3, dice4), None),
+        (Some("MIN(D2)"), _, _) => (1, Some(2)),
         // If landing at special=N+1, multiply drinks by the number of visits to that square + 1
-        (Some("N+1"), _, _) => visited + 1,
-        _ => 1,
+        (Some("N+1"), _, _) => (visited + 1, None),
+        // If we're still on a -D1 place, dice3 hasn't been provided yet (otherwise move_forwards
+        // would have moved us backwards and made it the via place).
+        (Some("-D1"), None, _) => (1, Some(1)),
+        _ => (1, None),
     };
 
     let base_multiplier = double_multiplier * double_tampere_multiplier;
@@ -128,6 +136,7 @@ pub async fn compute_turn_result(
         via: via.cloned(),
         turn_drinks,
         double_tampere,
+        needs_extra_dice,
     })
 }
 
@@ -152,6 +161,7 @@ pub async fn process_start_turn(
             client,
             result.end.place_number,
             result.via.map(|p| p.place_number),
+            result.needs_extra_dice,
             turn.turn_id,
         )
         .await?;
@@ -267,6 +277,7 @@ pub async fn change_dice(
         &client,
         result.end.place_number,
         result.via.map(|p| p.place_number),
+        result.needs_extra_dice,
         turn.turn_id,
     )
     .await?;
@@ -339,6 +350,12 @@ pub async fn confirm_turn(
     let turn = get_turn_with_drinks(&client, turn_id).await?;
     let game = get_game_by_id(&client, turn.game_id).await?;
 
+    if turn.needs_extra_dice.is_some() {
+        return Err(AppError::Validation(
+            "Turn requires extra dice before it can be confirmed".to_string(),
+        ));
+    }
+
     let end_place = match turn.place_number {
         Some(location) => get_board_place(&client, game.board.id, location).await?,
         None => {
@@ -360,15 +377,15 @@ pub async fn confirm_turn(
     // changes visit counts and may affect refill=false drink eligibility.
     recompute_unconfirmed_drinks(&client, turn.game_id, turn_id).await?;
 
-    // If the turn ended on a place with end=true, end the game immediately
-    if end_place.end {
-        end_game(&client, turn.game_id).await?;
-    }
-    // Otherwise, end turn immediately if no drinks were awarded
-    else if drinks.drinks.is_empty() {
+    // End turn immediately if no drinks were awarded
+    if drinks.drinks.is_empty() {
         db_end_turn(&client, turn_id).await?;
+        // If the turn ended on a place with end=true and no drinks, end the game immediately
+        if end_place.end {
+            end_game(&client, turn.game_id).await?;
+        }
     }
-    // Otherwise, store all drinks in this turn
+    // Drinks were awarded — proceed with drink flow (game ends later if end place)
     else {
         let has_ie_drinks = drinks.drinks.iter().any(|d| d.on_table < d.n);
         let needs_mixing = drinks

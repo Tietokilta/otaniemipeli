@@ -53,8 +53,8 @@ export default function SecretaryTurnsList({
         .toSorted((a, b) => {
           // Sort by confirmation time, oldest first
           return (
-            new Date(a.confirmed_at ?? 0).getTime() -
-            new Date(b.confirmed_at ?? 0).getTime()
+            new Date(a.confirmed_at ?? a.thrown_at!).getTime() -
+            new Date(b.confirmed_at ?? b.thrown_at!).getTime()
           );
         }),
     [team],

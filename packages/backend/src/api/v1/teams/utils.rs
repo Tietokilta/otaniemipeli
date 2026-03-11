@@ -1,5 +1,6 @@
 use crate::api::v1::turns::utils::broadcast_game_update;
-use crate::database::games::get_full_game_data;
+use crate::database::boards::get_board_place;
+use crate::database::games::{end_game, get_full_game_data, get_game_by_id};
 use crate::database::team::get_team_by_id;
 use crate::database::team::set_team_moral_victory_eligible;
 use crate::database::turns::{end_active_turns, teleport_team as db_teleport_team};
@@ -32,13 +33,27 @@ pub async fn set_moral_victory_eligible(
 }
 
 /// POST /teams/{team_id}/end-turn - End a team's active turn.
+/// If the team is on the game-ending place, also ends the game.
 pub async fn end_turn(
     State(state): State<AppState>,
     Path(team_id): Path<TeamId>,
 ) -> Result<(), AppError> {
     let client = state.db.get().await?;
     let team = get_team_by_id(&client, team_id).await?;
-    end_active_turns(&client, team.game_id, team_id).await?;
+    let turns = end_active_turns(&client, team.game_id, team_id).await?;
+
+    // If any ended turn was on a game-ending place, end the game
+    let game = get_game_by_id(&client, team.game_id).await?;
+    for turn in &turns {
+        if let Some(place_number) = turn.place_number {
+            let place = get_board_place(&client, game.board.id, place_number).await?;
+            if place.end {
+                end_game(&client, team.game_id).await?;
+                break;
+            }
+        }
+    }
+
     let game_data = get_full_game_data(&client, team.game_id).await?;
     broadcast_game_update(&state.io, team.game_id, &game_data).await;
     Ok(())

@@ -1,5 +1,5 @@
 "use client";
-import { verifySession } from "@/utils/fetchers";
+import { logout, verifySession } from "@/utils/fetchers";
 import { toastError } from "@/utils/toast-error";
 import { userTypeNames } from "@/utils/helpers";
 import Link from "next/link";
@@ -38,15 +38,9 @@ export default function SelectMode({
       router.refresh();
     }
   }, [router, setLoginAction]);
+
   const handleLogout = () => {
-    const url = "/login";
-    fetch(process.env.NEXT_PUBLIC_API_BASE_URL + url, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${localStorage.getItem("auth_token")}`,
-      },
-    })
+    logout()
       .catch(toastError)
       .finally(() => {
         localStorage.removeItem("auth_token");

@@ -1,49 +1,49 @@
-import React from "react";
+"use client";
+import { useEffect, useState } from "react";
 import PlaceCard from "@/app/components/board-components/place-card";
 import ErrorDisplay from "@/app/components/error-display";
+import { getPlaces } from "@/utils/fetchers";
 
-export default async function PlacesList({
-  className,
-}: {
-  className?: string;
-}): Promise<JSX.Element> {
-  const res = await fetch(`${process.env.API_URL}/boards/places`, {
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!res.ok) {
-    return (
-      <ErrorDisplay message="Error fetching places!" status={res.status} />
-    );
+export default function PlacesList({ className }: { className?: string }) {
+  const [places, setPlaces] = useState<Places | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getPlaces()
+      .then(setPlaces)
+      .catch((err) => setError(String(err)));
+  }, []);
+
+  if (error) {
+    return <ErrorDisplay message="Error fetching places!" status={error} />;
   }
-  const places: Places = await res.json();
+
+  if (!places) return null;
+
   return (
     <ul
       className={`${className} flex flex-col gap-2 px-2 py-2 overflow-y-auto`}
     >
-      {places ? (
-        places.places.map((place: Place) => (
-          <li key={place.place_id}>
-            <PlaceCard
-              place={{
-                board_id: -1,
-                place,
-                place_number: -1,
-                drinks: {
-                  drinks: [],
-                },
-                connections: { forwards: [], backwards: [] },
-                start: false,
-                area: "normal",
-                end: false,
-                x: -100,
-                y: -100,
-              }}
-            />
-          </li>
-        ))
-      ) : (
-        <p>No places!</p>
-      )}
+      {places.places.map((place: Place) => (
+        <li key={place.place_id}>
+          <PlaceCard
+            place={{
+              board_id: -1,
+              place,
+              place_number: -1,
+              drinks: {
+                drinks: [],
+              },
+              connections: { forwards: [], backwards: [] },
+              start: false,
+              area: "normal",
+              end: false,
+              x: -100,
+              y: -100,
+            }}
+          />
+        </li>
+      ))}
     </ul>
   );
 }

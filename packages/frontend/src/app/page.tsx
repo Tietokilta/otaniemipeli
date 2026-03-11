@@ -2,7 +2,7 @@
 import LoginComponent from "@/app/components/login-component";
 import { useEffect, useState } from "react";
 import SelectMode from "@/app/components/select-mode";
-import { usersExist, verifySession } from "@/utils/fetchers";
+import { getServerStatus, usersExist, verifySession } from "@/utils/fetchers";
 import CreateFirstUser from "@/app/components/create-user-form";
 import { GameLoadingSpinner } from "./components/game-components/game-loading-states";
 
@@ -14,13 +14,7 @@ export default function Home() {
 
   // Check server status on mount
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!base) {
-      setText("No NEXT_PUBLIC_API_BASE_URL environment variable");
-      return;
-    }
-    fetch(base)
-      .then((res) => res.text())
+    getServerStatus()
       .then(setText)
       .catch((err) =>
         setText((prev) => prev || "Failed to fetch server status: " + err),

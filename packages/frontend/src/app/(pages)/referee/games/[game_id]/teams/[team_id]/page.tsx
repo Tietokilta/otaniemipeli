@@ -59,7 +59,7 @@ export default function Page({
               team.turns.map((turn) => (
                 <TeamTurnCard
                   team={team}
-                  teamTurns={[turn]}
+                  teamTurns={turn}
                   key={turn.turn_id}
                   board={board}
                 />

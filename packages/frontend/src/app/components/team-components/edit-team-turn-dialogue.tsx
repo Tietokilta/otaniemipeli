@@ -11,7 +11,16 @@ import {
   teleportTeam,
 } from "@/utils/fetchers";
 import { toastError } from "@/utils/toast-error";
-import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
+import {
+  extraDiceNeeds,
+  getLatestConfirmedTurn,
+  getUnconfirmedPenalty,
+  getTurnNeedingAssistantReferee,
+  TurnStatus,
+  turnStatus,
+  turnStatusTexts,
+  getTurnNeedingDice,
+} from "@/utils/turns";
 import deepEqual from "fast-deep-equal";
 import React, {
   Dispatch,
@@ -37,23 +46,6 @@ const ALLOW_ASSISTANT_TO_END_TURN = !USE_SECRETARIES;
 
 const KEEP_DIALOGUE_OPEN_ON_ACTIONS = true;
 const ALLOW_TELEPORT = true;
-
-/** Returns the unconfirmed penalty turn if one exists. */
-function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
-  return team.turns.find((turn) => turn.penalty && !turn.confirmed_at);
-}
-
-/** Returns the unconfirmed turn if one exists. */
-function getUnconfirmedTurn(team: GameTeam): Turn | undefined {
-  return team.turns.find((turn) => turn.thrown_at && !turn.confirmed_at);
-}
-
-/** Returns the turn last confirmed by an assistant referee, if one exists. */
-function getLatestConfirmedTurn(team: GameTeam): Turn | undefined {
-  return team.turns.findLast(
-    (turn) => turn.confirmed_at && !turn.end_time && !turn.penalty,
-  );
-}
 
 export const EditTeamTurnDialogue = ({
   team,
@@ -82,7 +74,7 @@ export const EditTeamTurnDialogue = ({
   if (!open) return null;
 
   const unconfirmedPenalty = getUnconfirmedPenalty(team);
-  const unconfirmedTurn = getUnconfirmedTurn(team);
+  const unconfirmedTurn = getTurnNeedingAssistantReferee(team);
   const latestConfirmedTurn = getLatestConfirmedTurn(team);
 
   /** Creates a new pending penalty turn or takes over an existing one. */
@@ -204,7 +196,7 @@ export const EditTeamTurnDialogue = ({
           team={team}
           referee
           allowStart={!assistant || ALLOW_ASSISTANT_TO_START_TURN}
-          allowDice={!USE_SECRETARIES}
+          allowStartWithDice={!USE_SECRETARIES}
           allowEnd={!assistant || ALLOW_ASSISTANT_TO_END_TURN}
           diceOpen={choice === "turn"}
           setDiceOpen={setDiceOpen}
@@ -283,13 +275,14 @@ export const Dice = ({
 const statusPriority: Record<TurnStatus, number> = {
   // Dice always take first priority, because otherwise no one else can be given a turn.
   [TurnStatus.WaitingForDice]: 1,
-  [TurnStatus.WaitingForAssistantReferee]: 2,
-  [TurnStatus.WaitingForPenalty]: 3,
-  [TurnStatus.WaitingForIE]: 4,
-  [TurnStatus.Mixing]: 5,
-  [TurnStatus.Delivering]: 6,
-  [TurnStatus.Drinking]: 7,
-  [TurnStatus.Ended]: 8,
+  [TurnStatus.WaitingForExtraDice]: 2,
+  [TurnStatus.WaitingForAssistantReferee]: 3,
+  [TurnStatus.WaitingForPenalty]: 4,
+  [TurnStatus.WaitingForIE]: 5,
+  [TurnStatus.Mixing]: 6,
+  [TurnStatus.Delivering]: 7,
+  [TurnStatus.Drinking]: 8,
+  [TurnStatus.Ended]: 9,
 };
 
 export const AddTeamTurnButton = ({
@@ -303,7 +296,7 @@ export const AddTeamTurnButton = ({
   setPending: setExternalPending,
   referee,
   allowStart,
-  allowDice,
+  allowStartWithDice,
   allowEnd,
 }: {
   team: GameTeam;
@@ -316,15 +309,13 @@ export const AddTeamTurnButton = ({
   setPending?: (pending: boolean) => void;
   referee?: boolean;
   allowStart?: boolean;
-  allowDice?: boolean;
+  allowStartWithDice?: boolean;
   allowEnd?: boolean;
 }) => {
   const [localPending, setLocalPending] = useState(false);
   const pending = externalPending || localPending;
 
-  const turnForDice = team.turns.find(
-    (turn) => !turn.thrown_at && !turn.penalty,
-  );
+  const turnForDice = getTurnNeedingDice(team);
   const currentStatus = team.turns
     .filter((turn) => !turn.end_time)
     .reduce((latest, turn) => {
@@ -333,7 +324,8 @@ export const AddTeamTurnButton = ({
     }, TurnStatus.Ended);
 
   const canDice =
-    turnForDice != null || (currentStatus === TurnStatus.Ended && allowDice);
+    turnForDice != null ||
+    (currentStatus === TurnStatus.Ended && allowStartWithDice);
 
   /** Creates a new pending turn without dice values. */
   const handleStartTurn = async () => {
@@ -428,7 +420,7 @@ export const AddTeamTurnButton = ({
           onClick={() => setDiceOpen(true)}
           disabled={pending}
         >
-          Kirjaa nopanheitto
+          Kirjaa {turnForDice?.thrown_at ? "lisä" : ""}nopanheitto
         </button>
       ) : currentStatus === TurnStatus.Ended && allowStart ? (
         <button
@@ -480,6 +472,7 @@ export const AddTeamTurnButton = ({
 const secretaryInstructions: Record<TurnStatus, string> = {
   [TurnStatus.WaitingForDice]:
     "Kirjaa joukkueen nopanheitto kun noppia on heitetty.",
+  [TurnStatus.WaitingForExtraDice]: "Kirjaa joukkueen lisänoppien heitot.",
   [TurnStatus.WaitingForPenalty]: "Odota että sakot on kirjattu.",
   [TurnStatus.WaitingForAssistantReferee]:
     "Odota että aputuomari on vahvistanut vuoron.",
@@ -489,16 +482,6 @@ const secretaryInstructions: Record<TurnStatus, string> = {
   [TurnStatus.Drinking]: "Kuittaa yltä, kun kaikki joukkueen juomat on juotu.",
   [TurnStatus.Ended]: "Odotetaan päätuomaria aloittamaan joukkueen vuoro.",
 };
-
-export function needDice(turn: Turn | undefined): {
-  dice3: boolean;
-  dice4: boolean;
-} {
-  return {
-    dice3: !!turn?.dice3 || /\bD[12]\b/.test(turn?.place?.place.special ?? ""),
-    dice4: !!turn?.dice4 || /\bD2\b/.test(turn?.place?.place.special ?? ""),
-  };
-}
 
 const AddTeamTurnDialogue = ({
   team,
@@ -515,7 +498,7 @@ const AddTeamTurnDialogue = ({
   const [dice4, setDice4] = useState<number>(ongoingTurn?.dice4 || 0);
   const [pending, setPending] = useState(false);
 
-  const need = needDice(ongoingTurn);
+  const need = extraDiceNeeds(ongoingTurn);
 
   const submitTurn = async () => {
     setPending(true);
@@ -873,9 +856,8 @@ const AssistantRefereeDialogue = ({
     }
   };
 
-  const need = needDice(turn);
-  const missingDice =
-    (need.dice3 && !turn.dice3) || (need.dice4 && !turn.dice4);
+  const needDice = extraDiceNeeds(turn);
+
   return (
     <PopUpDialogue
       setOpen={onClose}
@@ -916,16 +898,16 @@ const AssistantRefereeDialogue = ({
           <span className="text-xl">
             {turn.dice1}&nbsp;+&nbsp;{turn.dice2}
           </span>
-          {missingDice ? (
+          {needDice.missing ? (
             <em>Lisänopanheittoja vaaditaan.</em>
-          ) : need.dice4 ? (
+          ) : needDice.dice4 ? (
             <>
               <em>Lisäheitot:</em>
               <span className="text-xl">
                 {turn.dice3}&nbsp;+&nbsp;{turn.dice4}
               </span>
             </>
-          ) : need.dice3 ? (
+          ) : needDice.dice3 ? (
             <>
               <em>Lisäheitto:</em>
               <span className="text-xl">{turn.dice3}</span>
@@ -991,7 +973,7 @@ const AssistantRefereeDialogue = ({
           >
             {readOnly ? "Sulje" : "Eiku"}
           </button>
-          {readOnly ? null : missingDice ? (
+          {readOnly ? null : needDice.missing ? (
             <div className="text-lg">
               Klikkaa <em>Muuta heittoja</em> ja lisää lisänopanheitot
               vahvistaaksesi vuoron.
@@ -1013,7 +995,7 @@ const AssistantRefereeDialogue = ({
               type="button"
               className="button text-xl p-4"
               onClick={handleSubmit}
-              disabled={pending || missingDice || mustModify}
+              disabled={pending || needDice.missing || mustModify}
             >
               Vahvista vuoro
             </button>

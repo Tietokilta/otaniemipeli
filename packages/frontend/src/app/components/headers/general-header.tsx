@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/utils/fetchers";
 import { toastError } from "@/utils/toast-error";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { userTypeNames } from "@/utils/helpers";
@@ -61,18 +62,8 @@ export default function GeneralHeader({
 
   const router = useRouter();
 
-  const handleLogout = (all?: string) => {
-    let url = "/login";
-    if (all) {
-      url = "/login/all";
-    }
-    fetch(process.env.NEXT_PUBLIC_API_BASE_URL + url, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${localStorage.getItem("auth_token")}`,
-      },
-    })
+  const handleLogout = () => {
+    logout()
       .catch(toastError)
       .finally(() => {
         localStorage.removeItem("auth_token");

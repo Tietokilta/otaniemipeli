@@ -219,6 +219,11 @@ export async function getBoardPlaces(boardId: number): Promise<BoardPlaces> {
   return apiFetch<BoardPlaces>(`${API_URL}/boards/places/${boardId}`);
 }
 
+/** Fetches all reusable place definitions. */
+export async function getPlaces(): Promise<Places> {
+  return apiFetch<Places>(`${API_URL}/boards/places`);
+}
+
 export async function getPlacesNotInBoard(
   boardId: number,
 ): Promise<{ places: Places; board: BoardPlaces }> {
@@ -564,4 +569,19 @@ export async function createUser(
 
 export async function usersExist(): Promise<boolean> {
   return apiFetch<boolean>(`${API_URL_BASE}/login`);
+}
+
+/** Fetches server status message as plain text. */
+export async function getServerStatus(): Promise<string> {
+  if (!API_URL_BASE) {
+    throw new Error("No NEXT_PUBLIC_API_BASE_URL environment variable");
+  }
+  const res = await fetch(API_URL_BASE);
+  return res.text();
+}
+
+/** Logs out the current session (or all sessions if `all` is true). */
+export async function logout(all?: boolean): Promise<void> {
+  const url = all ? "/login/all" : "/login";
+  return apiFetchVoid(`${API_URL_BASE}${url}`, { method: "DELETE" }, true);
 }

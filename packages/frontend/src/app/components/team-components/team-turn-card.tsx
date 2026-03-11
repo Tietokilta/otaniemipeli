@@ -6,7 +6,13 @@ import {
   formatShortDurationMs,
   TimeSince,
 } from "@/app/components/time-since";
-import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
+import {
+  needsAssistantReferee,
+  needsDice,
+  TurnStatus,
+  turnStatus,
+  turnStatusTexts,
+} from "@/utils/turns";
 import { useState } from "react";
 
 export type GameTeamWithTotals = GameTeam & {
@@ -100,7 +106,8 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
       <p
         className={
           status === TurnStatus.WaitingForAssistantReferee ||
-          status === TurnStatus.WaitingForDice
+          status === TurnStatus.WaitingForDice ||
+          status === TurnStatus.WaitingForExtraDice
             ? "text-quaternary-500"
             : ""
         }
@@ -134,7 +141,14 @@ export default function TeamTurnCard({
   const singleTurn = !Array.isArray(teamTurns);
   if (!Array.isArray(teamTurns)) teamTurns = [teamTurns];
 
-  const turnNeedingReferee = teamTurns.findLast((t) => !t.confirmed_at);
+  const unconfirmedTurn =
+    teamTurns.findLast((t) => needsDice(t) || needsAssistantReferee(t)) ??
+    teamTurns.findLast((t) => !t.confirmed_at);
+  const needDice = !!unconfirmedTurn && needsDice(unconfirmedTurn);
+  const needAssistant =
+    !!unconfirmedTurn && needsAssistantReferee(unconfirmedTurn);
+  const allFinished = teamTurns.every((t) => t.end_time);
+
   const lastTurn = teamTurns[teamTurns.length - 1];
   const lastThrow = teamTurns.findLast((t) => t.dice1 != null);
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
@@ -156,8 +170,8 @@ export default function TeamTurnCard({
       key={team.team.team_id}
       className={`
         ${!interactive ? "box" : "box-hover cursor-pointer"}
-        ${assistant && turnNeedingReferee?.thrown_at ? "bg-slime-600/20" : ""}
-        ${!collect && !assistant && lastTurn.end_time ? "bg-slime-600/20" : ""}
+        ${!collect && !assistant && (allFinished || needDice) ? "bg-slime-600/20" : ""}
+        ${!collect && assistant && needAssistant ? "bg-slime-600/20" : ""}
         h-full
         w-80
         shrink-0
@@ -189,7 +203,7 @@ export default function TeamTurnCard({
         </>
       ) : (
         <>
-          <TurnState turn={turnNeedingReferee ?? lastTurn} />
+          <TurnState turn={unconfirmedTurn ?? lastTurn} />
           {lastThrow?.dice1 != null ? (
             <p>
               Heitot: {lastThrow.dice1} + {lastThrow.dice2}

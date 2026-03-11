@@ -225,6 +225,8 @@ pub struct Turn {
     pub penalty: bool,
     /// whether double tampere multiplier applies (set on confirm)
     pub double_tampere: Option<bool>,
+    /// how many extra dice this turn needs (1 or 2), NULL if none needed or already satisfied
+    pub needs_extra_dice: Option<i32>,
     pub drinks: TurnDrinks,
     /// the board place this turn ended on (if location is set)
     pub place: Option<BoardPlace>,
