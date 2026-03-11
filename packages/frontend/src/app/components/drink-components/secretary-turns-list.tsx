@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { TurnDrinksList } from "./drink-card";
 import { setDrinkPrepStatus } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { turnStatus, TurnStatus } from "@/utils/turns";
 
 const statusTexts: Partial<Record<TurnStatus, string>> = {
@@ -12,8 +13,8 @@ const statusTexts: Partial<Record<TurnStatus, string>> = {
 };
 
 function SecretaryTurnCard({ turn }: { turn: Turn }) {
-  const handleDelivered = async () => {
-    await setDrinkPrepStatus(turn.turn_id, "Delivered");
+  const handleDelivered = () => {
+    setDrinkPrepStatus(turn.turn_id, "Delivered").catch(toastError);
   };
 
   const statusText = statusTexts[turnStatus(turn)];

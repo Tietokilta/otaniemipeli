@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
+import { toastError } from "@/utils/toast-error";
 
 interface SimpleAddFormProps {
   buttonText: string;
@@ -24,9 +25,12 @@ export default function SimpleAddForm({
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const name = data.get("name") as string;
-
-    await onSubmit(name);
-    setOpen(false);
+    try {
+      await onSubmit(name);
+      setOpen(false);
+    } catch (error) {
+      toastError(error);
+    }
   }
 
   return (

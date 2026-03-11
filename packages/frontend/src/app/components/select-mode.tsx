@@ -1,5 +1,6 @@
 "use client";
 import { verifySession } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { userTypeNames } from "@/utils/helpers";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,21 +16,19 @@ export default function SelectMode({
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
-    console.log(token);
     if (token) {
       verifySession(token)
         .then((response) => {
           if (response) {
             setSession(response);
           } else {
-            console.error("User verification failed, redirecting to login.");
             setLoginAction(false);
             localStorage.removeItem("auth_token");
             router.refresh();
           }
         })
         .catch((error) => {
-          console.error("Error verifying user types:", error);
+          toastError(error);
           setLoginAction(false);
           localStorage.removeItem("auth_token");
           router.refresh();
@@ -48,10 +47,7 @@ export default function SelectMode({
         Authorization: `${localStorage.getItem("auth_token")}`,
       },
     })
-      .then()
-      .catch((err) => {
-        console.error("Logout failed:", err);
-      })
+      .catch(toastError)
       .finally(() => {
         localStorage.removeItem("auth_token");
         setLoginAction(false);

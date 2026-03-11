@@ -4,6 +4,7 @@ import { EditTeamTurnDialogue } from "./edit-team-turn-dialogue";
 import { useState } from "react";
 import PopUpDialogue from "../pop-up-dialogue";
 import { updateTeam, deleteTeam } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 
 export default function TeamCard({
   team,
@@ -26,15 +27,21 @@ export default function TeamCard({
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
   const [editedName, setEditedName] = useState<string>(team.team.team_name);
 
-  async function handleUpdateTeam() {
+  function handleUpdateTeam() {
     if (editedName !== team.team.team_name) {
-      await updateTeam(team.team.game_id, team.team.team_id, editedName);
+      updateTeam(team.team.game_id, team.team.team_id, editedName).catch(
+        toastError,
+      );
     }
   }
 
   async function handleDeleteTeam() {
-    await deleteTeam(team.team.game_id, team.team.team_id);
-    setShowDialogue(false);
+    try {
+      await deleteTeam(team.team.game_id, team.team.team_id);
+      setShowDialogue(false);
+    } catch (error) {
+      toastError(error);
+    }
   }
 
   return link ? (

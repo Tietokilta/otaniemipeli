@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getBoards, createGame } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import DropdownMenu from "@/app/components/dropdown-menu";
 
 export default function CreateGameForm({
@@ -16,7 +17,9 @@ export default function CreateGameForm({
   );
 
   useEffect(() => {
-    getBoards().then((data) => setBoards(data));
+    getBoards()
+      .then((data) => setBoards(data))
+      .catch(toastError);
   }, []);
 
   const handleSend = async () => {
@@ -30,10 +33,14 @@ export default function CreateGameForm({
       name: name,
       board: selectedBoard.id,
     };
-    await createGame(game);
-    setName("");
-    setSelectedBoard(undefined);
-    onCreate();
+    try {
+      await createGame(game);
+      setName("");
+      setSelectedBoard(undefined);
+      onCreate();
+    } catch (error) {
+      toastError(error);
+    }
   };
 
   return (

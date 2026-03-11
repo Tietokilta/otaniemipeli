@@ -1,12 +1,13 @@
 "use client";
 
-import { addDrink } from "@/utils/fetchers";
 import SimpleAddForm from "@/app/components/simple-add-form";
+import { addDrink } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 
 export default function AddDrinkForm({
   refreshAction,
 }: {
-  refreshAction: () => Promise<void>;
+  refreshAction: () => Promise<void> | void;
 }) {
   async function handleSubmit(name: string) {
     const drink: Drink = {
@@ -16,8 +17,9 @@ export default function AddDrinkForm({
       no_mix_required: false,
     };
 
-    await addDrink(drink);
-    await refreshAction();
+    addDrink(drink)
+      .then(() => refreshAction())
+      .catch(toastError);
   }
 
   return (

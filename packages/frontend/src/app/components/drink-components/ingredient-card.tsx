@@ -1,5 +1,6 @@
 "use client";
 import { deleteIngredient } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useRouter } from "next/navigation";
 
 export default function IngredientCard({
@@ -17,9 +18,13 @@ export default function IngredientCard({
 }): JSX.Element {
   const router = useRouter();
   const handleDelete = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!drink_id) return;
     e.stopPropagation();
-    if (drink_id) {
+    try {
       await deleteIngredient(drink_id, ingredient.id);
+    } catch (error) {
+      toastError(error);
+      return;
     }
     onDelete?.(e);
     router.refresh();

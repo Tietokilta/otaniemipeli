@@ -44,9 +44,7 @@ export default function Home() {
   useEffect(() => {
     usersExist()
       .then(setFirstUserExists)
-      .catch((error) => {
-        setText("Error checking if users exist: " + error);
-      });
+      .catch((error) => setText("Error checking if users exist: " + error));
   }, []);
 
   return (

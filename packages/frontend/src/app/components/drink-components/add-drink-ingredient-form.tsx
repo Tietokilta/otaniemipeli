@@ -3,6 +3,7 @@
 import { DrinkCardNoIngredients } from "@/app/components/drink-components/drink-card";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
 import { addDrinkIngredient, getIngredients } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { SubmitEvent, useEffect, useMemo, useState } from "react";
 import DrinkDropdown from "../drink-dropdown";
 
@@ -33,7 +34,9 @@ export default function AddDrinkIngredientForm({
   // fetch when dialog opens
   useEffect(() => {
     if (open) {
-      getIngredients().then((data) => setAllIngredients(data.ingredients));
+      getIngredients()
+        .then((data) => setAllIngredients(data.ingredients))
+        .catch(toastError);
     }
   }, [open]);
 
@@ -84,10 +87,13 @@ export default function AddDrinkIngredientForm({
       return;
     }
 
-    await addDrinkIngredient(toPost);
-
-    onUpdateAction?.();
-    setOpen(false);
+    try {
+      await addDrinkIngredient(toPost);
+      onUpdateAction?.();
+      setOpen(false);
+    } catch (error) {
+      toastError(error);
+    }
   }
 
   return (

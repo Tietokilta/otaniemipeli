@@ -1,4 +1,5 @@
 "use client";
+import { toastError } from "@/utils/toast-error";
 import { useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { userTypeNames } from "@/utils/helpers";
 import Link from "next/link";
@@ -72,10 +73,7 @@ export default function GeneralHeader({
         Authorization: `${localStorage.getItem("auth_token")}`,
       },
     })
-      .then()
-      .catch((err) => {
-        console.error("Logout failed:", err);
-      })
+      .catch(toastError)
       .finally(() => {
         localStorage.removeItem("auth_token");
       });

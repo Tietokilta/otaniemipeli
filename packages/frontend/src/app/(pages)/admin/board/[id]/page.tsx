@@ -4,6 +4,7 @@ import AddDrinkToPlace from "@/app/components/board-display-components/add-drink
 import PlaceCard from "@/app/components/board-components/place-card";
 import BoardWithSquares from "@/app/components/board-display-components/board-with-squares";
 import { getBoardPlaces } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 
 export default function BoardOverlay({
   params,
@@ -41,9 +42,7 @@ export default function BoardOverlay({
           setFocusedPlace(data.places[0]);
         }
       })
-      .catch((error) => {
-        console.error("Error fetching board places:", error);
-      });
+      .catch(toastError);
   }, [id]);
 
   return (

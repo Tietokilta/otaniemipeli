@@ -2,10 +2,11 @@
 
 import SimpleAddForm from "@/app/components/simple-add-form";
 import { createTeam } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 
 export default function AddTeamForm({ gameId }: { gameId: number }) {
-  async function handleSubmit(name: string) {
-    await createTeam(gameId, name);
+  function handleSubmit(name: string) {
+    createTeam(gameId, name).catch(toastError);
   }
 
   return (

@@ -2,20 +2,20 @@
 
 import { addBoard } from "@/utils/fetchers";
 import SimpleAddForm from "@/app/components/simple-add-form";
+import { toastError } from "@/utils/toast-error";
 
 export default function AddBoardForm({
   refreshAction,
 }: {
-  refreshAction: () => Promise<void>;
+  refreshAction: () => Promise<void> | void;
 }) {
-  async function handleSubmit(name: string) {
-    const board: Board = {
+  function handleSubmit(name: string) {
+    addBoard({
       id: -1,
       name: name,
-    };
-
-    await addBoard(board);
-    await refreshAction();
+    })
+      .then(() => refreshAction())
+      .catch(toastError);
   }
 
   return (

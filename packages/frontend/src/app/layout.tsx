@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FontProvider from "@/app/components/font-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <FontProvider>
       <div className="flex flex-col h-screen overflow-hidden">{children}</div>
+      <Toaster />
     </FontProvider>
   );
 }

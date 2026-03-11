@@ -2,6 +2,7 @@
 import DropdownMenu from "@/app/components/dropdown-menu";
 import { createUser, verifySession } from "@/utils/fetchers";
 import { userTypeNames, UserTypes } from "@/utils/helpers";
+import { toastError } from "@/utils/toast-error";
 import { SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export default function CreateUserForm({
@@ -27,9 +28,11 @@ export default function CreateUserForm({
   useEffect(() => {
     if (firstUser) return;
     const token = localStorage.getItem("auth_token");
-    verifySession(token ?? "").then((ses) => {
-      if (ses) setSession(ses);
-    });
+    verifySession(token ?? "")
+      .then((ses) => {
+        if (ses) setSession(ses);
+      })
+      .catch(toastError);
   }, [firstUser]);
 
   const pwsMatch = passwordConfirm === password && password.length > 0;
@@ -39,23 +42,27 @@ export default function CreateUserForm({
       console.log("Passwords do not match");
       return;
     }
-    const res = await createUser({
-      username,
-      email,
-      user_type: userType,
-      password,
-    });
-    if (res && setLoginAction) {
-      // first user being created, log in immediately
-      localStorage.setItem("auth_token", res.session.session_hash);
-      setLoginAction(true);
+    try {
+      const res = await createUser({
+        username,
+        email,
+        user_type: userType,
+        password,
+      });
+      if (res && setLoginAction) {
+        // first user being created, log in immediately
+        localStorage.setItem("auth_token", res.session.session_hash);
+        setLoginAction(true);
+      }
+      onCreate?.();
+      setUsername("");
+      setEmail("");
+      setUserType(firstUser ? "Secretary" : "Admin");
+      setPassword("");
+      setPasswordConfirm("");
+    } catch (error) {
+      toastError(error);
     }
-    onCreate?.();
-    setUsername("");
-    setEmail("");
-    setUserType(firstUser ? "Secretary" : "Admin");
-    setPassword("");
-    setPasswordConfirm("");
   }, [
     firstUser,
     setLoginAction,

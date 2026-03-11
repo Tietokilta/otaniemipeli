@@ -6,6 +6,7 @@ import {
   getDrinkIngredients,
   updateDrink,
 } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { VerticalList } from "../generic-list-components";
@@ -31,32 +32,47 @@ export default function DrinkCard({
 
   const handleFavoriteChange = async (checked: boolean) => {
     setFavorite(checked);
-    await updateDrink({
-      ...drink.drink,
-      favorite: checked,
-      no_mix_required: noMixRequired,
-    });
+    try {
+      await updateDrink({
+        ...drink.drink,
+        favorite: checked,
+        no_mix_required: noMixRequired,
+      });
+    } catch (error) {
+      toastError(error);
+      setFavorite(!checked);
+    }
   };
 
   const handleNoMixRequiredChange = async (checked: boolean) => {
     setNoMixRequired(checked);
-    await updateDrink({ ...drink.drink, favorite, no_mix_required: checked });
+    try {
+      await updateDrink({ ...drink.drink, favorite, no_mix_required: checked });
+    } catch (error) {
+      toastError(error);
+      setNoMixRequired(!checked);
+    }
   };
 
   const onClickHandle = async () => {
     await updateIngredients();
     setState((prev) => !prev);
   };
+
   const updateIngredients = async () => {
-    const drinkIngredients = await getDrinkIngredients(drink.drink.id);
-    setDrinkIngredients(drinkIngredients.ingredients);
-    setDrinkIngrLen(drinkIngredients.ingredients.length);
-    refreshListAction?.();
+    try {
+      const drinkIngredients = await getDrinkIngredients(drink.drink.id);
+      setDrinkIngredients(drinkIngredients.ingredients);
+      setDrinkIngrLen(drinkIngredients.ingredients.length);
+      refreshListAction?.();
+    } catch (error) {
+      toastError(error);
+    }
   };
 
   const onDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    updateIngredients().then();
+    void updateIngredients();
   };
 
   return (
@@ -95,8 +111,7 @@ export default function DrinkCard({
           className="p-0 w-2/5"
           onClick={(e) => {
             e.stopPropagation();
-            updateIngredients().then();
-            router.refresh();
+            updateIngredients().then(() => router.refresh());
           }}
         >
           {state && functional ? (
@@ -104,8 +119,9 @@ export default function DrinkCard({
               className="rounded cursor-pointer w-full my-1 text-sm bg-primary-900 hover:bg-primary-500 px-4 py-1 text-white center"
               onClick={(e) => {
                 e.stopPropagation();
-                deleteDrink(drink.drink.id).then();
-                refreshListAction?.();
+                deleteDrink(drink.drink.id)
+                  .then(() => refreshListAction?.())
+                  .catch(toastError);
               }}
             >
               Poista juoma

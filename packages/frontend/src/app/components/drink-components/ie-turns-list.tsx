@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HorizontalList } from "../generic-list-components";
 import IeTurnCard, { DELIVERY_WARNING_SEC, TurnWithTeam } from "./ie-turn-card";
 import { setDrinkPrepStatus } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 
 const RECENTLY_FINISHED_TIMEOUT_MS = 5000;
 
@@ -38,7 +39,12 @@ export default function IeTurnsList({
 
     setRecentlyChanged((prev) => new Map(prev).set(turnId, true));
 
-    await setDrinkPrepStatus(turnId, newState);
+    try {
+      await setDrinkPrepStatus(turnId, newState);
+    } catch (error) {
+      toastError(error);
+      return;
+    }
 
     const timeout = window.setTimeout(() => {
       setRecentlyChanged((prev) => {

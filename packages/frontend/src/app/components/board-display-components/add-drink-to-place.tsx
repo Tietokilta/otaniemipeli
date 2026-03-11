@@ -1,5 +1,6 @@
 "use client";
 import { getDrinks, setPlaceDrinks } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -41,9 +42,7 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
   };
 
   useEffect(() => {
-    getDrinks().then((drinks) => {
-      setDrinks(drinks);
-    });
+    getDrinks().then(setDrinks).catch(toastError);
   }, []);
 
   return (
@@ -102,8 +101,9 @@ export default function AddDrinkToPlace({ place }: { place: BoardPlace }) {
       <div
         className="flex button text-lg"
         onClick={() => {
-          setPlaceDrinks(currentDrinks);
-          router.refresh();
+          setPlaceDrinks(currentDrinks)
+            .then(() => router.refresh())
+            .catch(toastError);
         }}
       >
         Tallenna

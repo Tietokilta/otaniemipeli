@@ -37,6 +37,7 @@ export default function AdminTemplate({
   const needsSocket = !ignoredPaths(pathname);
 
   useEffect(() => {
+    console.log("AdminTemplate starting socket:", needsSocket);
     if (!needsSocket) return;
 
     const s = io(`${process.env.NEXT_PUBLIC_API_BASE_URL}/referee`, {
@@ -48,6 +49,7 @@ export default function AdminTemplate({
     setSocket(s);
 
     return () => {
+      console.log("AdminTemplate disconnecting socket");
       s.off();
       s.close();
       setSocket(null);

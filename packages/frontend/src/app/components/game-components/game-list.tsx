@@ -2,6 +2,7 @@
 import GameCard from "@/app/components/game-components/game-card";
 import ItemList from "@/app/components/item-list";
 import { getGames } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useEffect, useState } from "react";
 import { GameLoadingSpinner } from "./game-loading-states";
 
@@ -18,9 +19,9 @@ export default function GameList({
   const [games, setGames] = useState<Game[] | null>(null);
 
   useEffect(() => {
-    getGames().then((data) => {
-      setGames(data.games);
-    });
+    getGames()
+      .then((data) => setGames(data.games))
+      .catch(toastError);
   }, [refresh]);
 
   return (

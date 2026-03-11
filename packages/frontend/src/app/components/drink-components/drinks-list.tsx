@@ -1,10 +1,11 @@
 "use client";
-import DrinkCard from "@/app/components/drink-components/drink-card";
 import AddDrinkForm from "@/app/components/drink-components/add-drink-form";
-import { useCallback, useEffect, useState } from "react";
-import { getDrinkIngredients, getDrinks } from "@/utils/fetchers";
-import Petrified from "@/app/components/petrified";
+import DrinkCard from "@/app/components/drink-components/drink-card";
 import ItemList from "@/app/components/item-list";
+import Petrified from "@/app/components/petrified";
+import { getDrinkIngredients, getDrinks } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
+import { useCallback, useEffect, useState } from "react";
 
 export default function DrinkList({
   className,
@@ -17,8 +18,12 @@ export default function DrinkList({
 
   const fetchDrinks = useCallback(async () => {
     if (!drinksList) {
-      const data = await getDrinks();
-      setDrinks(data.drink_ingredients);
+      try {
+        const data = await getDrinks();
+        setDrinks(data.drink_ingredients);
+      } catch (error) {
+        toastError(error);
+      }
     } else {
       // Fetch drink ingredients for place drinks
       const newDrinks: DrinkIngredients[] = [];
@@ -29,7 +34,8 @@ export default function DrinkList({
           );
           newDrinks.push(data);
         } catch (error) {
-          console.error("Error fetching drink ingredients:", error);
+          toastError(error);
+          return;
         }
       }
       setDrinks(newDrinks);

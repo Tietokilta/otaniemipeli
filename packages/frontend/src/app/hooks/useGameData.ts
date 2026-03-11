@@ -1,6 +1,7 @@
 "use client";
 
 import { getBoardPlaces } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
@@ -87,7 +88,7 @@ export function useGameBoard(gameData: GameData | undefined) {
   useEffect(() => {
     // get board places
     if (gameData?.game.board.id)
-      getBoardPlaces(gameData.game.board.id).then(setBoard);
+      getBoardPlaces(gameData.game.board.id).then(setBoard).catch(toastError);
   }, [gameData?.game.board.id]);
   return board;
 }

@@ -1,6 +1,7 @@
 import { getPlaceColor } from "@/utils/colors";
-import React, { useEffect, useRef } from "react";
 import { updateCoordinates } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
+import React, { useEffect, useRef } from "react";
 
 export default function SquareLayer({
   placesIn,
@@ -37,7 +38,7 @@ export default function SquareLayer({
     else if (e.key === "d") moveFocused(l, 0);
     else if (e.key === "Enter") {
       // Handle Enter key if needed
-      updateCoordinates(place.board_id, place);
+      updateCoordinates(place.board_id, place).catch(toastError);
     }
   };
 

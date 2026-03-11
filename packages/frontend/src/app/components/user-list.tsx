@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import ItemList from "@/app/components/item-list";
 import SimpleConfirmedButton from "@/app/components/simple-confirmed-button";
 import { deleteUser, getUsers } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { userTypeNames } from "@/utils/helpers";
 
 /** Displays a list of users with delete buttons. */
@@ -16,13 +17,10 @@ export default function UserList({
 }) {
   const [users, setUsers] = useState<UserPublic[] | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const data = await getUsers();
-      setUsers(data.users);
-    } catch {
-      setUsers(null);
-    }
+  const fetchUsers = useCallback(() => {
+    getUsers()
+      .then((data) => setUsers(data.users))
+      .catch(toastError);
   }, []);
 
   useEffect(() => {
@@ -30,9 +28,10 @@ export default function UserList({
   }, [fetchUsers, refresh]);
 
   const handleDelete = useCallback(
-    async (uid: number) => {
-      await deleteUser(uid);
-      fetchUsers();
+    (uid: number) => {
+      deleteUser(uid)
+        .then(() => fetchUsers())
+        .catch(toastError);
     },
     [fetchUsers],
   );

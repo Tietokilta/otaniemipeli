@@ -1,4 +1,5 @@
 import { editTurnDrinks } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { TurnStatus, turnStatus } from "@/utils/turns";
 import { useState } from "react";
 import PlaceCard from "../board-components/place-card";
@@ -151,12 +152,17 @@ function IeEditDrinksDialogue({
 
   const handleSubmit = async () => {
     setPending(true);
-    const drinks: TurnDrinks = {
-      drinks: selectedDrinks.drinks.filter((d) => d.n > 0),
-    };
-    await editTurnDrinks(turn.turn_id, drinks);
-    setPending(false);
-    onClose();
+    try {
+      const drinks: TurnDrinks = {
+        drinks: selectedDrinks.drinks.filter((d) => d.n > 0),
+      };
+      await editTurnDrinks(turn.turn_id, drinks);
+      onClose();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   return (

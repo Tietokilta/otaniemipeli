@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addIngredient } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
 
 export default function AddIngredientForm() {
@@ -20,10 +21,13 @@ export default function AddIngredientForm() {
       carbonated: data.get("carbonated") === "on",
     };
 
-    addIngredient(ingredient);
-
-    setOpen(false);
-    router.refresh();
+    try {
+      await addIngredient(ingredient);
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      toastError(error);
+    }
   }
 
   return (

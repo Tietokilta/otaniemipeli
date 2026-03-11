@@ -1,5 +1,6 @@
 "use client";
 import { addBoardPlace, getPlacesNotInBoard } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useRouter } from "next/navigation";
 import { SubmitEvent, useCallback, useEffect, useState } from "react";
 
@@ -34,7 +35,7 @@ export default function AddPlaceToBoard({
           setSelectedPlace(data.places.places[0]);
         }
       })
-      .catch((err) => console.error("Error fetching places:", err));
+      .catch(toastError);
   }, [boardId]);
 
   useEffect(() => {
@@ -66,7 +67,6 @@ export default function AddPlaceToBoard({
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     if (selectedPlace === undefined) {
-      console.error("No place selected");
       return;
     }
     const boardPlace: BoardPlace = {
@@ -91,7 +91,7 @@ export default function AddPlaceToBoard({
     try {
       await addBoardPlace(boardPlace);
     } catch (err) {
-      console.error("Post error:", err);
+      toastError(err);
     }
     router.refresh();
   };

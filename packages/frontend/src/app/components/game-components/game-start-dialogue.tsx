@@ -1,8 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import { startGame } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
+import { SubmitEvent, useState } from "react";
 import PopUpDialogue from "../pop-up-dialogue";
 import { DrinkSelectionList } from "../team-components/edit-team-turn-dialogue";
-import { startGame } from "@/utils/fetchers";
 
 export default function GameStartDialogue({
   game,
@@ -15,16 +16,24 @@ export default function GameStartDialogue({
     drinks: [],
   });
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const drinksToSubmit = selectedDrinks.drinks.filter((d) => d.n > 0);
-    const firstTurn: FirstTurnPost = {
-      game_id: game.id,
-      drinks: drinksToSubmit,
-    };
-    await startGame(game.id, firstTurn);
-    setOpen(false);
+    setPending(true);
+    try {
+      const drinksToSubmit = selectedDrinks.drinks.filter((d) => d.n > 0);
+      const firstTurn: FirstTurnPost = {
+        game_id: game.id,
+        drinks: drinksToSubmit,
+      };
+      await startGame(game.id, firstTurn);
+      setOpen(false);
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   const hasSelectedDrinks = selectedDrinks.drinks.some((d) => d.n > 0);
@@ -42,7 +51,7 @@ export default function GameStartDialogue({
       </button>
 
       {open && (
-        <PopUpDialogue setOpen={setOpen} title="Aloita peli">
+        <PopUpDialogue setOpen={setOpen} title="Aloita peli" disabled={pending}>
           <form
             onSubmit={handleSubmit}
             onMouseDown={(e) => e.stopPropagation()}
@@ -70,7 +79,7 @@ export default function GameStartDialogue({
               <button
                 type="submit"
                 className="button text-xl p-4"
-                disabled={!hasSelectedDrinks}
+                disabled={!hasSelectedDrinks || pending}
               >
                 Aloita peli
               </button>

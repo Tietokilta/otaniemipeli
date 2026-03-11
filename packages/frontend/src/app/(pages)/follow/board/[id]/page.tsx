@@ -3,6 +3,7 @@ import React, { useEffect, useState, use } from "react";
 import PlaceCard from "@/app/components/board-components/place-card";
 import BoardWithSquares from "@/app/components/board-display-components/board-with-squares";
 import { getBoardPlaces } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import DrinkList from "@/app/components/drink-components/drinks-list";
 
 export default function Page({
@@ -41,9 +42,7 @@ export default function Page({
           setFocusedPlace(data.places[0]);
         }
       })
-      .catch((error) => {
-        console.error("Error fetching board places:", error);
-      });
+      .catch(toastError);
   }, [id]);
 
   return (

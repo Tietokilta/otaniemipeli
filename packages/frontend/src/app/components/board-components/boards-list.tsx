@@ -1,9 +1,10 @@
 "use client";
-import { getBoards } from "@/utils/fetchers";
+import AddBoardForm from "@/app/components/board-components/add-board-form";
 import BoardCard from "@/app/components/board-components/board-card";
 import ItemList from "@/app/components/item-list";
+import { getBoards } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useCallback, useEffect, useState } from "react";
-import AddBoardForm from "@/app/components/board-components/add-board-form";
 
 export default function BoardList({
   className,
@@ -11,9 +12,10 @@ export default function BoardList({
   className?: string;
 }): JSX.Element {
   const [boards, setBoards] = useState<Board[]>([]);
-  const fetchBoards = useCallback(async () => {
-    const data = await getBoards();
-    setBoards(data.boards);
+  const fetchBoards = useCallback(() => {
+    getBoards()
+      .then((data) => setBoards(data.boards))
+      .catch(toastError);
   }, []);
 
   useEffect(() => {

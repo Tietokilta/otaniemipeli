@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { createPlace } from "@/utils/fetchers";
 import { getPlaceColor } from "@/utils/colors";
+import { createPlace } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function AddPlaceForm({
   className,
@@ -21,9 +22,14 @@ export default function AddPlaceForm({
 
   const [place, updatePlace] = useState<Place>(defaultPlace);
   const [selected, setSelected] = useState<PlaceType>("Normal");
-  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    createPlace(place);
+    try {
+      await createPlace(place);
+    } catch (error) {
+      toastError(error);
+      return;
+    }
     updatePlace(defaultPlace);
     setSelected("Normal");
     e.currentTarget.reset(); // Reset the form fields

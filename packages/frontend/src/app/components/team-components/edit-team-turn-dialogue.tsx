@@ -10,6 +10,7 @@ import {
   startTurn,
   teleportTeam,
 } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { TurnStatus, turnStatus, turnStatusTexts } from "@/utils/turns";
 import deepEqual from "fast-deep-equal";
 import React, {
@@ -80,17 +81,22 @@ export const EditTeamTurnDialogue = ({
     }
 
     setPending(true);
-    const postTurn: PostStartTurn = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-      dice1: null,
-      dice2: null,
-      penalty: true,
-    };
-    const turn = await startTurn(postTurn);
-    setPendingPenaltyTurnId(turn.turn_id);
-    setPending(false);
-    setChoice("penalty");
+    try {
+      const postTurn: PostStartTurn = {
+        team_id: team.team.team_id,
+        game_id: team.team.game_id,
+        dice1: null,
+        dice2: null,
+        penalty: true,
+      };
+      const turn = await startTurn(postTurn);
+      setPendingPenaltyTurnId(turn.turn_id);
+      setChoice("penalty");
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   if (choice === "penalty" && pendingPenaltyTurnId) {
@@ -280,40 +286,54 @@ export const AddTeamTurnButton = ({
   const handleStartTurn = async () => {
     setLocalPending(true);
     setExternalPending?.(true);
-    const postTurn: PostStartTurn = {
-      team_id: team.team.team_id,
-      game_id: team.team.game_id,
-      dice1: null,
-      dice2: null,
-      penalty: false,
-    };
-    await startTurn(postTurn);
-    setLocalPending(false);
-    setExternalPending?.(false);
-    onActionDone?.();
+    try {
+      await startTurn({
+        team_id: team.team.team_id,
+        game_id: team.team.game_id,
+        dice1: null,
+        dice2: null,
+        penalty: false,
+      });
+      onActionDone?.();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setLocalPending(false);
+      setExternalPending?.(false);
+    }
   };
 
   /** Ends all active turns for a team. */
   const handleEndTurn = async () => {
     setLocalPending(true);
     setExternalPending?.(true);
-    await endTurn(team.team.team_id);
-    setLocalPending(false);
-    setExternalPending?.(false);
-    onActionDone?.();
+    try {
+      await endTurn(team.team.team_id);
+      onActionDone?.();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setLocalPending(false);
+      setExternalPending?.(false);
+    }
   };
 
   /** Marks the drinks as delivered for the current turn. */
   const handleDrinksDelivered = async () => {
     setLocalPending(true);
     setExternalPending?.(true);
-    await setDrinkPrepStatus(
-      team.turns.find((turn) => !turn.delivered_at)!.turn_id,
-      "Delivered",
-    );
-    setLocalPending(false);
-    setExternalPending?.(false);
-    onActionDone?.();
+    try {
+      await setDrinkPrepStatus(
+        team.turns.find((turn) => !turn.delivered_at)!.turn_id,
+        "Delivered",
+      );
+      onActionDone?.();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setLocalPending(false);
+      setExternalPending?.(false);
+    }
   };
 
   return (
@@ -442,29 +462,31 @@ const AddTeamTurnDialogue = ({
 
   const submitTurn = async () => {
     setPending(true);
-
-    if (ongoingTurn) {
-      // Update existing turn with dice values
-      await changeDice(ongoingTurn.turn_id, {
-        dice1,
-        dice2,
-        dice3: dice3 || null,
-        dice4: dice4 || null,
-      });
-    } else {
-      // Create new turn with dice values
-      const postTurn: PostStartTurn = {
-        team_id: team.team.team_id,
-        game_id: team.team.game_id,
-        dice1,
-        dice2,
-        penalty: false,
-      };
-      await startTurn(postTurn);
+    try {
+      if (ongoingTurn) {
+        // Update existing turn with dice values
+        await changeDice(ongoingTurn.turn_id, {
+          dice1,
+          dice2,
+          dice3: dice3 || null,
+          dice4: dice4 || null,
+        });
+      } else {
+        // Create new turn with dice values
+        await startTurn({
+          team_id: team.team.team_id,
+          game_id: team.team.game_id,
+          dice1,
+          dice2,
+          penalty: false,
+        });
+      }
+      onClose();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
     }
-
-    setPending(false);
-    onClose();
   };
 
   return (
@@ -549,11 +571,16 @@ export const ToggleMoralVictoryButton = ({
 
   const toggleMoralVictory = async () => {
     setPending(true);
-    await setMoralVictoryEligible(
-      team.team.team_id,
-      !team.team.moral_victory_eligible,
-    );
-    setPending(false);
+    try {
+      await setMoralVictoryEligible(
+        team.team.team_id,
+        !team.team.moral_victory_eligible,
+      );
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   return referee ? (
@@ -594,19 +621,28 @@ const AddTeamPenaltyDialogue = ({
 
   const handleSubmit = async () => {
     setPending(true);
-    const drinks: TurnDrinks = {
-      drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
-    };
-    await confirmPenalty(turnId, drinks);
-    setPending(false);
-    onClose();
+    try {
+      await confirmPenalty(turnId, {
+        drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
+      });
+      onClose();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   const handleCancel = async () => {
     setPending(true);
-    await cancelTurn(turnId);
-    setPending(false);
-    onClose();
+    try {
+      await cancelTurn(turnId);
+      onClose();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   const hasSelectedDrinks = penaltyDrinks.drinks.some((d) => d.n > 0);
@@ -683,8 +719,12 @@ const TeleportDialogue = ({
 
   const handleTeleport = async () => {
     if (selected === -1) return;
-    await teleportTeam(team.team.team_id, selected);
-    setOpen(false);
+    try {
+      await teleportTeam(team.team.team_id, selected);
+      setOpen(false);
+    } catch (error) {
+      toastError(error);
+    }
   };
 
   return (
@@ -756,13 +796,17 @@ const AssistantRefereeDialogue = ({
 
   const handleSubmit = async () => {
     setPending(true);
-    const drinks: TurnDrinks = {
-      drinks: turnDrinks.drinks.filter((d) => d.n > 0),
-    };
-    await confirmTurn(turn.turn_id, drinks);
-    setPending(false);
-    // TODO issue #33
-    setOpen(false);
+    try {
+      await confirmTurn(turn.turn_id, {
+        drinks: turnDrinks.drinks.filter((d) => d.n > 0),
+      });
+      // TODO issue #33
+      setOpen(false);
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setPending(false);
+    }
   };
 
   const need = needDice(turn);
@@ -921,9 +965,11 @@ export function DrinkSelectionList({
   const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
 
   useEffect(() => {
-    getDrinks().then((drinks) => {
-      setAvailableDrinks(drinks.drink_ingredients.map((d) => d.drink));
-    });
+    getDrinks()
+      .then((drinks) =>
+        setAvailableDrinks(drinks.drink_ingredients.map((d) => d.drink)),
+      )
+      .catch(toastError);
   }, []);
 
   // Merge favorites into the display list without touching parent state

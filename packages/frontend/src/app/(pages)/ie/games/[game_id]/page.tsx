@@ -11,6 +11,7 @@ import { computeTotals } from "@/app/components/team-components/team-turn-card";
 import { useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
 import { getDrinksWithIngredients } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
 import { use, useEffect, useMemo, useState } from "react";
 
 export default function Page({
@@ -30,7 +31,7 @@ export default function Page({
   );
 
   useEffect(() => {
-    getDrinksWithIngredients().then(setDrinksData).catch(console.error);
+    getDrinksWithIngredients().then(setDrinksData).catch(toastError);
   }, []);
 
   if (error) {
