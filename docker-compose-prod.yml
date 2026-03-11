@@ -1,6 +1,5 @@
 services:
   database:
-    container_name: kanta
     image: postgres:18
     volumes:
       - db_data:/var/lib/postgresql
