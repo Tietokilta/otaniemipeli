@@ -589,7 +589,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 1	1	58	t	f	1	f
 3	1	58	t	f	1	f
 3	1	57	t	f	1	f
-30	1	62	t	f	1	f
+22	1	62	t	f	1	f
 23	1	63	t	f	1	f
 14	1	64	t	f	1	f
 3	1	69	t	f	1	f
@@ -602,7 +602,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 4	1	84	t	t	1	f
 1	1	85	t	f	3	f
 3	1	85	t	f	1	f
-24	1	87	t	f	1	f
+30	1	87	t	f	1	f
 1	1	91	t	t	1	f
 25	1	91	t	t	1	f
 6	1	91	t	t	1	f
