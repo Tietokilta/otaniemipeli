@@ -1,7 +1,13 @@
 # Dependencies (will be installed in container)
-node_modules
+**/node_modules
+**/.pnpm-store
+
 # Build outputs
 **/.next
+
+# Docs
+*.md
+
 # Git
 .git
 .gitignore
@@ -9,13 +15,14 @@ node_modules
 # IDE
 .idea
 .vscode
+.claude
 
 # Logs
 *.log
 
 # Python virtual env
-.venv
-__pycache__
+**/.venv
+**/__pycache__
 
 # Scripts (not needed for Docker build)
 scripts/
@@ -23,5 +30,14 @@ scripts/
 # Backend not needed for frontend build
 packages/backend/
 
+# Env files
 *.env
+.env.*
 
+# Docker
+**/.dockerignore
+docker-compose*.yml
+Dockerfile
+
+# CI
+.github
