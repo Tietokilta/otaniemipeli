@@ -99,8 +99,9 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
     <>
       <p
         className={
-          status === TurnStatus.WaitingForAssistantReferee
-            ? "text-primary-900"
+          status === TurnStatus.WaitingForAssistantReferee ||
+          status === TurnStatus.WaitingForDice
+            ? "text-quaternary-500"
             : ""
         }
       >
@@ -129,6 +130,7 @@ export default function TeamTurnCard({
   const singleTurn = !Array.isArray(teamTurns);
   if (!Array.isArray(teamTurns)) teamTurns = [teamTurns];
 
+  const turnNeedingReferee = teamTurns.findLast((t) => !t.confirmed_at);
   const lastTurn = teamTurns[teamTurns.length - 1];
   const lastThrow = teamTurns.findLast((t) => t.dice1 != null);
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
@@ -173,7 +175,7 @@ export default function TeamTurnCard({
         </>
       ) : (
         <>
-          <TurnState turn={lastTurn} />
+          <TurnState turn={turnNeedingReferee ?? lastTurn} />
           {lastThrow?.dice1 != null ? (
             <p>
               Heitot: {lastThrow.dice1} + {lastThrow.dice2}

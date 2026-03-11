@@ -235,13 +235,14 @@ export const Dice = ({
 };
 
 const statusPriority: Record<TurnStatus, number> = {
-  [TurnStatus.WaitingForAssistantReferee]: 1,
-  [TurnStatus.WaitingForPenalty]: 2,
-  [TurnStatus.WaitingForIE]: 3,
-  [TurnStatus.Mixing]: 4,
-  [TurnStatus.Delivering]: 5,
-  [TurnStatus.Drinking]: 6,
-  [TurnStatus.WaitingForDice]: 7,
+  // Dice always take first priority, because otherwise no one else can be given a turn.
+  [TurnStatus.WaitingForDice]: 1,
+  [TurnStatus.WaitingForAssistantReferee]: 2,
+  [TurnStatus.WaitingForPenalty]: 3,
+  [TurnStatus.WaitingForIE]: 4,
+  [TurnStatus.Mixing]: 5,
+  [TurnStatus.Delivering]: 6,
+  [TurnStatus.Drinking]: 7,
   [TurnStatus.Ended]: 8,
 };
 

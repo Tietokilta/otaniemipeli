@@ -105,10 +105,18 @@ impl From<deadpool_postgres::PoolError> for AppError {
 
 impl From<PgError> for AppError {
     fn from(e: PgError) -> Self {
-        // Unique constraint violation (Postgres error code 23505)
         if let Some(db_err) = e.as_db_error() {
+            // Unique constraint violation (23505)
             if db_err.code() == &tokio_postgres::error::SqlState::UNIQUE_VIOLATION {
                 return AppError::Conflict(db_err.detail().unwrap_or("already exists").to_string());
+            }
+            // Check constraint violation (23514)
+            if db_err.code() == &tokio_postgres::error::SqlState::CHECK_VIOLATION {
+                return AppError::Validation(db_err.message().to_string());
+            }
+            // RAISE EXCEPTION from triggers (P0001)
+            if db_err.code() == &tokio_postgres::error::SqlState::RAISE_EXCEPTION {
+                return AppError::Validation(db_err.message().to_string());
             }
         }
         tracing::error!("Database error: {}", e);

@@ -106,14 +106,15 @@ pub async fn make_first_turns(
 }
 
 /// Starts a game by setting its start time and creating initial turns.
+/// Returns an error if the game has already been started.
 pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Game, AppError> {
-    let row = client
-        .query_one(
+    let row_opt = client
+        .query_opt(
             "
             WITH upd_game AS (
               UPDATE games
               SET started = true, start_time = NOW()
-              WHERE game_id = $1
+              WHERE game_id = $1 AND NOT started
               RETURNING *
             )
             SELECT upd_game.*, boards.name AS board_name
@@ -122,6 +123,8 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
             &[&first_turn.game_id],
         )
         .await?;
+    let row =
+        row_opt.ok_or_else(|| AppError::Validation("Game has already been started".to_string()))?;
     let game = build_game_from_row(&row);
 
     let place_number = get_first_place(client, game.board.id).await?;
@@ -130,15 +133,16 @@ pub async fn start_game(client: &Client, first_turn: FirstTurnPost) -> Result<Ga
     Ok(game)
 }
 
-/// Ends a game by marking it finished and ending all active turns.
+/// Ends a game by marking it finished.
+/// Returns an error if the game has already been finished.
 pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, AppError> {
-    let row = client
-        .query_one(
+    let row_opt = client
+        .query_opt(
             "
             WITH upd_game AS (
               UPDATE games
               SET finished = true
-              WHERE game_id = $1
+              WHERE game_id = $1 AND NOT finished
               RETURNING *
             )
             SELECT upd_game.*, boards.name AS board_name
@@ -147,6 +151,8 @@ pub async fn end_game(client: &Client, game_id: GameId) -> Result<Game, AppError
             &[&game_id],
         )
         .await?;
+    let row = row_opt
+        .ok_or_else(|| AppError::Validation("Game has already been finished".to_string()))?;
     Ok(build_game_from_row(&row))
 }
 

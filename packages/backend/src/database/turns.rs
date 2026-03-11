@@ -11,17 +11,14 @@ pub async fn end_active_turns(
     game_id: GameId,
     team_id: TeamId,
 ) -> Result<Turn, AppError> {
+    // This will intentionally fail due to chk_end_requires_delivered if there are
+    // unmixed or undelivered drinks or unconfirmed turns.
     let rows = match client
         .query(
             "UPDATE turns
-             SET end_time = NOW(),
-                mixing_at = COALESCE(mixing_at, NOW()),
-                mixed_at = COALESCE(mixed_at, NOW()),
-                delivered_at = COALESCE(delivered_at, NOW())
+             SET end_time = NOW()
              WHERE team_id = $1
                 AND game_id = $2
-                AND confirmed_at IS NOT NULL
-                AND delivered_at IS NOT NULL
                 AND end_time IS NULL
              RETURNING *",
             &[&team_id, &game_id],

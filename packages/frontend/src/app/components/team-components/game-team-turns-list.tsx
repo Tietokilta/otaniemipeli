@@ -23,6 +23,7 @@ export default function GameTeamTurnsList({
       teams
         .filter(
           (team) =>
+            // For assistant referees, only show teams with unconfirmed turns
             !assistant ||
             team.turns.some((turn) => turn.thrown_at && !turn.confirmed_at),
         )
@@ -57,6 +58,16 @@ export default function GameTeamTurnsList({
           // teams with no turns go last
           if (!a.turns.length) return 1;
           if (!b.turns.length) return -1;
+
+          // teams awaiting dice always go first
+          const aAwaitingDice = a.turns.some(
+            (turn) => turn.start_time && !turn.thrown_at,
+          );
+          const bAwaitingDice = b.turns.some(
+            (turn) => turn.start_time && !turn.thrown_at,
+          );
+          if (aAwaitingDice && !bAwaitingDice) return -1;
+          if (bAwaitingDice && !aAwaitingDice) return 1;
 
           // find oldest non-ready turn
           const aNonReady = a.turns.filter((turn) => !turn.end_time);
