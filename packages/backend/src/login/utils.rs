@@ -52,7 +52,6 @@ pub async fn create_user(
     session: Option<SessionInfo>,
     Json(mut user_info): Json<UserCreateInfo>,
 ) -> Result<Json<UserSessionInfo>, AppError> {
-    println!("Hit function");
     if user_info.password.is_empty() || user_info.username.is_empty() || user_info.email.is_empty()
     {
         return Err(AppError::Validation("missing parameters".to_string()));
@@ -60,10 +59,8 @@ pub async fn create_user(
 
     let client = state.db.get().await?;
     let any_users = users_exist(&client).await?;
-    println!("any users? {any_users}");
 
     if any_users {
-        println!("users already exist");
         // Require a valid session with the right permissions
         let session = session.ok_or_else(|| {
             AppError::Unauthorized("You are not authorized to perform this!".to_string())
@@ -85,7 +82,7 @@ pub async fn create_user(
 
         Ok(Json(UserSessionInfo { user, session }))
     } else {
-        println!("No users exist, creating first user without auth");
+        tracing::info!("No users exist, creating first user without auth");
         if user_info.user_type != UserType::Admin {
             user_info.user_type = UserType::Admin;
         }
