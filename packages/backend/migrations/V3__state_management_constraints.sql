@@ -45,7 +45,7 @@ ALTER TABLE turns
     ADD CONSTRAINT chk_confirmed_requires_thrown
         CHECK (confirmed_at IS NULL OR thrown_at IS NOT NULL);
 
--- Req 3: Non-penalty turns must be confirmed in the order they were thrown, across all teams.
+-- Req 3: Non-penalty turns must be confirmed in the order they were started, across all teams.
 -- Teams can affect each other's drinks (e.g. Tampere mechanics), so the referee must
 -- process turns in throwing order regardless of which team threw.
 CREATE OR REPLACE FUNCTION trg_fn_check_confirm_order()
@@ -61,9 +61,7 @@ BEGIN
             WHERE earlier.game_id = NEW.game_id
               AND earlier.turn_id <> NEW.turn_id
               AND NOT earlier.penalty
-              -- Since there can only be one unthrown turn per game, this implies start_time order.
-              AND earlier.thrown_at IS NOT NULL
-              AND earlier.thrown_at < NEW.thrown_at
+              AND earlier.start_time < NEW.start_time
               AND earlier.confirmed_at IS NULL
         ) THEN
             RAISE EXCEPTION 'Cannot confirm turn: an earlier thrown non-penalty turn in this game is not yet confirmed';

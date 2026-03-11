@@ -1,4 +1,8 @@
 import Image from "next/image";
+import graphic_1 from "../../../../public/1-graphic.png";
+import image_1 from "../../../../public/1-photo.png";
+import image_2 from "../../../../public/2-photo.png";
+import image_3 from "../../../../public/3-photo.png";
 import LineLayer from "@/app/components/board-display-components/line-layer";
 import SquareLayer from "@/app/components/board-display-components/square-layer";
 import React from "react";
@@ -24,13 +28,13 @@ export default function BoardWithSquares({
   const selectBoardImage = () => {
     switch (places.board.id) {
       case 1:
-        return photo ? "/1-photo.png" : "/1-graphic.png";
+        return photo ? image_1 : graphic_1;
       case 2:
-        return "/2-photo.png";
+        return image_2;
       case 3:
-        return "/3-photo.png";
+        return image_3;
       default:
-        return "/1-photo.png";
+        return image_1;
     }
   };
   return (

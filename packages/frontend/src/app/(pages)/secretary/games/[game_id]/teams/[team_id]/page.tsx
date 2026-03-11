@@ -49,7 +49,6 @@ export default function Page({
         team={team}
         diceOpen={dialogueOpen}
         setDiceOpen={setDialogueOpen}
-        allowDice
         allowEnd
       />
       <ToggleMoralVictoryButton team={team} referee={false} />

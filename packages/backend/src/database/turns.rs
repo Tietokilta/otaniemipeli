@@ -107,7 +107,7 @@ pub async fn teleport_team(
     Ok(build_turn(&row))
 }
 
-/// Updates the dice values for an existing turn and sets thrown_at
+/// Updates the dice values for an existing turn, preserving the original thrown_at
 pub async fn update_turn_dice(
     client: &Client,
     turn_id: TurnId,
@@ -118,7 +118,8 @@ pub async fn update_turn_dice(
 ) -> Result<Turn, AppError> {
     let row = client
         .query_one(
-            "UPDATE turns SET dice1 = $2, dice2 = $3, dice3 = $4, dice4 = $5, thrown_at = NOW()
+            "UPDATE turns SET dice1 = $2, dice2 = $3, dice3 = $4, dice4 = $5,
+                 thrown_at = COALESCE(thrown_at, NOW())
              WHERE turn_id = $1
              RETURNING *",
             &[&turn_id, &dice1, &dice2, &dice3, &dice4],
