@@ -49,7 +49,8 @@ export default function Page({
         team={team}
         diceOpen={dialogueOpen}
         setDiceOpen={setDialogueOpen}
-        allowDice={true}
+        allowDice
+        allowEnd
       />
       <ToggleMoralVictoryButton team={team} referee={false} />
       <SecretaryTurnsList team={team} />

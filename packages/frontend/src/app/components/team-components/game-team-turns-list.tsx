@@ -34,86 +34,99 @@ export default function GameTeamTurnsList({
 
   const sortedTeams = useMemo(
     () =>
-      teams
-        .filter(
-          (team) =>
-            // For assistant referees, only show teams with unconfirmed turns
-            !assistant ||
-            team.turns.some((turn) => turn.thrown_at && !turn.confirmed_at),
-        )
-        .toSorted((a, b) => {
-          if (collect) {
-            // In collect mode, sort teams by drunk drinks (most drinks first),
-            // then total drinks awarded, then by total turn time (shortest time first)
-            if (b.total_drunk !== a.total_drunk) {
-              return b.total_drunk - a.total_drunk;
-            }
-            if (b.total_drinks !== a.total_drinks) {
-              return b.total_drinks - a.total_drinks;
-            }
-            return a.combined_time - b.combined_time;
+      teams.toSorted((a, b) => {
+        if (collect) {
+          // In collect mode, sort teams by drunk drinks (most drinks first),
+          // then total drinks awarded, then by total turn time (shortest time first)
+          if (b.total_drunk !== a.total_drunk) {
+            return b.total_drunk - a.total_drunk;
           }
-
-          if (assistant) {
-            // In assistant mode, sort teams by age of unconfirmed turn (oldest first)
-            const aUnconfirmed = a.turns.find(
-              (turn) => turn.thrown_at && !turn.confirmed_at,
-            )!;
-            const bUnconfirmed = b.turns.find(
-              (turn) => turn.thrown_at && !turn.confirmed_at,
-            )!;
-
-            return (
-              new Date(aUnconfirmed.thrown_at!).getTime() -
-              new Date(bUnconfirmed.thrown_at!).getTime()
-            );
+          if (b.total_drinks !== a.total_drinks) {
+            return b.total_drinks - a.total_drinks;
           }
+          return a.combined_time - b.combined_time;
+        }
 
-          // teams with no turns go last
-          if (!a.turns.length) return 1;
-          if (!b.turns.length) return -1;
-
-          // teams awaiting dice always go first
-          const aAwaitingDice = a.turns.some(
-            (turn) => turn.start_time && !turn.thrown_at,
+        if (assistant) {
+          // Find unconfirmed turn
+          const aUnconfirmed = a.turns.find(
+            (turn) => turn.thrown_at && !turn.confirmed_at,
           );
-          const bAwaitingDice = b.turns.some(
-            (turn) => turn.start_time && !turn.thrown_at,
+          const bUnconfirmed = b.turns.find(
+            (turn) => turn.thrown_at && !turn.confirmed_at,
           );
-          if (aAwaitingDice && !bAwaitingDice) return -1;
-          if (bAwaitingDice && !aAwaitingDice) return 1;
 
-          // find oldest non-ready turn
-          const aNonReady = a.turns.filter((turn) => !turn.end_time);
-          const bNonReady = b.turns.filter((turn) => !turn.end_time);
-
-          if (!aNonReady.length) {
-            if (!bNonReady.length) {
-              // for ready teams, sort teams by time their last turn was finished (oldest team to clear their turns first)
+          if (!aUnconfirmed) {
+            if (!bUnconfirmed) {
+              // for confirmed teams, sort teams by their last confirmed turn (newest first)
               const aLast = a.turns
-                .map((turn) => new Date(turn.end_time!).getTime())
-                .reduce((prev, curr) => Math.max(prev, curr));
+                .map((turn) => new Date(turn.confirmed_at!).getTime())
+                .reduce((prev, curr) => Math.max(prev, curr), 0);
               const bLast = b.turns
-                .map((turn) => new Date(turn.end_time!).getTime())
-                .reduce((prev, curr) => Math.max(prev, curr));
-              return aLast - bLast;
+                .map((turn) => new Date(turn.confirmed_at!).getTime())
+                .reduce((prev, curr) => Math.max(prev, curr), 0);
+              return bLast - aLast;
             }
-            // a is ready, b is non-ready -> a goes first
-            return -1;
-          }
-          if (!bNonReady.length) {
-            // b is ready, a is non-ready -> b goes first
+            // a has no unconfirmed turns, b has unconfirmed turn -> b goes first
             return 1;
           }
-          // both non-ready, sort teams by time their oldest non-ready turn was started (oldest turn starter first)
-          const aFirst = aNonReady
-            .map((turn) => new Date(turn.start_time).getTime())
-            .reduce((prev, curr) => Math.min(prev, curr));
-          const bFirst = bNonReady
-            .map((turn) => new Date(turn.start_time).getTime())
-            .reduce((prev, curr) => Math.min(prev, curr));
-          return aFirst - bFirst;
-        }),
+          if (!bUnconfirmed) {
+            // b has no unconfirmed turns, a has unconfirmed turn -> a goes first
+            return -1;
+          }
+
+          // Sort teams by age of unconfirmed turn (oldest first)
+          return (
+            new Date(aUnconfirmed.thrown_at!).getTime() -
+            new Date(bUnconfirmed.thrown_at!).getTime()
+          );
+        }
+
+        // teams with no turns go last
+        if (!a.turns.length) return 1;
+        if (!b.turns.length) return -1;
+
+        // teams awaiting dice always go first
+        const aAwaitingDice = a.turns.some(
+          (turn) => turn.start_time && !turn.thrown_at,
+        );
+        const bAwaitingDice = b.turns.some(
+          (turn) => turn.start_time && !turn.thrown_at,
+        );
+        if (aAwaitingDice && !bAwaitingDice) return -1;
+        if (bAwaitingDice && !aAwaitingDice) return 1;
+
+        // find oldest non-ready turn
+        const aNonReady = a.turns.filter((turn) => !turn.end_time);
+        const bNonReady = b.turns.filter((turn) => !turn.end_time);
+
+        if (!aNonReady.length) {
+          if (!bNonReady.length) {
+            // for ready teams, sort teams by time their last turn was finished (oldest team to clear their turns first)
+            const aLast = a.turns
+              .map((turn) => new Date(turn.end_time!).getTime())
+              .reduce((prev, curr) => Math.max(prev, curr));
+            const bLast = b.turns
+              .map((turn) => new Date(turn.end_time!).getTime())
+              .reduce((prev, curr) => Math.max(prev, curr));
+            return aLast - bLast;
+          }
+          // a is ready, b is non-ready -> a goes first
+          return -1;
+        }
+        if (!bNonReady.length) {
+          // b is ready, a is non-ready -> b goes first
+          return 1;
+        }
+        // both non-ready, sort teams by time their oldest non-ready turn was started (oldest turn starter first)
+        const aFirst = aNonReady
+          .map((turn) => new Date(turn.start_time).getTime())
+          .reduce((prev, curr) => Math.min(prev, curr));
+        const bFirst = bNonReady
+          .map((turn) => new Date(turn.start_time).getTime())
+          .reduce((prev, curr) => Math.min(prev, curr));
+        return aFirst - bFirst;
+      }),
     [teams, collect, assistant],
   );
 
@@ -139,11 +152,7 @@ export default function GameTeamTurnsList({
   return (
     <div className={`flex ${className}`}>
       <div className="writing-vertical text-xl font-bold mr-2 mt-3">
-        {assistant
-          ? "Vahvistamattomat"
-          : collect
-            ? "Moraalisen voiton tilanne"
-            : "Aktiiviset vuorot"}
+        {collect ? "Moraalisen voiton tilanne" : "Aktiiviset vuorot"}
       </div>
       <HorizontalList>{teamCards}</HorizontalList>
     </div>

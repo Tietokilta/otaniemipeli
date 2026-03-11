@@ -31,7 +31,10 @@ const USE_SECRETARIES = true;
 /** Set to false to auto-enter the assistant referee dialogue. */
 const USE_ASSISTANT_REFEREES = true;
 
-const ALLOW_REFEREE_TO_DELIVER_DRINKS = true;
+const ALLOW_ASSISTANT_TO_START_TURN = false;
+const ALLOW_REFEREE_TO_DELIVER_DRINKS = true; // !USE_IE
+const ALLOW_ASSISTANT_TO_END_TURN = !USE_SECRETARIES;
+
 const KEEP_DIALOGUE_OPEN_ON_ACTIONS = true;
 const ALLOW_TELEPORT = true;
 
@@ -43,6 +46,13 @@ function getUnconfirmedPenalty(team: GameTeam): Turn | undefined {
 /** Returns the unconfirmed turn if one exists. */
 function getUnconfirmedTurn(team: GameTeam): Turn | undefined {
   return team.turns.find((turn) => turn.thrown_at && !turn.confirmed_at);
+}
+
+/** Returns the turn last confirmed by an assistant referee, if one exists. */
+function getLatestConfirmedTurn(team: GameTeam): Turn | undefined {
+  return team.turns.findLast(
+    (turn) => turn.confirmed_at && !turn.end_time && !turn.penalty,
+  );
 }
 
 export const EditTeamTurnDialogue = ({
@@ -67,11 +77,13 @@ export const EditTeamTurnDialogue = ({
     number | null
   >(null);
   const [pending, setPending] = useState(false);
+  const [confirmedTurn, setConfirmedTurn] = useState<Turn | null>(null);
 
   if (!open) return null;
 
   const unconfirmedPenalty = getUnconfirmedPenalty(team);
   const unconfirmedTurn = getUnconfirmedTurn(team);
+  const latestConfirmedTurn = getLatestConfirmedTurn(team);
 
   /** Creates a new pending penalty turn or takes over an existing one. */
   const handleAddPenalty = async () => {
@@ -106,10 +118,27 @@ export const EditTeamTurnDialogue = ({
       <AddTeamPenaltyDialogue
         team={team}
         turnId={pendingPenaltyTurnId}
-        onClose={() => {
+        onConfirm={() => {
           setChoice(null);
           setOpen(false);
         }}
+        onCancel={() => setChoice(null)}
+      />
+    );
+  }
+
+  if (confirmedTurn) {
+    return (
+      <AssistantRefereeDialogue
+        team={team}
+        turn={confirmedTurn}
+        pendingPrevious={false}
+        onClose={() => {
+          setConfirmedTurn(null);
+          setChoice(null);
+          setOpen(false);
+        }}
+        readOnly
       />
     );
   }
@@ -123,7 +152,14 @@ export const EditTeamTurnDialogue = ({
         team={team}
         turn={unconfirmedTurn!}
         pendingPrevious={assistantRefereeTurnId !== unconfirmedTurn.turn_id}
-        setOpen={setOpen}
+        onClose={() => {
+          if (choice === "assistant") setChoice(null);
+          else setOpen(false);
+        }}
+        onConfirmed={(turn) => {
+          setConfirmedTurn(turn);
+          setChoice(null);
+        }}
       />
     );
   }
@@ -167,10 +203,17 @@ export const EditTeamTurnDialogue = ({
         <AddTeamTurnButton
           team={team}
           referee
+          allowStart={!assistant || ALLOW_ASSISTANT_TO_START_TURN}
           allowDice={!USE_SECRETARIES}
+          allowEnd={!assistant || ALLOW_ASSISTANT_TO_END_TURN}
           diceOpen={choice === "turn"}
           setDiceOpen={setDiceOpen}
           onAssistant={() => setChoice("assistant")}
+          onViewConfirmed={
+            assistant && latestConfirmedTurn
+              ? () => setConfirmedTurn(latestConfirmedTurn)
+              : undefined
+          }
           onActionDone={onActionDone}
         />
         <button
@@ -255,20 +298,26 @@ export const AddTeamTurnButton = ({
   setDiceOpen,
   onActionDone,
   onAssistant,
+  onViewConfirmed,
   pending: externalPending,
   setPending: setExternalPending,
   referee,
+  allowStart,
   allowDice,
+  allowEnd,
 }: {
   team: GameTeam;
   diceOpen: boolean;
   setDiceOpen: (open: boolean) => void;
   onActionDone?: () => void;
   onAssistant?: () => void;
+  onViewConfirmed?: () => void;
   pending?: boolean;
   setPending?: (pending: boolean) => void;
   referee?: boolean;
+  allowStart?: boolean;
   allowDice?: boolean;
+  allowEnd?: boolean;
 }) => {
   const [localPending, setLocalPending] = useState(false);
   const pending = externalPending || localPending;
@@ -342,7 +391,20 @@ export const AddTeamTurnButton = ({
 
   return (
     <>
-      {currentStatus === TurnStatus.Drinking ? (
+      {currentStatus === TurnStatus.WaitingForAssistantReferee &&
+      onAssistant ? (
+        <button
+          className="button text-xl p-5"
+          onClick={onAssistant}
+          disabled={pending}
+        >
+          Aputuomaroi vuoro
+        </button>
+      ) : onViewConfirmed ? (
+        <button className="button text-xl p-5" onClick={onViewConfirmed}>
+          Vahvistetun vuoron tiedot
+        </button>
+      ) : currentStatus === TurnStatus.Drinking && allowEnd ? (
         referee ? (
           <button
             className="button text-xl p-5"
@@ -360,15 +422,6 @@ export const AddTeamTurnButton = ({
             onAccept={handleEndTurn}
           />
         )
-      ) : currentStatus === TurnStatus.WaitingForAssistantReferee &&
-        onAssistant ? (
-        <button
-          className="button text-xl p-5"
-          onClick={onAssistant}
-          disabled={pending}
-        >
-          Aputuomaroi vuoro
-        </button>
       ) : canDice ? (
         <button
           className="button text-xl p-5"
@@ -377,7 +430,7 @@ export const AddTeamTurnButton = ({
         >
           Kirjaa nopanheitto
         </button>
-      ) : currentStatus === TurnStatus.Ended && referee ? (
+      ) : currentStatus === TurnStatus.Ended && allowStart ? (
         <button
           className="button text-xl p-5"
           onClick={handleStartTurn}
@@ -612,11 +665,13 @@ export const ToggleMoralVictoryButton = ({
 const AddTeamPenaltyDialogue = ({
   team,
   turnId,
-  onClose,
+  onConfirm,
+  onCancel,
 }: {
   team: GameTeam;
   turnId: number;
-  onClose: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) => {
   const [penaltyDrinks, setPenaltyDrinks] = useState<TurnDrinks>({
     drinks: [],
@@ -629,7 +684,7 @@ const AddTeamPenaltyDialogue = ({
       await confirmPenalty(turnId, {
         drinks: penaltyDrinks.drinks.filter((d) => d.n > 0),
       });
-      onClose();
+      onConfirm();
     } catch (error) {
       toastError(error);
     } finally {
@@ -641,7 +696,7 @@ const AddTeamPenaltyDialogue = ({
     setPending(true);
     try {
       await cancelTurn(turnId);
-      onClose();
+      onCancel();
     } catch (error) {
       toastError(error);
     } finally {
@@ -775,12 +830,16 @@ const AssistantRefereeDialogue = ({
   team,
   turn,
   pendingPrevious,
-  setOpen,
+  onClose,
+  onConfirmed,
+  readOnly = false,
 }: {
   team: GameTeam;
   turn: Turn;
   pendingPrevious: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  onClose: () => void;
+  onConfirmed?: (turn: Turn) => void;
+  readOnly?: boolean;
 }) => {
   const [pending, setPending] = useState(false);
   const [changingDice, setChangingDice] = useState(false);
@@ -806,8 +865,7 @@ const AssistantRefereeDialogue = ({
       await confirmTurn(turn.turn_id, {
         drinks: turnDrinks.drinks.filter((d) => d.n > 0),
       });
-      // TODO issue #33
-      setOpen(false);
+      onConfirmed?.(turn);
     } catch (error) {
       toastError(error);
     } finally {
@@ -820,8 +878,12 @@ const AssistantRefereeDialogue = ({
     (need.dice3 && !turn.dice3) || (need.dice4 && !turn.dice4);
   return (
     <PopUpDialogue
-      setOpen={setOpen}
-      title={`Vahvista vuoro: ${team.team.team_name}`}
+      setOpen={onClose}
+      title={
+        readOnly
+          ? `Vuoro vahvistettu: ${team.team.team_name}`
+          : `Vahvista vuoro: ${team.team.team_name}`
+      }
       disabled={pending}
     >
       {changingDice && (
@@ -869,13 +931,15 @@ const AssistantRefereeDialogue = ({
               <span className="text-xl">{turn.dice3}</span>
             </>
           ) : null}
-          <button
-            type="button"
-            className="button"
-            onClick={() => setChangingDice(true)}
-          >
-            Muuta heittoja
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="button"
+              onClick={() => setChangingDice(true)}
+            >
+              Muuta heittoja
+            </button>
+          )}
           {turn.double_tampere && <em className="text-xl">Tupla-Tampere!</em>}
         </div>
         {turn.via && (
@@ -911,6 +975,7 @@ const AssistantRefereeDialogue = ({
         <em className="hidden lg:inline justify-self-end">Juomat</em>
         <div className="hidden lg:inline border-l-2 self-stretch border-primary-900" />
         <DrinkSelectionList
+          readOnly={readOnly}
           selectedDrinks={turnDrinks}
           setSelectedDrinks={(fn) => {
             setTurnDrinks(fn);
@@ -921,12 +986,12 @@ const AssistantRefereeDialogue = ({
           <button
             type="button"
             className="button text-xl p-4"
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             disabled={pending}
           >
-            Eiku
+            {readOnly ? "Sulje" : "Eiku"}
           </button>
-          {missingDice ? (
+          {readOnly ? null : missingDice ? (
             <div className="text-lg">
               Klikkaa <em>Muuta heittoja</em> ja lisää lisänopanheitot
               vahvistaaksesi vuoron.
@@ -969,10 +1034,12 @@ export function DrinkSelectionList({
   selectedDrinks,
   setSelectedDrinks,
   buttonText = "Lisää juoma",
+  readOnly = false,
 }: {
   selectedDrinks: TurnDrinks;
   setSelectedDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
   buttonText?: string;
+  readOnly?: boolean;
 }): JSX.Element {
   const [availableDrinks, setAvailableDrinks] = useState<Drink[]>([]);
 
@@ -1022,12 +1089,14 @@ export function DrinkSelectionList({
 
   return (
     <div className="flex-1 self-stretch col-span-3 lg:col-span-1 flex flex-col min-h-40 w-full max-w-2xl mx-auto">
-      <DrinkDropdown
-        buttonText={buttonText}
-        options={filteredDrinks}
-        selectedOption={undefined}
-        setSelectedOption={onSelect}
-      />
+      {!readOnly && (
+        <DrinkDropdown
+          buttonText={buttonText}
+          options={filteredDrinks}
+          selectedOption={undefined}
+          setSelectedOption={onSelect}
+        />
+      )}
       <div className="flex-1 min-h-0 flex flex-col gap-1 py-2 overflow-y-auto">
         {displayDrinks.drinks.length === 0 && (
           <p className="text-tertiary-500">Ei valittuja juomia</p>
@@ -1037,6 +1106,7 @@ export function DrinkSelectionList({
             key={drink.drink.id}
             turnDrink={drink}
             updateDrinks={handleUpdate}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -1047,9 +1117,11 @@ export function DrinkSelectionList({
 export function DrinkSelectionCard({
   turnDrink,
   updateDrinks,
+  readOnly = false,
 }: {
   turnDrink: TurnDrink;
   updateDrinks: (fn: (prev: TurnDrinks) => TurnDrinks) => void;
+  readOnly?: boolean;
 }): JSX.Element {
   const updateN = (change: number) => {
     updateDrinks((dr) => {
@@ -1092,23 +1164,27 @@ export function DrinkSelectionCard({
         className="flex gap-2 w-1/2 center"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          className="w-1/3 button text-3xl select-none"
-          onClick={() => updateN(-1)}
-        >
-          -
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="w-1/3 button text-3xl select-none"
+            onClick={() => updateN(-1)}
+          >
+            -
+          </button>
+        )}
         <div className="w-1/3 center p-1 text-lg text-center">
           {turnDrink.n}
         </div>
-        <button
-          type="button"
-          className="w-1/3 button text-3xl select-none"
-          onClick={() => updateN(1)}
-        >
-          +
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="w-1/3 button text-3xl select-none"
+            onClick={() => updateN(1)}
+          >
+            +
+          </button>
+        )}
       </div>
     </div>
   );

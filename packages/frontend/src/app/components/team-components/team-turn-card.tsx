@@ -154,7 +154,16 @@ export default function TeamTurnCard({
   return (
     <div
       key={team.team.team_id}
-      className={`${!interactive ? "box" : "box-hover cursor-pointer"} ${!collect && lastTurn.end_time ? "bg-slime-600/20" : ""} h-full w-80 shrink-0 flex flex-col min-h-0`}
+      className={`
+        ${!interactive ? "box" : "box-hover cursor-pointer"}
+        ${assistant && turnNeedingReferee?.thrown_at ? "bg-slime-600/20" : ""}
+        ${!collect && !assistant && lastTurn.end_time ? "bg-slime-600/20" : ""}
+        h-full
+        w-80
+        shrink-0
+        flex
+        flex-col
+        min-h-0`}
       onClick={onClickAction}
     >
       {showDialogue && (

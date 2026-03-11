@@ -1,4 +1,4 @@
-import { Dispatch, ReactNode, SetStateAction } from "react";
+import { ReactNode } from "react";
 
 const PopUpDialogue = ({
   children,
@@ -8,7 +8,7 @@ const PopUpDialogue = ({
 }: {
   children: ReactNode;
   title?: ReactNode;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  setOpen: ((open: false) => void) | (() => void);
   disabled?: boolean;
 }) => {
   const handleClose = () => {
