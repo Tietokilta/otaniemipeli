@@ -24,6 +24,16 @@ export default function TeamList({
   editTeam?: boolean;
   canAdd?: boolean;
 }) {
+  // Find the first turn awaiting assistant referee input
+  const assistantRefereeTurnId = teams
+    .flatMap((team) =>
+      team.turns.find(
+        (turn) => turn.thrown_at && !turn.confirmed_at && !turn.penalty,
+      ),
+    )
+    .filter(Boolean)
+    .sort((a, b) => (a!.thrown_at! < b!.thrown_at! ? -1 : 1))[0]?.turn_id;
+
   return (
     <ItemList
       title="Joukkueet"
@@ -34,6 +44,7 @@ export default function TeamList({
         <TeamCard
           key={team.team.team_id}
           team={team}
+          assistantRefereeTurnId={assistantRefereeTurnId}
           board={board}
           className="w-full"
           link={link}

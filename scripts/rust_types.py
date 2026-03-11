@@ -241,7 +241,7 @@ class GameTeam:
 
 @dataclass
 class TeamLatestTurn:
-    team: 'Team'
+    team_id: int
     double_tampere: bool
     latest_turn: Optional['Turn'] = None
     location: Optional['BoardPlace'] = None

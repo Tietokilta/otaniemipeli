@@ -3,7 +3,7 @@ use std::cmp::min;
 use crate::database::boards::{get_board_place, get_board_places, move_forwards};
 use crate::database::games::{
     check_dice, check_opt_dice, count_place_visits, end_game, get_full_game_data, get_game_by_id,
-    get_team_latest_turn,
+    get_team_latest_turn, get_unconfirmed_thrown_turns,
 };
 use crate::database::turns::{
     cancel_turn as db_cancel_turn, end_turn as db_end_turn, get_turn_with_drinks,
@@ -63,7 +63,7 @@ pub async fn compute_turn_result(
     let current_place = team.location.clone().ok_or_else(|| {
         AppError::NotFound(format!(
             "Team {} has no current location - cannot compute movement",
-            team.team.team_id
+            team.team_id,
         ))
     })?;
     let board_places = get_board_places(client, current_place.board_id).await?;
@@ -200,6 +200,30 @@ pub async fn process_confirm_penalty(
     Ok(turn)
 }
 
+/// Recomputes and updates drinks for all unconfirmed thrown turns in a game.
+/// Called after a turn is confirmed, since confirming changes visit counts which
+/// affects whether refill=false drinks are awarded to other teams at the same place.
+async fn recompute_unconfirmed_drinks(
+    client: &Client,
+    game_id: GameId,
+    exclude_turn_id: TurnId,
+) -> Result<(), AppError> {
+    let turns = get_unconfirmed_thrown_turns(client, game_id, exclude_turn_id).await?;
+    for turn in turns {
+        let (dice1, dice2) = match (turn.dice1, turn.dice2) {
+            (Some(d1), Some(d2)) => (d1, d2),
+            _ => continue,
+        };
+        let team_data = get_team_latest_turn(client, game_id, turn.team_id).await?;
+        let result = compute_turn_result(
+            client, game_id, &team_data, dice1, dice2, turn.dice3, turn.dice4,
+        )
+        .await?;
+        set_turn_drinks(client, turn.turn_id, result.turn_drinks).await?;
+    }
+    Ok(())
+}
+
 // REST handlers
 
 /// POST /turns - Start a new turn. Returns the created turn.
@@ -331,6 +355,10 @@ pub async fn confirm_turn(
     sync_drinks_on_table(Some(&end_place), via_place.as_ref(), &mut drinks);
     set_turn_drinks(&client, turn_id, drinks.clone()).await?;
     set_turn_confirmed(&client, turn_id).await?;
+
+    // Recompute drinks for other unconfirmed turns, since confirming this turn
+    // changes visit counts and may affect refill=false drink eligibility.
+    recompute_unconfirmed_drinks(&client, turn.game_id, turn_id).await?;
 
     // If the turn ended on a place with end=true, end the game immediately
     if end_place.end {

@@ -48,12 +48,14 @@ function getUnconfirmedTurn(team: GameTeam): Turn | undefined {
 export const EditTeamTurnDialogue = ({
   team,
   board,
+  assistantRefereeTurnId,
   open,
   setOpen,
   assistant = false,
 }: {
   team: GameTeam;
   board?: BoardPlaces;
+  assistantRefereeTurnId?: number;
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   assistant?: boolean;
@@ -120,6 +122,7 @@ export const EditTeamTurnDialogue = ({
       <AssistantRefereeDialogue
         team={team}
         turn={unconfirmedTurn!}
+        pendingPrevious={assistantRefereeTurnId !== unconfirmedTurn.turn_id}
         setOpen={setOpen}
       />
     );
@@ -771,10 +774,12 @@ const TeleportDialogue = ({
 const AssistantRefereeDialogue = ({
   team,
   turn,
+  pendingPrevious,
   setOpen,
 }: {
   team: GameTeam;
   turn: Turn;
+  pendingPrevious: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   const [pending, setPending] = useState(false);
@@ -925,6 +930,12 @@ const AssistantRefereeDialogue = ({
             <div className="text-lg">
               Klikkaa <em>Muuta heittoja</em> ja lisää lisänopanheitot
               vahvistaaksesi vuoron.
+            </div>
+          ) : pendingPrevious ? (
+            <div>
+              <em>Aiempia vuoroja on vielä vahvistamatta. </em>
+              Odota niiden vahvistumista ensin ja ole tarkkana, jos juomat
+              muuttuvat niiden takia!
             </div>
           ) : mustModify ? (
             <div className="text-lg">

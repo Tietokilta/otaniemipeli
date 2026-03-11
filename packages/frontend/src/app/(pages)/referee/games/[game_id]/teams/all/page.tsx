@@ -53,11 +53,7 @@ export default function Page({
           {preppedTeams.map((team) => (
             <div className="flex h-[30dvh]" key={team.team.team_id}>
               <div className="pr-4 mr-4 border-r-2 border-tertiary-500">
-                <TeamTurnCard
-                  team={team}
-                  teamTurns={team.turns}
-                  collect={true}
-                />
+                <TeamTurnCard team={team} teamTurns={team.turns} collect />
               </div>
               <HorizontalList>
                 {team &&

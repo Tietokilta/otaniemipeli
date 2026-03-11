@@ -18,6 +18,20 @@ export default function GameTeamTurnsList({
   assistant?: boolean;
   className?: string;
 }): JSX.Element {
+  // Find the first turn awaiting assistant referee input
+  const assistantRefereeTurnId = useMemo(
+    () =>
+      teams
+        .flatMap((team) =>
+          team.turns.find(
+            (turn) => turn.thrown_at && !turn.confirmed_at && !turn.penalty,
+          ),
+        )
+        .filter(Boolean)
+        .sort((a, b) => (a!.thrown_at! < b!.thrown_at! ? -1 : 1))[0]?.turn_id,
+    [teams],
+  );
+
   const sortedTeams = useMemo(
     () =>
       teams
@@ -99,20 +113,27 @@ export default function GameTeamTurnsList({
             .map((turn) => new Date(turn.start_time).getTime())
             .reduce((prev, curr) => Math.min(prev, curr));
           return aFirst - bFirst;
-        })
-        .map((team) => {
-          return (
-            <TeamTurnCard
-              key={team.team.team_id}
-              team={team}
-              board={board}
-              collect={collect}
-              assistant={assistant}
-              teamTurns={team.turns}
-            />
-          );
         }),
-    [teams, board, collect, assistant],
+    [teams, collect, assistant],
+  );
+
+  const teamCards = useMemo(
+    () =>
+      sortedTeams.map((team) => {
+        return (
+          <TeamTurnCard
+            key={team.team.team_id}
+            team={team}
+            board={board}
+            assistantRefereeTurnId={assistantRefereeTurnId}
+            interactive
+            collect={collect}
+            assistant={assistant}
+            teamTurns={team.turns}
+          />
+        );
+      }),
+    [sortedTeams, board, assistantRefereeTurnId, collect, assistant],
   );
 
   return (
@@ -124,7 +145,7 @@ export default function GameTeamTurnsList({
             ? "Moraalisen voiton tilanne"
             : "Aktiiviset vuorot"}
       </div>
-      <HorizontalList>{sortedTeams}</HorizontalList>
+      <HorizontalList>{teamCards}</HorizontalList>
     </div>
   );
 }

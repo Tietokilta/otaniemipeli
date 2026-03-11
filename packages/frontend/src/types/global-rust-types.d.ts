@@ -104,7 +104,7 @@ declare global {
   }
 
   interface TeamLatestTurn {
-    team: Team;
+    team_id: number;
     latest_turn: Turn | null;
     location: BoardPlace | null;
     double_tampere: boolean;

@@ -117,15 +117,19 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
 export default function TeamTurnCard({
   team,
   collect,
+  interactive,
   assistant,
   teamTurns,
   board,
+  assistantRefereeTurnId,
 }: {
   team: GameTeamWithTotals;
   collect?: boolean;
+  interactive?: boolean;
   assistant?: boolean;
   teamTurns: Turn[] | Turn;
   board?: BoardPlaces;
+  assistantRefereeTurnId?: number;
 }): JSX.Element {
   const singleTurn = !Array.isArray(teamTurns);
   if (!Array.isArray(teamTurns)) teamTurns = [teamTurns];
@@ -134,7 +138,7 @@ export default function TeamTurnCard({
   const lastTurn = teamTurns[teamTurns.length - 1];
   const lastThrow = teamTurns.findLast((t) => t.dice1 != null);
   const [showDialogue, setShowDialogue] = useState<boolean>(false);
-  const onClickAction = collect ? undefined : () => setShowDialogue(true);
+  const onClickAction = !interactive ? undefined : () => setShowDialogue(true);
 
   const location = singleTurn ? teamTurns[0].place : undefined;
 
@@ -150,13 +154,14 @@ export default function TeamTurnCard({
   return (
     <div
       key={team.team.team_id}
-      className={`${collect ? "box" : "box-hover cursor-pointer"} ${!collect && lastTurn.end_time ? "bg-slime-600/20" : ""} h-full w-80 shrink-0 flex flex-col min-h-0`}
+      className={`${!interactive ? "box" : "box-hover cursor-pointer"} ${!collect && lastTurn.end_time ? "bg-slime-600/20" : ""} h-full w-80 shrink-0 flex flex-col min-h-0`}
       onClick={onClickAction}
     >
       {showDialogue && (
         <EditTeamTurnDialogue
           team={team}
           board={board}
+          assistantRefereeTurnId={assistantRefereeTurnId}
           assistant={assistant}
           open
           setOpen={setShowDialogue}

@@ -184,7 +184,7 @@ pub struct GameTeam {
 /// Lightweight version of GameTeam with only the latest turn
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TeamLatestTurn {
-    pub team: Team,
+    pub team_id: TeamId,
     pub latest_turn: Option<Turn>,
     pub location: Option<BoardPlace>,
     pub double_tampere: bool,

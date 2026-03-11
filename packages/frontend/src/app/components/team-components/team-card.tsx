@@ -9,6 +9,7 @@ import { toastError } from "@/utils/toast-error";
 export default function TeamCard({
   team,
   board,
+  assistantRefereeTurnId,
   className,
   link,
   linkPrefix = "",
@@ -17,6 +18,7 @@ export default function TeamCard({
 }: {
   team: GameTeam;
   board?: BoardPlaces;
+  assistantRefereeTurnId?: number;
   className?: string;
   link?: boolean;
   linkPrefix?: string;
@@ -57,6 +59,7 @@ export default function TeamCard({
         <EditTeamTurnDialogue
           team={team}
           board={board}
+          assistantRefereeTurnId={assistantRefereeTurnId}
           open
           setOpen={setShowDialogue}
         />

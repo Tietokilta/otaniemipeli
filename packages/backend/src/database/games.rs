@@ -1,7 +1,7 @@
 use crate::database::boards::{
     build_board_place, build_via_board_place, get_board_place, get_first_place,
 };
-use crate::database::team::{get_team_by_id, get_teams};
+use crate::database::team::get_teams;
 use crate::database::turns::build_turn;
 use crate::utils::ids::{BoardId, GameId, PlaceId, TeamId, TurnId};
 use crate::utils::state::AppError;
@@ -354,6 +354,28 @@ pub async fn get_turn_drinks(client: &Client, turn_id: TurnId) -> Result<TurnDri
     Ok(turn_drinks)
 }
 
+/// Retrieves all unconfirmed, thrown, non-penalty turns for a game, excluding a specific turn.
+/// Used to recompute drinks after a turn is confirmed, in case visit counts changed.
+pub async fn get_unconfirmed_thrown_turns(
+    client: &Client,
+    game_id: GameId,
+    exclude_turn_id: TurnId,
+) -> Result<Vec<Turn>, AppError> {
+    let rows = client
+        .query(
+            "SELECT * FROM turns
+             WHERE game_id = $1
+               AND turn_id != $2
+               AND confirmed_at IS NULL
+               AND thrown_at IS NOT NULL
+               AND place_number IS NOT NULL
+               AND penalty = false",
+            &[&game_id, &exclude_turn_id],
+        )
+        .await?;
+    Ok(rows.iter().map(build_turn).collect())
+}
+
 /// Checks if a place has already been visited in a game
 pub async fn count_place_visits(
     client: &Client,
@@ -378,7 +400,6 @@ pub async fn get_team_latest_turn(
     team_id: TeamId,
 ) -> Result<TeamLatestTurn, AppError> {
     let game = get_game_by_id(client, game_id).await?;
-    let team = get_team_by_id(client, team_id).await?;
 
     // Get the latest confirmed turn with a location (excludes penalty turns)
     let latest_turn = client
@@ -406,7 +427,7 @@ pub async fn get_team_latest_turn(
         .unwrap_or(false);
 
     Ok(TeamLatestTurn {
-        team,
+        team_id,
         latest_turn,
         location,
         double_tampere,

@@ -192,15 +192,24 @@ Drink (beverage recipe)
 ### Turn Progression
 Most game logic is in `packages/backend/src/api/v1/turns/utils.rs`:
 
-1. Start turn (referee clicks "give turn")
-2. Throw dice (sets `thrown_at`)
+1. **Head referee:** Start turn (referee clicks "give turn")
+2. **Secretary:** Throw dice (sets `thrown_at`)
   - Movement calculated
-3. Confirm location & drinks (sets `confirmed_at`)
-  - Referee can adjust dice, location is recalculated and drinks regenerated
-  - Referee can adjust drinks before confirming
-4. Mix drinks (IE: `mixing_at` → `mixed_at`)
-5. Deliver drinks (sets `delivered_at`)
-6. End turn (players raise hands, sets `end_time`)
+3. **Assistant referee:** Confirm location & drinks (sets `confirmed_at`)
+  - Assistant referee can adjust dice, location is recalculated and drinks regenerated
+  - Assistant referee can adjust drinks before confirming, and needs to do so if there are optional drinks
+4. **IE:** Mix drinks (sets `mixing_at`, then `mixed_at`)
+5. **Secretary:** Deliver drinks (sets `delivered_at`)
+6. **Secretary:** End turn (players raise hands, sets `end_time`)
+
+For penalty turns:
+
+1. **Any referee:** Start penalty turn (referee clicks "give penalty")
+2. **Any referee:** Confirm penalty drinks (sets `confirmed_at`)
+  - Referee specifies drinks for the penalty turn (no dice or movement)
+3. **IE:** Mix drinks (sets `mixing_at`, then `mixed_at`)
+4. **Secretary:** Deliver drinks (sets `delivered_at`)
+5. **Secretary:** End turn (players raise hands, sets `end_time`)
 
 ### Movement Calculation
 All movement logic is in `packages/backend/src/database/boards.rs`:
