@@ -16,10 +16,9 @@ use crate::utils::state::{all_middleware, AppState, SocketState};
 pub async fn start() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
-    // Load .env from repo root (../../.env when running from packages/backend/)
-    dotenvy::from_filename("../../.env")
-        .or_else(|_| dotenvy::dotenv())
-        .ok();
+    // Load .env from current or parent directories
+    dotenvy::dotenv().ok();
+
     let port = env::var("BACKEND_PORT").unwrap_or_else(|_| {
         eprintln!("PORT environment variable not set");
         "8000".to_string()
