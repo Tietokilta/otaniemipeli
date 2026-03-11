@@ -48,8 +48,6 @@ services:
       - .env
     environment:
       NODE_ENV: production
-      API_URL: "${CONNECTION_TYPE}://app:${BACKEND_PORT}/api/v1"
-      API_URL_BASE: "${CONNECTION_TYPE}://app:${BACKEND_PORT}"
       PORT: "${FRONTEND_PORT}"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
