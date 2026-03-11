@@ -363,7 +363,8 @@ impl PlaceDrinks {
             drinks: self
                 .drinks
                 .iter()
-                .filter(|pd| pd.refill || visited == 0)
+                // TODO: make the "2" configurable in GameSettings.table_drink_refills
+                .filter(|pd| pd.refill || visited < 2)
                 .map(|pd| pd.to_turn_drink(multiplier))
                 .collect(),
         }
