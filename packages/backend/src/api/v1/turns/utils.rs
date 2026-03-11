@@ -32,6 +32,12 @@ pub async fn broadcast_game_update(io: &SocketIo, game_id: GameId, data: &GameDa
     }
 }
 
+/// If true, no_mix_required drinks go straight to "mixed" status and delivery people
+/// are responsible for grabbing them.
+///
+/// TODO: Move to GameSettings.delivery_screen
+const USE_DELIVERY_SCREEN: bool = true;
+
 /// Result of computing turn movement and drinks.
 pub struct TurnComputeResult {
     /// The final place after movement.
@@ -204,7 +210,12 @@ pub async fn process_confirm_penalty(
 
     if !needs_mixing {
         // If drinks don't require mixing, skip IE queue
-        db_set_drink_prep_status(client, turn_id, DrinkPrepStatus::Mixing).await?;
+        let new_status = if USE_DELIVERY_SCREEN {
+            DrinkPrepStatus::Mixed
+        } else {
+            DrinkPrepStatus::Mixing
+        };
+        db_set_drink_prep_status(client, turn_id, new_status).await?;
     }
 
     Ok(turn)
@@ -398,7 +409,12 @@ pub async fn confirm_turn(
             db_set_drink_prep_status(&client, turn_id, DrinkPrepStatus::Delivered).await?;
         } else if !needs_mixing {
             // Otherwise, if drinks don't require mixing, skip IE queue
-            db_set_drink_prep_status(&client, turn_id, DrinkPrepStatus::Mixing).await?;
+            let new_status = if USE_DELIVERY_SCREEN {
+                DrinkPrepStatus::Mixed
+            } else {
+                DrinkPrepStatus::Mixing
+            };
+            db_set_drink_prep_status(&client, turn_id, new_status).await?;
         }
         // Otherwise, turn goes through IE queue normally (on_table drinks delivered with IE drinks)
     }

@@ -12,6 +12,7 @@ import { useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
 import { getDrinksWithIngredients } from "@/utils/fetchers";
 import { toastError } from "@/utils/toast-error";
+import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 
 export default function Page({
@@ -54,6 +55,13 @@ export default function Page({
         >
           {showAllTurns ? "Piilota kokonaistilanne" : "Näytä kokonaistilanne"}
         </button>
+        <Link
+          className="button"
+          href={`/ie/games/${gameData.game.id}/delivery`}
+          target="_blank"
+        >
+          Avaa toimitusnäkymä
+        </Link>
       </div>
       <div className="flex flex-col gap-2 flex-2 w-0">
         <IeTurnsList
