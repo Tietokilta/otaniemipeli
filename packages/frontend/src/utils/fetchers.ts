@@ -1,5 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { getApiUrl, getApiBaseUrl } from "@/utils/env";
 
 function getToken(): string {
   return typeof window !== "undefined"
@@ -104,14 +103,14 @@ async function apiFetchVoid(
 // Ingredient operations
 
 export async function getIngredients(): Promise<Ingredients> {
-  return apiFetch<Ingredients>(`${API_URL}/ingredients`);
+  return apiFetch<Ingredients>(`${getApiUrl()}/ingredients`);
 }
 
 export async function addIngredient(
   ingredient: Ingredient,
 ): Promise<Ingredient> {
   return apiFetch<Ingredient>(
-    `${API_URL}/ingredients`,
+    `${getApiUrl()}/ingredients`,
     {
       method: "POST",
       body: JSON.stringify(ingredient),
@@ -125,7 +124,7 @@ export async function deleteIngredient(
   ingredient_id: number,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
+    `${getApiUrl()}/drinks/ingredients/${drink_id}?ingredient_id=${ingredient_id}`,
     { method: "DELETE" },
     true,
   );
@@ -134,24 +133,24 @@ export async function deleteIngredient(
 // Drink operations
 
 export async function getDrinks(): Promise<DrinksIngredients> {
-  return apiFetch<DrinksIngredients>(`${API_URL}/drinks`);
+  return apiFetch<DrinksIngredients>(`${getApiUrl()}/drinks`);
 }
 
 export async function getDrinksWithIngredients(): Promise<DrinksIngredients> {
-  return apiFetch<DrinksIngredients>(`${API_URL}/drinks/ingredients`);
+  return apiFetch<DrinksIngredients>(`${getApiUrl()}/drinks/ingredients`);
 }
 
 export async function getDrinkIngredients(
   drink_id: number,
 ): Promise<DrinkIngredients> {
   return apiFetch<DrinkIngredients>(
-    `${API_URL}/drinks/ingredients/${drink_id}`,
+    `${getApiUrl()}/drinks/ingredients/${drink_id}`,
   );
 }
 
 export async function addDrink(drink: Drink): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/drinks`,
+    `${getApiUrl()}/drinks`,
     {
       method: "POST",
       body: JSON.stringify(drink),
@@ -164,7 +163,7 @@ export async function addDrinkIngredient(
   toPost: DrinkIngredientsPost,
 ): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/drinks/ingredients`,
+    `${getApiUrl()}/drinks/ingredients`,
     {
       method: "POST",
       body: JSON.stringify(toPost),
@@ -175,7 +174,7 @@ export async function addDrinkIngredient(
 
 export async function updateDrink(drink: Drink): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/drinks`,
+    `${getApiUrl()}/drinks`,
     {
       method: "PATCH",
       body: JSON.stringify(drink),
@@ -188,7 +187,7 @@ export async function deleteDrink(
   drink_id: number,
 ): Promise<{ number: number }> {
   return apiFetch<{ number: number }>(
-    `${API_URL}/drinks/${drink_id}`,
+    `${getApiUrl()}/drinks/${drink_id}`,
     { method: "DELETE" },
     true,
   );
@@ -197,16 +196,16 @@ export async function deleteDrink(
 // Board operations
 
 export async function getBoards(): Promise<Boards> {
-  return apiFetch<Boards>(`${API_URL}/boards`);
+  return apiFetch<Boards>(`${getApiUrl()}/boards`);
 }
 
 export async function getBoard(id: string): Promise<Board> {
-  return apiFetch<Board>(`${API_URL}/boards/${id}`);
+  return apiFetch<Board>(`${getApiUrl()}/boards/${id}`);
 }
 
 export async function addBoard(board: Board): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/boards`,
+    `${getApiUrl()}/boards`,
     {
       method: "POST",
       body: JSON.stringify(board),
@@ -216,21 +215,21 @@ export async function addBoard(board: Board): Promise<number> {
 }
 
 export async function getBoardPlaces(boardId: number): Promise<BoardPlaces> {
-  return apiFetch<BoardPlaces>(`${API_URL}/boards/places/${boardId}`);
+  return apiFetch<BoardPlaces>(`${getApiUrl()}/boards/places/${boardId}`);
 }
 
 /** Fetches all reusable place definitions. */
 export async function getPlaces(): Promise<Places> {
-  return apiFetch<Places>(`${API_URL}/boards/places`);
+  return apiFetch<Places>(`${getApiUrl()}/boards/places`);
 }
 
 export async function getPlacesNotInBoard(
   boardId: number,
 ): Promise<{ places: Places; board: BoardPlaces }> {
   const boardPlaces = await apiFetch<BoardPlaces>(
-    `${API_URL}/boards/places/${boardId}`,
+    `${getApiUrl()}/boards/places/${boardId}`,
   );
-  const allPlaces = await apiFetch<Places>(`${API_URL}/boards/places`);
+  const allPlaces = await apiFetch<Places>(`${getApiUrl()}/boards/places`);
 
   return {
     places: {
@@ -249,7 +248,7 @@ export async function getPlacesNotInBoard(
 
 export async function createPlace(place: Place): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/boards/places`,
+    `${getApiUrl()}/boards/places`,
     {
       method: "POST",
       body: JSON.stringify(place),
@@ -260,7 +259,7 @@ export async function createPlace(place: Place): Promise<number> {
 
 export async function addBoardPlace(boardPlace: BoardPlace): Promise<number> {
   return apiFetchStatus(
-    `${API_URL}/boards/places/${boardPlace.board_id}`,
+    `${getApiUrl()}/boards/places/${boardPlace.board_id}`,
     {
       method: "POST",
       body: JSON.stringify(boardPlace),
@@ -274,7 +273,7 @@ export async function updateCoordinates(
   place: BoardPlace,
 ): Promise<number> {
   return apiFetch<number>(
-    `${API_URL}/boards/places/${boardId}/coordinate`,
+    `${getApiUrl()}/boards/places/${boardId}/coordinate`,
     {
       method: "PATCH",
       body: JSON.stringify(place),
@@ -285,7 +284,7 @@ export async function updateCoordinates(
 
 export async function updatePlace(place: Place): Promise<number> {
   return apiFetch<number>(
-    `${API_URL}/boards/places/update/${place.place_id}`,
+    `${getApiUrl()}/boards/places/update/${place.place_id}`,
     {
       method: "PATCH",
       body: JSON.stringify(place),
@@ -296,7 +295,7 @@ export async function updatePlace(place: Place): Promise<number> {
 
 export async function setPlaceDrinks(drinks: PlaceDrinks): Promise<number> {
   return apiFetch<number>(
-    `${API_URL}/boards/places/drinks`,
+    `${getApiUrl()}/boards/places/drinks`,
     {
       method: "PUT",
       body: JSON.stringify(drinks),
@@ -308,12 +307,12 @@ export async function setPlaceDrinks(drinks: PlaceDrinks): Promise<number> {
 // Game operations
 
 export async function getGames(): Promise<Games> {
-  return apiFetch<Games>(`${API_URL}/games`);
+  return apiFetch<Games>(`${getApiUrl()}/games`);
 }
 
 export async function createGame(game: PostGame): Promise<Game> {
   return apiFetch<Game>(
-    `${API_URL}/games`,
+    `${getApiUrl()}/games`,
     {
       method: "POST",
       body: JSON.stringify(game),
@@ -327,7 +326,7 @@ export async function startGame(
   data: FirstTurnPost,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/games/${gameId}/start`,
+    `${getApiUrl()}/games/${gameId}/start`,
     {
       method: "POST",
       body: JSON.stringify(data),
@@ -342,7 +341,7 @@ export async function createTeam(
 ): Promise<void> {
   const team: TeamNameUpdate = { team_name: teamName };
   return apiFetchVoid(
-    `${API_URL}/games/${gameId}/teams`,
+    `${getApiUrl()}/games/${gameId}/teams`,
     {
       method: "POST",
       body: JSON.stringify(team),
@@ -358,7 +357,7 @@ export async function updateTeam(
 ): Promise<void> {
   const team: TeamNameUpdate = { team_name: teamName };
   return apiFetchVoid(
-    `${API_URL}/games/${gameId}/teams/${teamId}`,
+    `${getApiUrl()}/games/${gameId}/teams/${teamId}`,
     {
       method: "PATCH",
       body: JSON.stringify(team),
@@ -372,7 +371,7 @@ export async function deleteTeam(
   teamId: number,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/games/${gameId}/teams/${teamId}`,
+    `${getApiUrl()}/games/${gameId}/teams/${teamId}`,
     {
       method: "DELETE",
     },
@@ -385,7 +384,7 @@ export async function setMoralVictoryEligible(
   moralVictoryEligible: boolean,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/teams/${teamId}/moral-victory-eligible`,
+    `${getApiUrl()}/teams/${teamId}/moral-victory-eligible`,
     {
       method: "PUT",
       body: JSON.stringify({ moral_victory_eligible: moralVictoryEligible }),
@@ -398,7 +397,7 @@ export async function setMoralVictoryEligible(
 
 export async function startTurn(data: PostStartTurn): Promise<Turn> {
   return apiFetch<Turn>(
-    `${API_URL}/turns`,
+    `${getApiUrl()}/turns`,
     {
       method: "POST",
       body: JSON.stringify(data),
@@ -412,7 +411,7 @@ export async function changeDice(
   body: ChangeDiceBody,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/dice`,
+    `${getApiUrl()}/turns/${turnId}/dice`,
     {
       method: "PUT",
       body: JSON.stringify(body),
@@ -426,7 +425,7 @@ export async function confirmTurn(
   drinks: TurnDrinks,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/confirm`,
+    `${getApiUrl()}/turns/${turnId}/confirm`,
     {
       method: "POST",
       body: JSON.stringify({ drinks }),
@@ -438,7 +437,7 @@ export async function confirmTurn(
 export async function cancelTurn(turnId: number): Promise<void> {
   try {
     return await apiFetchVoid(
-      `${API_URL}/turns/${turnId}`,
+      `${getApiUrl()}/turns/${turnId}`,
       { method: "DELETE" },
       true,
     );
@@ -453,7 +452,7 @@ export async function cancelTurn(turnId: number): Promise<void> {
 
 export async function endTurn(teamId: number): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/teams/${teamId}/end-turn`,
+    `${getApiUrl()}/teams/${teamId}/end-turn`,
     { method: "POST" },
     true,
   );
@@ -464,7 +463,7 @@ export async function teleportTeam(
   location: number,
 ): Promise<Turn> {
   return apiFetch<Turn>(
-    `${API_URL}/teams/${teamId}/teleport`,
+    `${getApiUrl()}/teams/${teamId}/teleport`,
     {
       method: "POST",
       body: JSON.stringify({ location }),
@@ -478,7 +477,7 @@ export async function confirmPenalty(
   drinks: TurnDrinks,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/penalty`,
+    `${getApiUrl()}/turns/${turnId}/penalty`,
     {
       method: "POST",
       body: JSON.stringify({ drinks }),
@@ -492,7 +491,7 @@ export async function setDrinkPrepStatus(
   status: DrinkPrepStatus,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/prep-status`,
+    `${getApiUrl()}/turns/${turnId}/prep-status`,
     {
       method: "PUT",
       body: JSON.stringify({ status }),
@@ -507,7 +506,7 @@ export async function editTurnDrinks(
   drinks: TurnDrinks,
 ): Promise<void> {
   return apiFetchVoid(
-    `${API_URL}/turns/${turnId}/drinks`,
+    `${getApiUrl()}/turns/${turnId}/drinks`,
     {
       method: "PUT",
       body: JSON.stringify({ drinks }),
@@ -519,17 +518,21 @@ export async function editTurnDrinks(
 // User operations
 
 export async function getUsers(): Promise<UsersPublic> {
-  return apiFetch<UsersPublic>(`${API_URL}/users`, {}, true);
+  return apiFetch<UsersPublic>(`${getApiUrl()}/users`, {}, true);
 }
 
 export async function deleteUser(uid: number): Promise<void> {
-  return apiFetchVoid(`${API_URL}/users/${uid}`, { method: "DELETE" }, true);
+  return apiFetchVoid(
+    `${getApiUrl()}/users/${uid}`,
+    { method: "DELETE" },
+    true,
+  );
 }
 
 // Authentication operations
 
 export async function login(loginInfo: LoginInfo): Promise<UserSessionInfo> {
-  return apiFetch<UserSessionInfo>(`${API_URL_BASE}/login`, {
+  return apiFetch<UserSessionInfo>(`${getApiBaseUrl()}/login`, {
     method: "POST",
     body: JSON.stringify(loginInfo),
   });
@@ -538,7 +541,7 @@ export async function login(loginInfo: LoginInfo): Promise<UserSessionInfo> {
 export async function verifySession(
   sessionToken: string,
 ): Promise<SessionInfo> {
-  const body = await apiFetch<SessionInfo>(`${API_URL_BASE}/login`, {
+  const body = await apiFetch<SessionInfo>(`${getApiBaseUrl()}/login`, {
     method: "PUT",
     headers: { Authorization: sessionToken },
   });
@@ -558,7 +561,7 @@ export async function createUser(
   user: UserCreateInfo,
 ): Promise<UserSessionInfo> {
   return apiFetch<UserSessionInfo>(
-    `${API_URL_BASE}/login/create_user`,
+    `${getApiBaseUrl()}/login/create_user`,
     {
       method: "POST",
       body: JSON.stringify(user),
@@ -568,20 +571,20 @@ export async function createUser(
 }
 
 export async function usersExist(): Promise<boolean> {
-  return apiFetch<boolean>(`${API_URL_BASE}/login`);
+  return apiFetch<boolean>(`${getApiBaseUrl()}/login`);
 }
 
 /** Fetches server status message as plain text. */
 export async function getServerStatus(): Promise<string> {
-  if (!API_URL_BASE) {
+  if (!getApiBaseUrl()) {
     throw new Error("No NEXT_PUBLIC_API_BASE_URL environment variable");
   }
-  const res = await fetch(API_URL_BASE);
+  const res = await fetch(getApiBaseUrl()!);
   return res.text();
 }
 
 /** Logs out the current session (or all sessions if `all` is true). */
 export async function logout(all?: boolean): Promise<void> {
   const url = all ? "/login/all" : "/login";
-  return apiFetchVoid(`${API_URL_BASE}${url}`, { method: "DELETE" }, true);
+  return apiFetchVoid(`${getApiBaseUrl()}${url}`, { method: "DELETE" }, true);
 }

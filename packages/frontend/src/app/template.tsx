@@ -5,6 +5,7 @@ import { verifySession } from "@/utils/fetchers";
 import { usePathname, useRouter } from "next/navigation";
 import { UserTypes } from "@/utils/helpers";
 import { io, Socket } from "socket.io-client";
+import { getApiBaseUrl } from "@/utils/env";
 
 export const SocketContext = createContext<Socket | null>(null);
 export function useSocket() {
@@ -40,7 +41,7 @@ export default function AdminTemplate({
     console.log("AdminTemplate starting socket:", needsSocket);
     if (!needsSocket) return;
 
-    const s = io(`${process.env.NEXT_PUBLIC_API_BASE_URL}/referee`, {
+    const s = io(`${getApiBaseUrl()}/referee`, {
       transports: ["websocket", "polling"],
       auth: { token: localStorage.getItem("auth_token") || "" },
       withCredentials: true,

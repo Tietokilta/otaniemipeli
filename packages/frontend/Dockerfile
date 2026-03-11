@@ -21,7 +21,7 @@ ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 
-# Build from frontend directory
+# # Build from frontend directory
 WORKDIR /app/packages/frontend
 
 # Rebuild native modules for container architecture (lightningcss, etc.)
@@ -33,15 +33,22 @@ RUN pnpm build
 FROM node:24-trixie-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=${PORT}
 
-# Copy the entire standalone output (includes node_modules at root level)
-COPY --from=builder /app/packages/frontend/.next/standalone ./
-# Copy static assets
-COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
-# Copy public folder from source
-COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
+# Copy the entire standalone output (node_modules + packages/frontend) to /app
+COPY --from=builder /app/packages/frontend/.next/standalone /app/
+
+# Copy, in one command:
+# - static assets to /app/packages/frontend/.next/static
+# - public folder to /app/packages/frontend/public
+# - the entry point script to /app/packages/frontend/entrypoint.sh
+COPY --from=builder --parents \
+    /app/packages/frontend/./.next/static \
+    /app/packages/frontend/./public \
+    /app/packages/frontend/./entrypoint.sh \
+    ./packages/frontend/
+
+RUN chown node:node ./packages/frontend/public/__env.js
 
 USER node
 WORKDIR /app/packages/frontend
-CMD ["node", "server.js"]
+CMD ["sh", "./entrypoint.sh"]

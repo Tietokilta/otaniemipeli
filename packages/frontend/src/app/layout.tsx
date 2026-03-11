@@ -1,5 +1,6 @@
+import { Pixeloid, PixeloidBold, PixeloidMono } from "@/utils/get_fonts";
 import type { Metadata } from "next";
-import FontProvider from "@/app/components/font-provider";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -13,9 +14,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <FontProvider>
-      <div className="flex flex-col h-screen overflow-hidden">{children}</div>
-      <Toaster />
-    </FontProvider>
+    <html
+      lang="fi"
+      className={`${Pixeloid.variable} ${PixeloidBold.variable} ${PixeloidMono.variable}`}
+    >
+      <body>
+        <Script src="/__env.js" strategy="beforeInteractive" />
+        <div className="flex flex-col h-screen overflow-hidden">{children}</div>
+        <Toaster />
+      </body>
+    </html>
   );
 }
