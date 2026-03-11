@@ -26,7 +26,8 @@ values ('Kalja', 4.7, true),
        ('Mehukatti', 0.0, false),
        ('Salmari', 32.0, false),
        ('Banaanilikööri', 20.0, false),
-       ('Hauki', 20.0, false);
+       ('Hauki', 20.0, false),
+       ('Kortsu', 0.0, false);
 INSERT INTO drinks (name, favorite, no_mix_required)
 VALUES ('Kalja', true, true),
        ('AS-huikka', false, false),
@@ -58,7 +59,8 @@ VALUES ('Kalja', true, true),
        -- TODO: Add IE the ability to specify
        ('Taikajuoma', false, false),
        -- TODO: Store design factory drinks in the database
-       ('Design-juoma', false, false);
+       ('Design-juoma', false, false),
+       ('Paljuvesi', false, false);
 INSERT INTO drink_ingredients (drink_id, ingredient_id, quantity)
 VALUES (1, 1, 33),
        (2, 1, 11),
@@ -98,7 +100,9 @@ VALUES (1, 1, 33),
        (25, 5, 33),
        (26, 16, 2),
        (26, 12, 2),
-       (27, 24, 4);
+       (27, 24, 4),
+       (30, 25, 0),
+       (30, 10, 33);
 
 INSERT INTO public.places (place_name, rule, place_type, special)
 VALUES ('Metroasema',
@@ -585,7 +589,7 @@ COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n,
 1	1	58	t	f	1	f
 3	1	58	t	f	1	f
 3	1	57	t	f	1	f
-22	1	62	t	f	1	f
+30	1	62	t	f	1	f
 23	1	63	t	f	1	f
 14	1	64	t	f	1	f
 3	1	69	t	f	1	f

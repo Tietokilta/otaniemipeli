@@ -8,7 +8,7 @@ export default async function IngredientList({
 }: {
   className?: string;
 }): Promise<JSX.Element> {
-  const res = await fetch(process.env.API_URL + "/ingredients", {
+  const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/ingredients", {
     headers: { "Content-Type": "application/json" },
   });
 
