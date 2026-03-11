@@ -270,7 +270,7 @@ VALUES ('Metroasema',
         'Special', NULL),
         ('TAMPERE',
         'Joukkue saapuu tampereelle. Ruudusta löytyy yksi kalja. Ruutua ei täydennetä.',
-        'Tampere', NULL);
+        'Normal', NULL);
 
 
 COPY public.board_places (board_id, place_number, place_id, area, start, "end", x, y) FROM stdin;
