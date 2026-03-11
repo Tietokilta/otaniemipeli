@@ -1,9 +1,7 @@
 "use client";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import TiKLogo from "../../../../public/TiKprofiilikuva.png";
-import React from "react";
 import { FlickerText } from "@/app/components/flicker-text";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function FollowHeader() {
   const router = useRouter();
@@ -13,7 +11,7 @@ export default function FollowHeader() {
     <div className="flex items-end justify-right w-full h-[12dvh] px-4 mb-4 bg-primary-900 border-juvu-kulta border-b-1">
       <div className="flex center h-full py-1 mr-auto">
         <Image
-          src={TiKLogo}
+          src="/TiKprofiilikuva.png"
           alt="Header Logo"
           className="w-auto h-full rounded-full"
           priority

@@ -1,5 +1,4 @@
 "use client";
-import { useMemo, useState } from "react";
 import AddDrinkIngredientForm from "@/app/components/drink-components/add-drink-ingredient-form";
 import IngredientCard from "@/app/components/drink-components/ingredient-card";
 import {
@@ -8,8 +7,9 @@ import {
   updateDrink,
 } from "@/utils/fetchers";
 import { useRouter } from "next/navigation";
-import RefillSVG from "../../../../public/refill";
+import { useMemo, useState } from "react";
 import { VerticalList } from "../generic-list-components";
+import RefillSVG from "./refill";
 
 export default function DrinkCard({
   drink,
