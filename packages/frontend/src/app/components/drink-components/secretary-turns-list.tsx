@@ -6,6 +6,7 @@ import { turnStatus, TurnStatus } from "@/utils/turns";
 
 const statusTexts: Partial<Record<TurnStatus, string>> = {
   [TurnStatus.WaitingForAssistantReferee]: "Vuoro odottaa aputuomaria...",
+  [TurnStatus.WaitingForYkkonen]: "Pelaillaan ykköstä...",
   [TurnStatus.WaitingForIE]: "Kokkaillaan...",
   [TurnStatus.Mixing]: "Kokkaillaan...",
   [TurnStatus.Delivering]: "Toimitetaan...",

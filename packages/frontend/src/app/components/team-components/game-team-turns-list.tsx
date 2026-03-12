@@ -1,13 +1,14 @@
+import { HorizontalList } from "@/app/components/generic-list-components";
 import TeamTurnCard, {
   GameTeamWithTotals,
 } from "@/app/components/team-components/team-turn-card";
-import { HorizontalList } from "@/app/components/generic-list-components";
-import { useMemo } from "react";
 import {
   findAssistantRefereeTurnId,
   getTurnNeedingAssistantReferee,
   needsDice,
+  needsYkkonen,
 } from "@/utils/turns";
+import { useMemo } from "react";
 
 export default function GameTeamTurnsList({
   teams,
@@ -44,7 +45,19 @@ export default function GameTeamTurnsList({
           return a.combined_time - b.combined_time;
         }
 
+        // teams with no turns go last
+        if (!a.turns.length) return 1;
+        if (!b.turns.length) return -1;
+
+        // teams playing ykköstä (unconfirmed at ykkonen place) go first for all referees
+        const aYkkonen = a.turns.some(needsYkkonen);
+        const bYkkonen = b.turns.some(needsYkkonen);
+        if (aYkkonen && !bYkkonen) return -1;
+        if (bYkkonen && !aYkkonen) return 1;
+
         if (assistant) {
+          // Assistant referee logic.
+
           // Find unconfirmed turn
           const aUnconfirmed = getTurnNeedingAssistantReferee(a);
           const bUnconfirmed = getTurnNeedingAssistantReferee(b);
@@ -75,11 +88,9 @@ export default function GameTeamTurnsList({
           );
         }
 
-        // teams with no turns go last
-        if (!a.turns.length) return 1;
-        if (!b.turns.length) return -1;
+        // Main referee logic.
 
-        // teams awaiting dice always go first
+        // teams awaiting dice go next
         const aAwaitingDice = a.turns.some(needsDice);
         const bAwaitingDice = b.turns.some(needsDice);
         if (aAwaitingDice && !bAwaitingDice) return -1;

@@ -551,7 +551,7 @@ COPY public.place_connections (board_id, origin, target, on_land, dashed) FROM s
 \.
 
 COPY public.place_drinks (drink_id, board_id, place_number, refill, optional, n, on_table) FROM stdin;
-26	1	39	t	f	1	f
+26	1	39	t	t	1	f
 9	1	15	t	f	1	f
 13	1	16	t	f	1	f
 20	1	13	t	t	1	f

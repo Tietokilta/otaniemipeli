@@ -20,6 +20,7 @@ import {
   turnStatus,
   turnStatusTexts,
   getTurnNeedingDice,
+  needsYkkonen,
 } from "@/utils/turns";
 import deepEqual from "fast-deep-equal";
 import React, {
@@ -273,16 +274,18 @@ export const Dice = ({
 };
 
 const statusPriority: Record<TurnStatus, number> = {
-  // Dice always take first priority, because otherwise no one else can be given a turn.
-  [TurnStatus.WaitingForDice]: 1,
-  [TurnStatus.WaitingForExtraDice]: 2,
-  [TurnStatus.WaitingForAssistantReferee]: 3,
-  [TurnStatus.WaitingForPenalty]: 4,
-  [TurnStatus.WaitingForIE]: 5,
-  [TurnStatus.Mixing]: 6,
-  [TurnStatus.Delivering]: 7,
-  [TurnStatus.Drinking]: 8,
-  [TurnStatus.Ended]: 9,
+  // Ykkönen takes first priority, since it interrupts the turn flow.
+  [TurnStatus.WaitingForYkkonen]: 1,
+  // Dice take next first priority, because otherwise no one else can be given a turn.
+  [TurnStatus.WaitingForDice]: 2,
+  [TurnStatus.WaitingForExtraDice]: 3,
+  [TurnStatus.WaitingForAssistantReferee]: 4,
+  [TurnStatus.WaitingForPenalty]: 5,
+  [TurnStatus.WaitingForIE]: 6,
+  [TurnStatus.Mixing]: 7,
+  [TurnStatus.Delivering]: 8,
+  [TurnStatus.Drinking]: 9,
+  [TurnStatus.Ended]: 10,
 };
 
 export const AddTeamTurnButton = ({
@@ -383,7 +386,8 @@ export const AddTeamTurnButton = ({
 
   return (
     <>
-      {currentStatus === TurnStatus.WaitingForAssistantReferee &&
+      {(currentStatus === TurnStatus.WaitingForAssistantReferee ||
+        currentStatus === TurnStatus.WaitingForYkkonen) &&
       onAssistant ? (
         <button
           className="button text-xl p-5"
@@ -474,6 +478,7 @@ const secretaryInstructions: Record<TurnStatus, string> = {
     "Kirjaa joukkueen nopanheitto kun noppia on heitetty.",
   [TurnStatus.WaitingForExtraDice]: "Kirjaa joukkueen lisänoppien heitot.",
   [TurnStatus.WaitingForPenalty]: "Odota että sakot on kirjattu.",
+  [TurnStatus.WaitingForYkkonen]: "Odota ykkösen pelaamista.",
   [TurnStatus.WaitingForAssistantReferee]:
     "Odota että aputuomari on vahvistanut vuoron.",
   [TurnStatus.WaitingForIE]: "Odota että IE kokkailee.",
@@ -840,7 +845,8 @@ const AssistantRefereeDialogue = ({
   }
 
   const hasOptionals = turnDrinks.drinks.some((d) => d.optional);
-  const mustModify = hasOptionals && !modified;
+  const isYkkonen = needsYkkonen(turn);
+  const mustModify = (hasOptionals || isYkkonen) && !modified;
 
   const handleSubmit = async () => {
     setPending(true);
@@ -983,6 +989,16 @@ const AssistantRefereeDialogue = ({
               <em>Aiempia vuoroja on vielä vahvistamatta. </em>
               Odota niiden vahvistumista ensin ja ole tarkkana, jos juomat
               muuttuvat niiden takia!
+            </div>
+          ) : mustModify && isYkkonen ? (
+            <div className="text-lg">
+              <em>Pelatkaa ykköstä, kunnes joku joukkue saa ykkösen.</em> Muuta
+              juomavalintoja vahvistaaksesi vuoron. Päätuomari lisää{" "}
+              <em>varastosakon</em> ykkösen heittäneelle joukkueelle,{" "}
+              <em>vuorosta ei tule juomia.</em>
+              {turn.dice1 === turn.dice2 && (
+                <em> Tuplilla pelataan kahteen ykköseen asti.</em>
+              )}
             </div>
           ) : mustModify ? (
             <div className="text-lg">

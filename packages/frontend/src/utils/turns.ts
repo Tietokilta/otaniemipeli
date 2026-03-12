@@ -2,6 +2,7 @@ export enum TurnStatus {
   WaitingForDice,
   WaitingForExtraDice,
   WaitingForPenalty,
+  WaitingForYkkonen,
   WaitingForAssistantReferee,
   WaitingForIE,
   Mixing,
@@ -14,6 +15,7 @@ export const turnStatusTexts: Record<TurnStatus, string> = {
   [TurnStatus.WaitingForDice]: "Odottaa nopanheittoa",
   [TurnStatus.WaitingForExtraDice]: "Odottaa lisänoppia",
   [TurnStatus.WaitingForPenalty]: "Sakkoa luodaan",
+  [TurnStatus.WaitingForYkkonen]: "Pelaamassa ykköstä",
   [TurnStatus.WaitingForAssistantReferee]: "Odottaa aputuomaria",
   [TurnStatus.WaitingForIE]: "Odottaa IE:tä",
   [TurnStatus.Mixing]: "Juomat työn alla",
@@ -30,6 +32,8 @@ export function turnStatus(turn: Turn): TurnStatus {
   if (turn.confirmed_at) return TurnStatus.WaitingForIE;
   if (turn.thrown_at && turn.needs_extra_dice)
     return TurnStatus.WaitingForExtraDice;
+  if (turn.thrown_at && turn.place?.place.special === "ykkonen")
+    return TurnStatus.WaitingForYkkonen;
   if (turn.thrown_at) return TurnStatus.WaitingForAssistantReferee;
   if (turn.penalty) return TurnStatus.WaitingForPenalty;
   return TurnStatus.WaitingForDice;
@@ -58,6 +62,11 @@ export function needsHeadReferee(team: GameTeam): boolean {
 /** Returns true if the turn next needs dice. */
 export function needsDice(turn: Turn) {
   return !turn.penalty && (!turn.thrown_at || extraDiceNeeds(turn).missing);
+}
+
+/** Returns true if the turn is waiting for the ykkonen minigame to finish. */
+export function needsYkkonen(turn: Turn): boolean {
+  return needsAssistantReferee(turn) && turn.place?.place.special === "ykkonen";
 }
 
 /** Returns true if the turn next needs confirmation from an assistant referee. */

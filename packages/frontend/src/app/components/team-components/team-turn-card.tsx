@@ -9,6 +9,7 @@ import {
 import {
   needsAssistantReferee,
   needsDice,
+  needsYkkonen,
   TurnStatus,
   turnStatus,
   turnStatusTexts,
@@ -106,6 +107,7 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
       <p
         className={
           status === TurnStatus.WaitingForAssistantReferee ||
+          status === TurnStatus.WaitingForYkkonen ||
           status === TurnStatus.WaitingForDice ||
           status === TurnStatus.WaitingForExtraDice
             ? "text-quaternary-500"
@@ -147,6 +149,7 @@ export default function TeamTurnCard({
   const needDice = !!unconfirmedTurn && needsDice(unconfirmedTurn);
   const needAssistant =
     !!unconfirmedTurn && needsAssistantReferee(unconfirmedTurn);
+  const needYkkonen = !!unconfirmedTurn && needsYkkonen(unconfirmedTurn);
   const allFinished = teamTurns.every((t) => t.end_time);
 
   const lastTurn = teamTurns[teamTurns.length - 1];
@@ -170,7 +173,7 @@ export default function TeamTurnCard({
       key={team.team.team_id}
       className={`
         ${!interactive ? "box" : "box-hover cursor-pointer"}
-        ${!collect && !assistant && (allFinished || needDice) ? "bg-slime-600/20" : ""}
+        ${!collect && !assistant && (allFinished || needDice || needYkkonen) ? "bg-slime-600/20" : ""}
         ${!collect && assistant && needAssistant ? "bg-slime-600/20" : ""}
         h-full
         w-80
