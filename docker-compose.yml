@@ -8,7 +8,7 @@ services:
       interval: 5s
       retries: 5
     ports:
-      - "${PUBLIC_PG_PORT}:${POSTGRES_PORT}"
+      - "127.0.0.1:${PUBLIC_PG_PORT}:${POSTGRES_PORT}"
     env_file:
       - .env
 
@@ -35,7 +35,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}"
 
   web:
     build:
@@ -51,7 +51,7 @@ services:
       NODE_ENV: production
       PORT: "${FRONTEND_PORT}"
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "127.0.0.1:${FRONTEND_PORT}:${FRONTEND_PORT}"
     restart: unless-stopped
 
 volumes:
