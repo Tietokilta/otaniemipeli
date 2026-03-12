@@ -1,16 +1,25 @@
+"use client";
+
 import AddPlaceForm from "@/app/components/board-components/add-place-form";
 import AddPlaceToBoard from "@/app/components/board-components/add-place-to-board";
 import BoardPlacesList from "@/app/components/board-components/board-places-list";
 import PlacesList from "@/app/components/board-components/places-list";
 import { getBoard } from "@/utils/fetchers";
+import { toastError } from "@/utils/toast-error";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const board: Board = await getBoard(id);
+/** Admin page for managing a single board's places and connections. */
+export default function Page() {
+  const { id } = useParams<{ id: string }>();
+  const [board, setBoard] = useState<Board | null>(null);
+
+  useEffect(() => {
+    getBoard(id).then(setBoard).catch(toastError);
+  }, [id]);
+
+  if (!board) return null;
+
   return (
     <div className="flex flex-col h-full">
       <h1 className="pb-0">{board.name}</h1>
