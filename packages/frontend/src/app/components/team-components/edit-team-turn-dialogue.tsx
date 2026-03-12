@@ -6,7 +6,7 @@ import {
   endTurn,
   getDrinks,
   setDrinkPrepStatus,
-  setMoralVictoryEligible,
+  setMoralLossLevel,
   startTurn,
   teleportTeam,
 } from "@/utils/fetchers";
@@ -216,7 +216,7 @@ export const EditTeamTurnDialogue = ({
         >
           {unconfirmedPenalty ? "Jatka sakon luontia" : "Lisää sakko"}
         </button>
-        <ToggleMoralVictoryButton team={team} referee />
+        <MoralLossCounter team={team} referee />
         {ALLOW_TELEPORT && (
           <button
             className="button text-xl p-5"
@@ -605,7 +605,7 @@ const AddTeamTurnDialogue = ({
   );
 };
 
-export const ToggleMoralVictoryButton = ({
+export const MoralLossCounter = ({
   team,
   referee,
 }: {
@@ -614,12 +614,12 @@ export const ToggleMoralVictoryButton = ({
 }) => {
   const [pending, setPending] = useState(false);
 
-  const toggleMoralVictory = async () => {
+  const changeMoralLossLevel = async (delta: number) => {
     setPending(true);
     try {
-      await setMoralVictoryEligible(
+      await setMoralLossLevel(
         team.team.team_id,
-        !team.team.moral_victory_eligible,
+        Math.max(0, team.team.moral_loss_level + delta),
       );
     } catch (error) {
       toastError(error);
@@ -628,24 +628,52 @@ export const ToggleMoralVictoryButton = ({
     }
   };
 
-  return referee ? (
-    <button className="button text-xl p-5" onClick={toggleMoralVictory}>
-      {team.team.moral_victory_eligible
-        ? "Merkitse laatta"
-        : "Kumoa laattamerkintä"}
-    </button>
+  return referee || team.team.moral_loss_level > 0 ? (
+    <div className="flex items-center gap-2">
+      {referee && (
+        <button
+          className="button text-xl px-7 py-5"
+          onClick={() => changeMoralLossLevel(-1)}
+          disabled={pending || team.team.moral_loss_level === 0}
+        >
+          -
+        </button>
+      )}
+      <div className="text-xl font-bold flex-1 text-slime-900">
+        Laattoja: {team.team.moral_loss_level}
+      </div>
+      {referee ? (
+        <button
+          className="button text-xl px-7 py-5"
+          onClick={() => changeMoralLossLevel(1)}
+          disabled={pending}
+        >
+          +
+        </button>
+      ) : (
+        <SimpleConfirmedButton
+          buttonClassName="button text-xl p-5"
+          buttonText="Lisää laatta"
+          dialogTitle="Vahvista laattamerkintä"
+          dialogText={
+            <>
+              Oletko varma, että haluat merkitä joukkueen laatanneeksi{" "}
+              <em>uudelleen</em>?
+            </>
+          }
+          onAccept={() => changeMoralLossLevel(1)}
+          disabled={pending}
+        />
+      )}
+    </div>
   ) : (
     <SimpleConfirmedButton
-      buttonClassName={`button text-xl p-5 ${!team.team.moral_victory_eligible ? "bg-slime-600/20" : ""}`}
-      buttonText={
-        team.team.moral_victory_eligible
-          ? "Merkitse laatta"
-          : "Joukkue on laatannut"
-      }
+      buttonClassName="button text-xl p-5"
+      buttonText="Merkitse laatta"
       dialogTitle="Vahvista laattamerkintä"
       dialogText="Oletko varma, että haluat merkitä joukkueen laatanneeksi?"
-      onAccept={toggleMoralVictory}
-      disabled={pending || !team.team.moral_victory_eligible}
+      onAccept={() => changeMoralLossLevel(1)}
+      disabled={pending}
     />
   );
 };

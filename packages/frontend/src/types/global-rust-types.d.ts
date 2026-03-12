@@ -68,7 +68,7 @@ declare global {
     game_id: number;
     team_name: string;
     team_hash: string;
-    moral_victory_eligible: boolean;
+    moral_loss_level: number;
   }
 
   interface TeamNameUpdate {

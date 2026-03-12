@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import PopUpDialogue from "@/app/components/pop-up-dialogue";
 
 interface SimpleAddFormProps {
   buttonText: string;
   dialogTitle: string;
-  dialogText?: string;
+  dialogText?: ReactNode;
   buttonClassName?: string;
   disabled?: boolean;
   onAccept: () => void | Promise<void>;

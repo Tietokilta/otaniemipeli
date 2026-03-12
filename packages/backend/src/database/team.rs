@@ -10,7 +10,7 @@ pub fn build_team_from_row(row: &tokio_postgres::Row) -> Team {
         game_id: row.get("game_id"),
         team_name: row.get("team_name"),
         team_hash: row.get("team_hash"),
-        moral_victory_eligible: row.get("moral_victory_eligible"),
+        moral_loss_level: row.get("moral_loss_level"),
     }
 }
 
@@ -64,16 +64,16 @@ pub async fn get_team_by_id(client: &Client, team_id: TeamId) -> Result<Team, Ap
     Ok(build_team_from_row(&row))
 }
 
-/// Sets the moral victory eligible flag for a team.
-pub async fn set_team_moral_victory_eligible(
+/// Sets the moral loss level for a team.
+pub async fn set_team_moral_loss_level(
     client: &Client,
     team_id: TeamId,
-    moral_victory_eligible: bool,
+    moral_loss_level: i32,
 ) -> Result<(), AppError> {
     let query_str = "\
-    UPDATE teams SET moral_victory_eligible = $2 WHERE team_id = $1";
+    UPDATE teams SET moral_loss_level = $2 WHERE team_id = $1";
     client
-        .execute(query_str, &[&team_id, &moral_victory_eligible])
+        .execute(query_str, &[&team_id, &moral_loss_level])
         .await?;
     Ok(())
 }

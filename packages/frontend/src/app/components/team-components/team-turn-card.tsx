@@ -218,9 +218,13 @@ export default function TeamTurnCard({
           )}
         </>
       )}
-      {collect && !team.team.moral_victory_eligible && (
+      {collect && team.team.moral_loss_level > 0 && (
         <p>
-          <em>Laatannut</em>
+          <em>
+            {team.team.moral_loss_level > 1
+              ? `Laatannut ${team.team.moral_loss_level} kertaa`
+              : "Laatannut kerran"}
+          </em>
         </p>
       )}
       {!collect &&

@@ -7,7 +7,7 @@ import {
 } from "@/app/components/game-components/game-loading-states";
 import {
   AddTeamTurnButton,
-  ToggleMoralVictoryButton,
+  MoralLossCounter,
 } from "@/app/components/team-components/edit-team-turn-dialogue";
 import { useGameData } from "@/app/hooks/useGameData";
 import { useSocket } from "@/app/template";
@@ -51,7 +51,7 @@ export default function Page({
         setDiceOpen={setDialogueOpen}
         allowEnd
       />
-      <ToggleMoralVictoryButton team={team} referee={false} />
+      <MoralLossCounter team={team} referee={false} />
       <SecretaryTurnsList team={team} />
     </div>
   );

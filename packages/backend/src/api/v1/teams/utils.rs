@@ -2,7 +2,7 @@ use crate::api::v1::turns::utils::broadcast_game_update;
 use crate::database::boards::get_board_place;
 use crate::database::games::{end_game, get_full_game_data, get_game_by_id};
 use crate::database::team::get_team_by_id;
-use crate::database::team::set_team_moral_victory_eligible;
+use crate::database::team::set_team_moral_loss_level;
 use crate::database::turns::{end_active_turns, teleport_team as db_teleport_team};
 use crate::utils::errors::wrap_json;
 use crate::utils::ids::TeamId;
@@ -12,21 +12,21 @@ use axum::extract::{Path, State};
 use axum::Json;
 use serde::Deserialize;
 
-/// Request body for PUT /teams/{team_id}/moral-victory-eligible
+/// Request body for PUT /teams/{team_id}/moral-loss-level
 #[derive(Deserialize)]
-pub struct SetMoralVictoryEligibleBody {
-    pub moral_victory_eligible: bool,
+pub struct SetMoralLossLevelBody {
+    pub moral_loss_level: i32,
 }
 
-/// PUT /teams/{team_id}/moral-victory-eligible - Set moral victory eligibility.
-pub async fn set_moral_victory_eligible(
+/// PUT /teams/{team_id}/moral-loss-level - Set moral loss level.
+pub async fn set_moral_loss_level(
     State(state): State<AppState>,
     Path(team_id): Path<TeamId>,
-    Json(body): Json<SetMoralVictoryEligibleBody>,
+    Json(body): Json<SetMoralLossLevelBody>,
 ) -> Result<(), AppError> {
     let client = state.db.get().await?;
     let team = get_team_by_id(&client, team_id).await?;
-    set_team_moral_victory_eligible(&client, team_id, body.moral_victory_eligible).await?;
+    set_team_moral_loss_level(&client, team_id, body.moral_loss_level).await?;
     let game_data = get_full_game_data(&client, team.game_id).await?;
     broadcast_game_update(&state.io, team.game_id, &game_data).await;
     Ok(())

@@ -184,7 +184,7 @@ class Team:
     game_id: int
     team_name: str
     team_hash: str
-    moral_victory_eligible: bool
+    moral_loss_level: int
     @classmethod
     def from_dict(cls, data: Any): return _from_dict(cls, data)
 

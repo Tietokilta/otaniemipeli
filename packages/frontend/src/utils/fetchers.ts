@@ -379,15 +379,15 @@ export async function deleteTeam(
   );
 }
 
-export async function setMoralVictoryEligible(
+export async function setMoralLossLevel(
   teamId: number,
-  moralVictoryEligible: boolean,
+  moralLossLevel: number,
 ): Promise<void> {
   return apiFetchVoid(
-    `${getApiUrl()}/teams/${teamId}/moral-victory-eligible`,
+    `${getApiUrl()}/teams/${teamId}/moral-loss-level`,
     {
       method: "PUT",
-      body: JSON.stringify({ moral_victory_eligible: moralVictoryEligible }),
+      body: JSON.stringify({ moral_loss_level: moralLossLevel }),
     },
     true,
   );

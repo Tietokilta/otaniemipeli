@@ -137,7 +137,7 @@ pub struct Team {
     pub game_id: GameId,
     pub team_name: String,
     pub team_hash: String,
-    pub moral_victory_eligible: bool,
+    pub moral_loss_level: i32,
 }
 
 /// Request body for creating or updating a team's name.

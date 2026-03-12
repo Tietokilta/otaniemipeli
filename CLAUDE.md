@@ -125,7 +125,7 @@ Drink (beverage recipe)
 
 **Team** (`Team`)
 - A team participating in a game
-- Fields: `team_id`, `game_id`, `team_name`, `team_hash`, `moral_victory_eligible`
+- Fields: `team_id`, `game_id`, `team_name`, `team_hash`, `moral_loss_level`
 - Has many turns (chronological history)
 
 **Turn** (`Turn`)
