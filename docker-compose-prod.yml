@@ -11,6 +11,8 @@ services:
       - "127.0.0.1:${PUBLIC_PG_PORT}:${POSTGRES_PORT}"
     env_file:
       - .env
+    networks:
+      - otaniemipeli
 
   database-migrations:
     image: docker.io/flyway/flyway:latest
@@ -24,6 +26,8 @@ services:
     volumes:
       - ./packages/backend/migrations:/flyway/sql
     command: -connectRetries=60 -baselineOnMigrate=true migrate
+    networks:
+      - otaniemipeli
 
   app:
     image: ghcr.io/tietokilta/otaniemipeli/backend:latest
@@ -38,6 +42,8 @@ services:
       - .env
     ports:
       - "127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}"
+    networks:
+      - otaniemipeli
 
   web:
     image: ghcr.io/tietokilta/otaniemipeli/frontend:latest
@@ -49,6 +55,11 @@ services:
     ports:
       - "127.0.0.1:${FRONTEND_PORT}:${FRONTEND_PORT}"
     restart: unless-stopped
+    networks:
+      - otaniemipeli
+
+networks:
+  otaniemipeli:
 
 volumes:
   db_data:
