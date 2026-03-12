@@ -386,7 +386,7 @@ pub async fn set_place_drinks(client: &Client, drinks: PlaceDrinks) -> Result<u6
 
     let query_str = "\
     INSERT INTO place_drinks (drink_id, place_number, board_id, refill, optional, on_table, n) \
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
+    VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
     for drink in &drinks.drinks {
         client
