@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgres:18
+    image: docker.io/postgres:18
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
@@ -13,7 +13,7 @@ services:
       - .env
 
   database-migrations:
-    image: flyway/flyway:latest
+    image: docker.io/flyway/flyway:latest
     env_file:
       - .env
     depends_on:

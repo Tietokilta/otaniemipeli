@@ -1,4 +1,4 @@
-FROM node:24-trixie-slim AS builder
+FROM docker.io/node:24-trixie-slim AS builder
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
@@ -30,7 +30,7 @@ RUN pnpm rebuild
 RUN pnpm build
 
 # ---- runtime stage ----
-FROM node:24-trixie-slim AS runtime
+FROM docker.io/node:24-trixie-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
