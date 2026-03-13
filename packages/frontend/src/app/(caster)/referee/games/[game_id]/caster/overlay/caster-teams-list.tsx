@@ -15,6 +15,7 @@ export function CasterTeamsList({
   const sortedTeams = usePreppedTeams(teams, {
     collect: mode === "moral",
     progress: mode === "progress",
+    moral: mode === "moral",
     board,
   });
 
@@ -47,15 +48,20 @@ export function CasterTeamsList({
             caster-flip"
           style={{ animationDelay: `${(1 + pos) * 125}ms` }}
         >
-          <div className="text-4xl text-secondary-900 font-bold">
+          <div className="text-4xl w-16 text-secondary-900 font-bold">
             {pos + 1}.
           </div>
           <h3 className="text-4xl w-1/5 text-left">{team.team.team_name}</h3>
-          <div className="text-4xl text-secondary-900 font-bold">
+          <div className="text-4xl flex-1 text-secondary-900 font-bold">
             {mode === "moral"
               ? "I".repeat(team.total_drunk)
               : `${distances?.[pos]} ruutua maaliin`}
           </div>
+          {team.team.moral_loss_level > 0 && (
+            <div className="text-3xl text-tertiary-900">
+              🤮 {team.team.moral_loss_level}
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -17,6 +17,7 @@ export function usePreppedTeams(
     collect = false,
     progress = false,
     assistant = false,
+    moral = false,
     board,
   }: {
     /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
@@ -25,12 +26,20 @@ export function usePreppedTeams(
     progress?: boolean;
     /** Whether the list is for the assistant referee, which has different sorting logic */
     assistant?: boolean;
+    /** Whether the list is for moral victory, which has different sorting logic */
+    moral?: boolean;
     board?: BoardPlacesWithDistances;
   },
 ) {
   return useMemo(
     () =>
       teams.toSorted((a, b) => {
+        if (moral) {
+          if (b.team.moral_loss_level !== a.team.moral_loss_level) {
+            return a.team.moral_loss_level - b.team.moral_loss_level;
+          }
+        }
+
         if (collect) {
           // In collect mode, sort teams by drunk drinks (most drinks first),
           // then total drinks awarded, then by total turn time (shortest time first)
@@ -147,7 +156,7 @@ export function usePreppedTeams(
           .reduce((prev, curr) => Math.min(prev, curr));
         return aFirst - bFirst;
       }),
-    [teams, collect, progress, board, assistant],
+    [teams, collect, moral, progress, board, assistant],
   );
 }
 
