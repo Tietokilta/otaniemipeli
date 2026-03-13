@@ -128,7 +128,7 @@ export default function AdminTemplate({
 
     const verify = () => {
       const auth: SocketAuth = {
-        token: localStorage.getItem("auth_token") ?? "",
+        token: getSessionToken(overlayAuth),
       };
       socket.emit("verify-login", auth);
     };
