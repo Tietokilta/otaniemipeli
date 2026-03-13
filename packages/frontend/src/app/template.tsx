@@ -64,9 +64,13 @@ export default function AdminTemplate({
 
     const token = getSessionToken(overlayAuth);
 
-    const s = io(`${getApiBaseUrl()}/referee`, {
+    // Socket.io parses the path very weirdly, so we need to jump through hoops
+    // with reverse proxies that rewrite the path.
+    const apiBase = new URL(getApiBaseUrl());
+    const s = io(`${apiBase.origin}/referee`, {
       transports: ["websocket", "polling"],
       auth: { token },
+      path: `${apiBase.pathname.replace(/\/$/, "")}/socket.io`,
       withCredentials: true,
     });
 
