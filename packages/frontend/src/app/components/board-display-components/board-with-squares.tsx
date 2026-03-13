@@ -16,8 +16,8 @@ export default function BoardWithSquares({
   className,
 }: {
   places: BoardPlaces;
-  focusedPlace: BoardPlace;
-  setFocusedPlace: React.Dispatch<React.SetStateAction<BoardPlace>>;
+  focusedPlace?: BoardPlace;
+  setFocusedPlace?: React.Dispatch<React.SetStateAction<BoardPlace>>;
   toggleGraphics?: boolean;
   className?: string;
 }): JSX.Element {

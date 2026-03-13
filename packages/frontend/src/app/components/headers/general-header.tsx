@@ -53,6 +53,7 @@ export default function GeneralHeader({
   items?: HeaderItem[];
 }) {
   const segments = useSelectedLayoutSegments();
+  const caster = base_path === "/referee" && segments[2] === "caster";
   const minimal = segments.length === 4 && base_path === "/secretary";
   const head = segments.length === 2 && base_path === "/referee";
   const assistant =
@@ -71,11 +72,15 @@ export default function GeneralHeader({
     router.push("/");
   };
 
-  const role = head
-    ? "Päätuomari"
-    : assistant
-      ? "Aputuomari"
-      : userTypeNames[base_path.replace("/", "") as keyof typeof userTypeNames];
+  const role = caster
+    ? "Striimaaja"
+    : head
+      ? "Päätuomari"
+      : assistant
+        ? "Aputuomari"
+        : userTypeNames[
+            base_path.replace("/", "") as keyof typeof userTypeNames
+          ];
 
   return (
     <div className="flex items-end justify-right w-full h-min-content px-4 bg-quaternary-500">

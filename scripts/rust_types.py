@@ -101,6 +101,8 @@ UserType = Literal["Admin", "Ie", "Referee", "Secretary"]
 
 DrinkPrepStatus = Literal["Queued", "Mixing", "Mixed", "Delivered"]
 
+OverlayState = Literal["None", "MoralVictory", "BoardProgress", "GameBoard"]
+
 
 
 @dataclass

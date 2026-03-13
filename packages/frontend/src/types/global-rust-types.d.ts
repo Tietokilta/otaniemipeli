@@ -8,6 +8,8 @@ declare global {
 
   type DrinkPrepStatus = "Queued" | "Mixing" | "Mixed" | "Delivered";
 
+  type OverlayState = "None" | "MoralVictory" | "BoardProgress" | "GameBoard";
+
   type WithNameAndId = { id: string | number; name: string };
 
   interface HeaderItem {

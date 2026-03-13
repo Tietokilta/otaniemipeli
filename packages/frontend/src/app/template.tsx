@@ -12,17 +12,36 @@ export function useSocket() {
   return useContext(SocketContext);
 }
 
-function authorisationCheck(session: SessionInfo, pathname: string): boolean {
+function neededType(pathname: string): UserType | null {
   for (const type of UserTypes) {
     if (pathname.startsWith("/" + type.toLowerCase())) {
-      return session.user_types.user_types.includes(type);
+      return type;
     }
   }
-  return false;
+  return null;
 }
+
+/** Paths that need neither socket nor auth. */
 function ignoredPaths(pathname: string): boolean {
   const ignored = ["/follow", "/api", "/favicon.ico", "/_next", "/_vercel"];
   return ignored.some((path) => pathname.startsWith(path));
+}
+
+/** Paths that need a socket but should skip auth (no redirect on invalid token). */
+function overlayPaths(pathname: string): boolean {
+  return pathname.endsWith("/caster/overlay");
+}
+
+function getSessionToken(overlayAuth: boolean): string {
+  let token = localStorage.getItem("auth_token") || "";
+
+  // For skipAuth paths (e.g. caster overlay), read the token from the URL hash
+  if (overlayAuth) {
+    const hash = window.location.hash.slice(1);
+    token ||= hash;
+  }
+
+  return token;
 }
 
 export default function AdminTemplate({
@@ -36,14 +55,18 @@ export default function AdminTemplate({
 
   // All authenticated pages use the /referee namespace for websocket
   const needsSocket = !ignoredPaths(pathname);
+  const needsUserType = neededType(pathname);
+  const overlayAuth = needsSocket && overlayPaths(pathname);
 
   useEffect(() => {
     console.log("AdminTemplate starting socket:", needsSocket);
     if (!needsSocket) return;
 
+    const token = getSessionToken(overlayAuth);
+
     const s = io(`${getApiBaseUrl()}/referee`, {
       transports: ["websocket", "polling"],
-      auth: { token: localStorage.getItem("auth_token") || "" },
+      auth: { token },
       withCredentials: true,
     });
 
@@ -55,48 +78,46 @@ export default function AdminTemplate({
       s.close();
       setSocket(null);
     };
-  }, [needsSocket]);
+  }, [needsSocket, overlayAuth]);
 
   useEffect(() => {
-    if (ignoredPaths(pathname)) {
+    if (overlayAuth) return;
+
+    const sessionToken = getSessionToken(overlayAuth);
+    if (!sessionToken) {
+      router.push("/");
       return;
-    } else {
-      const sessionToken = localStorage.getItem("auth_token");
-      if (!sessionToken) {
-        router.push("/");
-        return;
-      }
-      verifySession(sessionToken)
-        .then((data: SessionInfo | undefined) => {
-          if (data) {
-            if (!authorisationCheck(data, pathname)) {
-              router.push("/");
-            }
-          }
-        })
-        .catch(() => {
-          router.push("/");
-        });
     }
-  }, [pathname, router]);
+    verifySession(sessionToken)
+      .then((data: SessionInfo | undefined) => {
+        if (
+          data &&
+          needsUserType &&
+          !data.user_types.user_types.includes(needsUserType)
+        ) {
+          router.push("/");
+        }
+      })
+      .catch(() => {
+        router.push("/");
+      });
+  }, [overlayAuth, needsUserType, router]);
 
   useEffect(() => {
     if (!socket) return;
 
     const onUnauthorized = () => {
+      if (overlayAuth) return;
       localStorage.removeItem("auth_token");
       router.push("/");
     };
 
     const onVerificationReply = (ok: boolean) => {
-      if (!ok) {
+      if (!ok && !overlayAuth) {
         localStorage.removeItem("auth_token");
         router.push("/");
       }
     };
-
-    socket.off("unauthorized", onUnauthorized);
-    socket.off("verification-reply", onVerificationReply);
 
     socket.on("unauthorized", onUnauthorized);
     socket.on("verification-reply", onVerificationReply);
@@ -108,20 +129,18 @@ export default function AdminTemplate({
       socket.emit("verify-login", auth);
     };
 
-    const onConnect = () => verify();
-
     if (socket.connected) verify();
-    socket.on("connect", onConnect);
+    socket.on("connect", verify);
 
     const intervalId = window.setInterval(verify, 20 * 60 * 1000);
 
     return () => {
-      socket.off("connect", onConnect);
+      socket.off("connect", verify);
       socket.off("unauthorized", onUnauthorized);
       socket.off("verification-reply", onVerificationReply);
       window.clearInterval(intervalId);
     };
-  }, [socket, router]);
+  }, [socket, overlayAuth, router]);
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );

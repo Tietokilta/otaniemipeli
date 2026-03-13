@@ -11,8 +11,8 @@ export default function SquareLayer({
   functional = false,
 }: {
   placesIn: BoardPlaces;
-  focusedPlace: BoardPlace;
-  setFocusedPlace: React.Dispatch<React.SetStateAction<BoardPlace>>;
+  focusedPlace?: BoardPlace;
+  setFocusedPlace?: React.Dispatch<React.SetStateAction<BoardPlace>>;
   photo: boolean;
   functional?: boolean;
 }) {
@@ -46,8 +46,8 @@ export default function SquareLayer({
     if (focusedPlace === null || !places || !functional) return;
 
     const updated = { ...places };
-    updated.places = updated.places.map((p, idx) => {
-      if (idx !== focusedPlace.place_number) return p;
+    updated.places = updated.places.map((p) => {
+      if (p.place_number !== focusedPlace?.place_number) return p;
 
       return {
         ...p,
@@ -74,7 +74,7 @@ export default function SquareLayer({
           }
           tabIndex={0}
           key={place.place_number}
-          onFocus={() => setFocusedPlace(place)}
+          onFocus={() => setFocusedPlace?.(place)}
           onKeyDown={(e) => {
             keyDownHandler(e, place);
           }}
@@ -82,7 +82,7 @@ export default function SquareLayer({
         >
           <div
             className={
-              photo && !(focusedPlace.place_number == place.place_number)
+              photo && !(focusedPlace?.place_number == place.place_number)
                 ? `absolute rounded-full
                 hover:border-[4px]
                 hover:border-[var(--color-square)] 
@@ -105,7 +105,7 @@ export default function SquareLayer({
             }}
           >
             <div className="w-full h-full center flex">
-              {place.place_number === focusedPlace.place_number && (
+              {place.place_number === focusedPlace?.place_number && (
                 <>
                   <div
                     className={

@@ -2,6 +2,7 @@ import { HorizontalList } from "@/app/components/generic-list-components";
 import TeamTurnCard, {
   GameTeamWithTotals,
 } from "@/app/components/team-components/team-turn-card";
+import type { BoardPlacesWithDistances } from "@/app/hooks/useGameData";
 import {
   findAssistantRefereeTurnId,
   getTurnNeedingAssistantReferee,
@@ -10,27 +11,24 @@ import {
 } from "@/utils/turns";
 import { useMemo } from "react";
 
-export default function GameTeamTurnsList({
-  teams,
-  board,
-  collect = false,
-  assistant = false,
-  className,
-}: {
-  teams: GameTeamWithTotals[];
-  board?: BoardPlaces;
-  /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
-  collect?: boolean;
-  assistant?: boolean;
-  className?: string;
-}): JSX.Element {
-  // Find the first turn awaiting assistant referee input
-  const assistantRefereeTurnId = useMemo(
-    () => findAssistantRefereeTurnId(teams),
-    [teams],
-  );
-
-  const sortedTeams = useMemo(
+export function usePreppedTeams(
+  teams: GameTeamWithTotals[],
+  {
+    collect = false,
+    progress = false,
+    assistant = false,
+    board,
+  }: {
+    /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
+    collect?: boolean;
+    /** Whether to sort teams by their progress on the board */
+    progress?: boolean;
+    /** Whether the list is for the assistant referee, which has different sorting logic */
+    assistant?: boolean;
+    board?: BoardPlacesWithDistances;
+  },
+) {
+  return useMemo(
     () =>
       teams.toSorted((a, b) => {
         if (collect) {
@@ -43,6 +41,28 @@ export default function GameTeamTurnsList({
             return b.total_drinks - a.total_drinks;
           }
           return a.combined_time - b.combined_time;
+        }
+
+        if (progress && board) {
+          // In progress mode, sort teams by their closest distance to the end (shortest distance first)
+          const aPlaceNumber = a.turns.findLast(
+            (turn) => turn.place_number != null,
+          )?.place_number;
+          const bPlaceNumber = b.turns.findLast(
+            (turn) => turn.place_number != null,
+          )?.place_number;
+          const aDistance = board.places.find(
+            (place) => place.place_number === aPlaceNumber,
+          )?.distanceToEnd;
+          const bDistance = board.places.find(
+            (place) => place.place_number === bPlaceNumber,
+          )?.distanceToEnd;
+
+          if (aDistance != null && bDistance != null) {
+            return aDistance - bDistance;
+          }
+          if (aDistance != null) return -1;
+          if (bDistance != null) return 1;
         }
 
         // teams with no turns go last
@@ -127,8 +147,31 @@ export default function GameTeamTurnsList({
           .reduce((prev, curr) => Math.min(prev, curr));
         return aFirst - bFirst;
       }),
-    [teams, collect, assistant],
+    [teams, collect, progress, board, assistant],
   );
+}
+
+export default function GameTeamTurnsList({
+  teams,
+  board,
+  collect = false,
+  assistant = false,
+  className,
+}: {
+  teams: GameTeamWithTotals[];
+  board?: BoardPlaces;
+  /** Whether to collect all earned drinks, if false only shows active turns (undrunk drinks) */
+  collect?: boolean;
+  assistant?: boolean;
+  className?: string;
+}): JSX.Element {
+  // Find the first turn awaiting assistant referee input
+  const assistantRefereeTurnId = useMemo(
+    () => findAssistantRefereeTurnId(teams),
+    [teams],
+  );
+
+  const sortedTeams = usePreppedTeams(teams, { collect, assistant });
 
   const teamCards = useMemo(
     () =>

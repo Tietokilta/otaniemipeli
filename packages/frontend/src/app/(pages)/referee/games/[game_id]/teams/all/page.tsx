@@ -17,8 +17,10 @@ import { use, useMemo } from "react";
 
 export default function Page({
   params,
+  caster = false,
 }: {
   params: Promise<{ game_id: string }>;
+  caster?: boolean;
 }) {
   const socket = useSocket();
   const { game_id } = use(params);
@@ -41,7 +43,14 @@ export default function Page({
   return (
     <>
       <nav className="flex items-center gap-4 mb-4">
-        <Link href={`/referee/games/${game_id}`} className="button">
+        <Link
+          href={
+            caster
+              ? `/referee/games/${game_id}/caster`
+              : `/referee/games/${game_id}`
+          }
+          className="button"
+        >
           Takaisin peliin
         </Link>
         <h1 className="text-2xl font-bold mb-0 pb-0">

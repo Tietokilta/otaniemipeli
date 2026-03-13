@@ -77,7 +77,13 @@ export function computeTotals(team: GameTeam): GameTeamWithTotals {
   };
 }
 
-export function TurnState({ turn }: { turn: Turn }): JSX.Element {
+export function TurnState({
+  turn,
+  showDuration = true,
+}: {
+  turn: Turn;
+  showDuration?: boolean;
+}): JSX.Element {
   if (turn.end_time) {
     const startTs = dateFromDb(turn.start_time).getTime();
     const endTs = dateFromDb(turn.end_time).getTime();
@@ -86,9 +92,15 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
     return (
       <>
         <p className="text-quaternary-500">
-          Valmiina! (<TimeSince timestamp={turn.end_time} />)
+          Valmiina!
+          {showDuration && (
+            <>
+              {" "}
+              (<TimeSince timestamp={turn.end_time} />)
+            </>
+          )}
         </p>
-        <p>Vuoro kesti: {dur}</p>
+        {showDuration && <p>Vuoro kesti: {dur}</p>}
       </>
     );
   }
@@ -109,16 +121,25 @@ export function TurnState({ turn }: { turn: Turn }): JSX.Element {
           status === TurnStatus.WaitingForAssistantReferee ||
           status === TurnStatus.WaitingForYkkonen ||
           status === TurnStatus.WaitingForDice ||
-          status === TurnStatus.WaitingForExtraDice
+          status === TurnStatus.WaitingForExtraDice ||
+          !showDuration
             ? "text-quaternary-500"
             : ""
         }
       >
-        {turnStatusTexts[status]} (<TimeSince timestamp={lastChange} />)
+        {turnStatusTexts[status]}
+        {showDuration && (
+          <>
+            {" "}
+            (<TimeSince timestamp={lastChange} />)
+          </>
+        )}
       </p>
-      <p>
-        Vuoro alkoi <TimeSince timestamp={turn.start_time} /> sitten
-      </p>
+      {showDuration && (
+        <p>
+          Vuoro alkoi <TimeSince timestamp={turn.start_time} /> sitten
+        </p>
+      )}
     </>
   );
 }

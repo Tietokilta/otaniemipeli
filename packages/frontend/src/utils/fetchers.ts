@@ -1,6 +1,6 @@
 import { getApiUrl, getApiBaseUrl } from "@/utils/env";
 
-function getToken(): string {
+export function getToken(): string {
   return typeof window !== "undefined"
     ? (localStorage.getItem("auth_token") ?? "")
     : "";
@@ -374,6 +374,21 @@ export async function deleteTeam(
     `${getApiUrl()}/games/${gameId}/teams/${teamId}`,
     {
       method: "DELETE",
+    },
+    true,
+  );
+}
+
+/** Broadcasts overlay state to all clients in the game room. */
+export async function setOverlayState(
+  gameId: number,
+  state: OverlayState,
+): Promise<void> {
+  return apiFetchVoid(
+    `${getApiUrl()}/games/${gameId}/overlay`,
+    {
+      method: "PUT",
+      body: JSON.stringify(state),
     },
     true,
   );

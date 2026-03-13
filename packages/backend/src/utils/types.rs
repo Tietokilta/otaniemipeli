@@ -486,3 +486,11 @@ pub struct Drinks {
 pub struct IngredientIdQuery {
     pub ingredient_id: IngredientId,
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum OverlayState {
+    None,
+    MoralVictory,
+    BoardProgress,
+    GameBoard,
+}

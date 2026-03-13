@@ -1,0 +1,30 @@
+/* Expand animation for new turns. */
+.caster-turn-slide-enter {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.caster-turn-slide-enter-active {
+    opacity: 1;
+    max-height: 200px;
+    overflow: hidden;
+    transition:
+        opacity 400ms ease-out,
+        max-height 400ms ease-out;
+}
+
+.caster-turn-slide-exit {
+    opacity: 1;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.caster-turn-slide-exit-active {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition:
+        opacity 400ms ease-in,
+        max-height 400ms ease-in;
+}

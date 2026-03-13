@@ -9,10 +9,11 @@ use crate::database::team::{
 use crate::utils::errors::wrap_json;
 use crate::utils::ids::{GameId, TeamId};
 use crate::utils::state::{AppError, AppState};
-use crate::utils::types::{FirstTurnPost, Game, Games, PostGame, TeamNameUpdate};
+use crate::utils::types::{FirstTurnPost, Game, Games, OverlayState, PostGame, TeamNameUpdate};
 use axum::extract::{Path, State};
 use axum::Json;
 use deadpool_postgres::Client;
+use socketioxide::SocketIo;
 
 pub async fn games_get(state: State<AppState>) -> Result<Json<Games>, AppError> {
     let client: Client = state.db.get().await?;
@@ -76,5 +77,25 @@ pub async fn delete_team(
     db_delete_team(&client, team_id).await?;
     let game_data = get_full_game_data(&client, game_id).await?;
     broadcast_game_update(&state.io, game_id, &game_data).await;
+    Ok(())
+}
+
+/// Broadcasts overlay state to all clients subscribed to a game room.
+async fn broadcast_overlay_state(io: &SocketIo, game_id: GameId, data: &OverlayState) {
+    let room = format!("game:{}", game_id.0);
+    if let Some(ns) = io.of("/referee") {
+        if let Err(e) = ns.to(room).emit("overlay-state", data).await {
+            tracing::error!("Failed to broadcast overlay state: {e}");
+        }
+    }
+}
+
+/// PUT /games/{game_id}/overlay - Broadcast overlay state to game clients.
+pub async fn set_overlay_state(
+    State(state): State<AppState>,
+    Path(game_id): Path<GameId>,
+    Json(overlay_state): Json<OverlayState>,
+) -> Result<(), AppError> {
+    broadcast_overlay_state(&state.io, game_id, &overlay_state).await;
     Ok(())
 }

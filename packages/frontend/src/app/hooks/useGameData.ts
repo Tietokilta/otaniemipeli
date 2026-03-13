@@ -83,12 +83,82 @@ export function useGameData(
   return { gameData, error, isLoading, setGameData };
 }
 
+export type BoardPlaceWithDistance = BoardPlace & { distanceToEnd: number };
+
+export type BoardPlacesWithDistances = {
+  board: Board;
+  places: BoardPlaceWithDistance[];
+};
+
+/**
+ * Compute shortest distances from each place to the end using BFS on the
+ * reverse graph. On-land connections are treated as zero-cost (the origin
+ * collapses to the same distance as the target).
+ */
+function computeDistancesToEnd({
+  board,
+  places,
+}: BoardPlaces): BoardPlacesWithDistances {
+  const endPlace = places.find((place) => place.end);
+  if (!endPlace) {
+    return {
+      board,
+      places: places.map((place) => ({ ...place, distanceToEnd: Infinity })),
+    };
+  }
+
+  // Build a map from place_number to BoardPlace for quick lookup
+  const placeMap = new Map<number, BoardPlace>(
+    places.map((place) => [place.place_number, place]),
+  );
+
+  // 0-1 BFS from end, traversing reverse edges (backwards connections).
+  // On-land edges have weight 0; normal edges have weight 1.
+  const dist = new Map<number, number>();
+  const deque: number[] = [];
+
+  dist.set(endPlace.place_number, 0);
+  deque.push(endPlace.place_number);
+
+  while (deque.length > 0) {
+    const curr = deque.shift()!;
+    const currDist = dist.get(curr)!;
+    const currPlace = placeMap.get(curr)!;
+
+    for (const conn of currPlace.connections.backwards) {
+      const prev = conn.target;
+      const newDist = conn.on_land ? currDist : currDist + 1;
+
+      if (newDist < (dist.get(prev) ?? Infinity)) {
+        dist.set(prev, newDist);
+        // Weight-0 edges go to front, weight-1 edges go to back
+        if (conn.on_land) {
+          deque.unshift(prev);
+        } else {
+          deque.push(prev);
+        }
+      }
+    }
+  }
+
+  return {
+    board,
+    places: places.map((place) => ({
+      ...place,
+      distanceToEnd: dist.get(place.place_number) ?? Infinity,
+    })),
+  };
+}
+
 export function useGameBoard(gameData: GameData | undefined) {
-  const [board, setBoard] = useState<BoardPlaces | undefined>();
+  const [board, setBoard] = useState<BoardPlacesWithDistances | undefined>();
   useEffect(() => {
     // get board places
     if (gameData?.game.board.id)
-      getBoardPlaces(gameData.game.board.id).then(setBoard).catch(toastError);
+      getBoardPlaces(gameData.game.board.id)
+        .then(computeDistancesToEnd)
+        .then(setBoard)
+        .catch(toastError);
   }, [gameData?.game.board.id]);
   return board;
 }

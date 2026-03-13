@@ -1,0 +1,59 @@
+.caster-flip {
+    transform: perspective(800px) rotate3d(1, 0, 0, 0deg);
+    backface-visibility: hidden;
+}
+
+/* Exit: flip children out */
+.caster-exit-active .caster-flip {
+    animation: caster-flip-out 0.8s ease-in-out both;
+}
+
+/* Enter: flip children in */
+.caster-enter-active .caster-flip,
+.caster-appear-active .caster-flip {
+    animation: caster-flip-in 0.8s ease-in-out both;
+}
+
+@keyframes caster-flip-in {
+    from {
+        transform: perspective(800px) rotate3d(1, 0, 0, 179.99deg);
+    }
+    to {
+        transform: perspective(800px) rotate3d(1, 0, 0, 0deg);
+    }
+}
+
+@keyframes caster-flip-out {
+    from {
+        transform: perspective(800px) rotate3d(1, 0, 0, 0deg);
+    }
+    to {
+        transform: perspective(800px) rotate3d(1, 0, 0, -179.99deg);
+    }
+}
+
+/* Wipe transition: reveals/hides from top */
+.caster-enter .caster-wipe,
+.caster-appear .caster-wipe {
+    clip-path: inset(0 0 100% 0);
+}
+
+.caster-enter-active .caster-wipe,
+.caster-appear-active .caster-wipe {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 1.4s ease-in-out;
+    transition-delay: 0.5s;
+}
+
+.caster-enter-done .caster-wipe {
+    clip-path: inset(0 0 0 0);
+}
+
+.caster-exit .caster-wipe {
+    clip-path: inset(0 0 0 0);
+}
+
+.caster-exit-active .caster-wipe {
+    clip-path: inset(100% 0 0 0);
+    transition: clip-path 1.4s ease-in-out;
+}
