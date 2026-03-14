@@ -88,6 +88,14 @@ function CasterTurnCard({
       <strong>{turn.team.team.team_name}</strong>
       -
       <TurnState turn={turn} showDuration={false} />
+      {turn?.dice1 != null && (
+        <>
+          -
+          <span>
+            {turn.dice1}+{turn.dice2}
+          </span>
+        </>
+      )}
       {!turn.penalty && (
         <>
           -
