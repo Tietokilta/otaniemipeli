@@ -196,6 +196,7 @@ export default function Page({
             <BoardWithSquares
               className="caster-wipe h-full !w-auto aspect-[420_/_244]"
               places={board}
+              teams={gameData.teams}
             />
           </div>
         </div>

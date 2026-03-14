@@ -14,12 +14,14 @@ export default function BoardWithSquares({
   setFocusedPlace,
   toggleGraphics = false,
   className,
+  teams,
 }: {
   places: BoardPlaces;
   focusedPlace?: BoardPlace;
   setFocusedPlace?: React.Dispatch<React.SetStateAction<BoardPlace>>;
   toggleGraphics?: boolean;
   className?: string;
+  teams?: GameTeam[];
 }): JSX.Element {
   const [photo, setPhoto] = React.useState<boolean>(true);
   const [showLines, setShowLines] = React.useState<boolean>(true);
@@ -76,6 +78,7 @@ export default function BoardWithSquares({
             setFocusedPlace={setFocusedPlace}
             photo={photo}
             functional={isAdmin}
+            teams={teams}
           />
         )}
       </div>
